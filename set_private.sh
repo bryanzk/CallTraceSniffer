@@ -23,7 +23,7 @@ if command -v gh &> /dev/null; then
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo "正在设置..."
-            gh repo edit "$REPO" --visibility private
+            gh repo edit "$REPO" --visibility private --accept-visibility-change-consequences
             echo ""
             echo "✅ 仓库已设置为私有！"
             echo ""
