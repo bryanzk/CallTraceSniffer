@@ -158,7 +158,8 @@ def register_routes(app, extracted_data_cache):
                                     'swaps': analysis['swaps'],
                                     'transfers': analysis['transfers'],
                                     'execution_tree': analysis['execution_tree'],
-                                    'stats': analysis['stats']
+                                    'stats': analysis['stats'],
+                                    'formatted_output': analysis['formatted_output']
                                 })
                             else:
                                 results.append({
