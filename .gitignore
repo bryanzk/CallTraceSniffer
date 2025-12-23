@@ -43,6 +43,12 @@ logs/
 # Docker volumes
 data/
 
+# Local development files (not for production)
+local/
+
+# Local files (outputs, temporary data, logs)
+local/
+
 # Environment variables
 .env
 .env.local
