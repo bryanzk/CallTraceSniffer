@@ -17,7 +17,21 @@ CASES = ['case9', 'case12', 'case21', 'case33']
 
 def process_case(case_name: str):
     """处理单个case的数据"""
-    data_file = f'{case_name}_blocksec_data.json'
+    # 尝试多个可能的路径
+    possible_paths = [
+        f'{case_name}_blocksec_data.json',
+        f'local/output/{case_name}_blocksec_data.json',
+    ]
+    
+    data_file = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            data_file = path
+            break
+    
+    if not data_file:
+        print(f"错误: 未找到 {case_name}_blocksec_data.json (尝试了: {possible_paths})")
+        return None
     
     try:
         with open(data_file, 'r', encoding='utf-8') as f:
@@ -37,19 +51,28 @@ def process_case(case_name: str):
     main_trace = trace_data.get('mainTrace', [])
     
     # 提取Transfers
-        transfers = converter.extract_transfers_from_data(data_map)
+    transfers = converter.extract_transfers_from_data(data_map)
     
     # 提取Swaps
-        swaps = converter.extract_swaps_from_data(data_map, main_trace)
+    swaps = converter.extract_swaps_from_data(data_map, main_trace)
     
     # 构建简化的ExecutionTree
-        execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
+    execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
     
     # 生成输出
     output = converter.generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
     
-    # 保存到文件
-    output_file = f'{case_name}_blocksec_output.yaml'
+    # 保存到文件（尝试多个可能的路径）
+    possible_output_paths = [
+        f'{case_name}_blocksec_output.yaml',
+        f'local/output/{case_name}_blocksec_output.yaml',
+    ]
+    
+    output_file = possible_output_paths[0]  # 默认使用第一个
+    # 如果数据文件在local/output，输出文件也在那里
+    if 'local/output' in data_file:
+        output_file = possible_output_paths[1]
+    
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(output)
     
