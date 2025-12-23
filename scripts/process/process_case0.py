@@ -4,14 +4,13 @@
 """
 import json
 import sys
-sys.path.append('.')
-from convert_to_test_case_v2 import (
-    extract_transfers_from_data,
-    extract_swaps_from_data,
-    build_execution_tree_simplified,
-    generate_test_case_format,
-    format_address
-)
+import os
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
+
+converter = TransactionConverter()
 
 def process_case0():
     """处理case0数据"""
@@ -32,19 +31,19 @@ def process_case0():
     print("正在提取数据...")
     
     # 提取Transfers
-    transfers = extract_transfers_from_data(data_map)
+    transfers = converter.extract_transfers_from_data(data_map)
     print(f"找到 {len(transfers)} 个 Transfer")
     
     # 提取Swaps
-    swaps = extract_swaps_from_data(data_map, main_trace)
+    swaps = converter.extract_swaps_from_data(data_map, main_trace)
     print(f"找到 {len(swaps)} 个 Swap")
     
     # 构建简化的ExecutionTree
-    execution_tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+    execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
     print(f"构建执行树: {len(execution_tree['root_nodes'])} 个根节点")
     
     # 生成输出
-    output = generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
+    output = converter.generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
     
     # 保存到文件
     output_file = 'case0_blocksec_output.yaml'

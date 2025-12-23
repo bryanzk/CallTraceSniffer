@@ -4,15 +4,14 @@
 """
 import json
 import sys
+import os
 import re
-sys.path.append('.')
-from convert_to_test_case_v2 import (
-    extract_transfers_from_data,
-    extract_swaps_from_data,
-    build_execution_tree_simplified,
-    generate_test_case_format,
-    format_address
-)
+# 添加src目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
+
+converter = TransactionConverter()
 
 CASES = ['case9', 'case12', 'case21', 'case33']
 
@@ -38,16 +37,16 @@ def process_case(case_name: str):
     main_trace = trace_data.get('mainTrace', [])
     
     # 提取Transfers
-    transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
     
     # 提取Swaps
-    swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
     
     # 构建简化的ExecutionTree
-    execution_tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
     
     # 生成输出
-    output = generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
+    output = converter.generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
     
     # 保存到文件
     output_file = f'{case_name}_blocksec_output.yaml'
