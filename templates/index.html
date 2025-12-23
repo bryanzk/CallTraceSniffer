@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockSec 交易分析工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 BlockSec 交易分析工具</h1>
+            <p class="subtitle">分析以太坊交易的 Swaps、Transfers 和 ExecutionTree</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('single')">单个交易</button>
+            <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
+        </div>
+
+        <!-- 单个交易分析 -->
+        <div id="single-tab" class="tab-content active">
+            <div class="input-section">
+                <label for="tx-hash">交易哈希 (Tx Hash):</label>
+                <div class="input-group">
+                    <input type="text" id="tx-hash" placeholder="0x..." class="tx-input">
+                    <button onclick="analyzeSingle()" class="btn btn-primary">分析</button>
+                </div>
+                <small class="hint">请输入完整的交易哈希（0x开头，66个字符）</small>
+            </div>
+
+            <div id="single-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>分析结果</h2>
+                    <button onclick="downloadResult('single')" class="btn btn-secondary">下载结果</button>
+                </div>
+                <div id="single-stats" class="stats-grid"></div>
+                <div id="single-output" class="output-box"></div>
+            </div>
+        </div>
+
+        <!-- 批量分析 -->
+        <div id="batch-tab" class="tab-content">
+            <div class="input-section">
+                <label for="csv-file">上传CSV文件:</label>
+                <div class="file-upload">
+                    <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(event)">
+                    <label for="csv-file" class="file-label">
+                        <span class="file-icon">📁</span>
+                        <span class="file-text">选择CSV文件</span>
+                    </label>
+                </div>
+                <small class="hint">CSV文件格式：第一列为交易哈希，每行一个。最多支持10个交易。</small>
+                <div id="file-info" class="file-info" style="display: none;"></div>
+                <button onclick="analyzeBatch()" class="btn btn-primary" id="batch-btn" disabled>开始批量分析</button>
+            </div>
+
+            <div id="batch-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>批量分析结果</h2>
+                </div>
+                <div id="batch-stats" class="batch-stats"></div>
+                <div id="batch-output" class="batch-output"></div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>正在分析交易数据，请稍候...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+

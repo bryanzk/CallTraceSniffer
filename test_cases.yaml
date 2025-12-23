@@ -1,0 +1,148 @@
+     
+========== case0 AFTER Op_5 ==========
+TX: 0x0807fd45ea0116616ab5cb6b81dd1c395179713fd2465c1d610df14c0c404004
+     📦 Swaps: 1
+        [0] 0x4b2Cde9e... | Form: Scope | Plan: Pre(OptimisticTransfer 0xC02aaA39...) Post(Repay 0xb2617246...) | Payload: 1 nodes
+            0xb2617246... → 0xC02aaA39...
+            └─ Payload[0]: 0xb36ec83D...
+     
+     🌳 ExecutionTree: 1 root nodes
+     Root[0]: 0x4b2Cde9e... Form:Scope [1 children]
+        Child[0]: 0xb36ec83D... Form:Node
+     
+     🔗 Transfers: 3 total | Gas Cost: 51000
+        Router: 2 | Direct: 1 | Virtual: 0
+     
+        [0] 🔴 🏊0x4b2Cde9e... → 🏦Router
+            Token: 0xC02aaA39... | Amount: 261367284155547648
+            Type: Router | Cost: 23000 gas
+        [1] 🔴 🏦Router → 🏊0xb36ec83D...
+            Token: 0xC02aaA39... | Amount: 255999996669722624
+            Type: Router | Cost: 23000 gas
+        [2] 🟢 🏊0xb36ec83D... → 🏊0x4b2Cde9e...
+            Token: 0xb2617246... | Amount: 9930559619966812815360
+            Type: Direct | Cost: 5000 gas
+     
+========== case9 AFTER Op_5 ==========
+TX: 0x4036183ad1acab4c38a6d3027eb6e734fcc587477b6f26a109f1c6f49cbd5ec1
+     📦 Swaps: 1
+        [0] 0x5d4F3C6f... | Form: Scope | Plan: Pre(OptimisticTransfer 0xC02aaA39...) Post(Repay 0x51491077...) | Payload: 2 nodes
+            0x51491077... → 0xC02aaA39...
+            └─ Payload[0]: 0x01dbAa18...
+            └─ Payload[1]: 0x62cB46A1...
+     
+     🌳 ExecutionTree: 1 root nodes
+     Root[0]: 0x5d4F3C6f... Form:Scope [2 children]
+        Child[0]: 0x01dbAa18... Form:Node
+        Child[1]: 0x62cB46A1... Form:Node
+     
+     🔗 Transfers: 4 total | Gas Cost: 56000
+        Router: 2 | Direct: 2 | Virtual: 0
+     
+        [0] 🔴 🏊0x5d4F3C6f... → 🏦Router
+            Token: 0xC02aaA39... | Amount: 9048316788604928
+            Type: Router | Cost: 23000 gas
+        [1] 🔴 🏦Router → 🏊0x01dbAa18...
+            Token: 0xC02aaA39... | Amount: 8999999983583232
+            Type: Router | Cost: 23000 gas
+        [2] 🟢 🏊0x01dbAa18... → 🏊0x62cB46A1...
+            Token: 0xDfC59641... | Amount: 7164691641740755468288
+            Type: Direct | Cost: 5000 gas
+        [3] 🟢 🏊0x62cB46A1... → 🏊0x5d4F3C6f...
+            Token: 0x51491077... | Amount: 1904707907174268928
+            Type: Direct | Cost: 5000 gas
+     
+========== case12 AFTER Op_5 ==========
+TX: 0x3d59ac33bcc54b76ba9000443983c0fa9b347423348231be1810d07aa724ae69
+     📦 Swaps: 1
+        [0] 0xFA4A4c55... | Form: Scope | Plan: Pre(OptimisticTransfer 0xC02aaA39...) Post(Repay 0x44971ABF...) | Payload: 1 nodes
+            0x44971ABF... → 0xC02aaA39...
+            └─ Payload[0]: 0xa0D9aB5A... | Payload: 1 nodes
+               └─ Payload[0]: 0xDDd23787...
+     
+     🌳 ExecutionTree: 1 root nodes
+     Root[0]: 0xFA4A4c55... Form:Scope [1 children]
+        Child[0]: 0xa0D9aB5A... Form:Scope [1 children]
+           Child[0]: 0xDDd23787... Form:Node
+     
+     🔗 Transfers: 4 total | Gas Cost: 56000
+        Router: 2 | Direct: 2 | Virtual: 0
+     
+        [0] 🔴 🏊0xFA4A4c55... → 🏦Router
+            Token: 0xC02aaA39... | Amount: 102367672167038976
+            Type: Router | Cost: 23000 gas
+        [1] 🔴 🏦Router → 🏊0xDDd23787...
+            Token: 0xC02aaA39... | Amount: 100999999961169920
+            Type: Router | Cost: 23000 gas
+        [2] 🟢 🏊0xa0D9aB5A... → 🏊0xFA4A4c55...
+            Token: 0x44971ABF... | Amount: 1662639843918011695104
+            Type: Direct | Cost: 5000 gas
+        [3] 🟢 🏊0xDDd23787... → 🏊0xa0D9aB5A...
+            Token: 0xA9E8aCf0... | Amount: 1373810866148348002304
+            Type: Direct | Cost: 5000 gas
+     
+========== case21 AFTER Op_5 ==========
+TX: 0xe8e213f71cad840d681b6ae34870e7f75518c6d66ebdbc2500d0e49b9112a873
+     📦 Swaps: 1
+        [0] 0x00000000... | Form: Scope | Plan: Pre(OptimisticTransfer 0x473bCd6E...) Post(Repay 0xc50673ED...) | Payload: 2 nodes
+            0xc50673ED... → 0x473bCd6E...
+            └─ Payload[0]: 0x225f5447...
+            └─ Payload[1]: 0x2b1a1262...
+     
+     🌳 ExecutionTree: 1 root nodes
+     Root[0]: 0x00000000... Form:Scope [2 children]
+        Child[0]: 0x225f5447... Form:Node
+        Child[1]: 0x2b1a1262... Form:Scope
+     
+     🔗 Transfers: 4 total | Gas Cost: 56000
+        Router: 2 | Direct: 2 | Virtual: 0
+     
+        [0] 🔴 🏦Router → 🏊0x2b1a1262...
+            Token: 0xC02aaA39... | Amount: 45999999985848168
+            Type: Router | Cost: 23000 gas
+        [1] 🔴 🏊0x225f5447... → 🏦Router
+            Token: 0xC02aaA39... | Amount: 46171829668151296
+            Type: Router | Cost: 23000 gas
+        [2] 🟢 🏊0x2b1a1262... → 🏊0x00000000...
+            Token: 0xc50673ED... | Amount: 2388357268894050680832
+            Type: Direct | Cost: 5000 gas
+        [3] 🟢 🏊0x00000000... → 🏊0x225f5447...
+            Token: 0x473bCd6E... | Amount: 107693734825886597775360
+            Type: Direct | Cost: 5000 gas
+     
+========== case33 AFTER Op_5 ==========
+TX: 0x1fc91d998a44718d7cc917aa418abf80af3eab79d89c798212b7746857f1be1c     
+     📦 Swaps: 4
+        [0] 0x00000000... | Form: Scope | Plan: Pre(OptimisticTransfer 0xA0b86991...) Post(Repay 0xC02aaA39...)
+            0xC02aaA39... → 0xA0b86991...
+        [1] 0x00000000... | Form: Scope | Plan: Pre(OptimisticTransfer 0xc50673ED...) Post(Repay 0xA0b86991...)
+            0xA0b86991... → 0xc50673ED...
+        [2] 0x00000000... | Form: Scope | Plan: Pre(OptimisticTransfer 0x473bCd6E...) Post(Repay 0xc50673ED...)
+            0xc50673ED... → 0x473bCd6E...
+        [3] 0x225f5447... | Form: Node
+            0x473bCd6E... → 0xC02aaA39...
+     
+     🌳 ExecutionTree: 4 root nodes
+     Root[0]: 0x00000000... Form:Scope
+     Root[1]: 0x00000000... Form:Scope
+     Root[2]: 0x00000000... Form:Scope
+     Root[3]: 0x225f5447... Form:Node
+     
+     🔗 Transfers: 5 total | Gas Cost: 51000
+        Router: 2 | Direct: 1 | Virtual: 2
+     
+        [0] 🔴 🏦Router → 🏊0x00000000...
+            Token: 0xC02aaA39... | Amount: 6041217464795136
+            Type: Router | Cost: 23000 gas
+        [1] 🔴 🏊0x225f5447... → 🏦Router
+            Token: 0xC02aaA39... | Amount: 6071098290470912
+            Type: Router | Cost: 23000 gas
+        [2] 🔵 🏊0x00000000... → 🏊0x00000000...
+            Token: 0xA0b86991... | Amount: 16990390
+            Type: Virtual | Cost: 0 gas
+        [3] 🔵 🏊0x00000000... → 🏊0x00000000...
+            Token: 0xc50673ED... | Amount: 595054297672115552256
+            Type: Virtual | Cost: 0 gas
+        [4] 🟢 🏊0x00000000... → 🏊0x225f5447...
+            Token: 0x473bCd6E... | Amount: 17358405313659104395264
+            Type: Direct | Cost: 5000 gas

@@ -1,0 +1,162 @@
+# BlockSec 交易分析工具 - Web界面
+
+## 功能特性
+
+- ✅ **单个交易分析**: 输入交易哈希，获取详细的Swaps、Transfers和ExecutionTree分析
+- ✅ **批量分析**: 上传CSV文件，批量处理多个交易（最多10个）
+- ✅ **实时统计**: 显示Swaps数量、Transfers数量、Gas消耗等统计信息
+- ✅ **格式化输出**: 生成与test_cases.yaml格式一致的分析结果
+- ✅ **结果下载**: 支持下载分析结果为文本文件
+
+## 安装步骤
+
+### 方式1: Docker部署（推荐，无需配置环境）
+
+```bash
+# 一键启动
+chmod +x build_and_run.sh
+./build_and_run.sh
+
+# 或使用docker-compose
+docker-compose up -d
+```
+
+详细说明请查看: [QUICKSTART_DOCKER.md](QUICKSTART_DOCKER.md)
+
+### 方式2: 本地Python环境
+
+1. **安装依赖**:
+```bash
+pip install -r requirements.txt
+playwright install chromium
+```
+
+2. **启动应用**:
+```bash
+python app.py
+```
+
+3. **访问界面**:
+打开浏览器访问: http://localhost:5001
+
+**注意**: 如果遇到403错误，可能是端口5000被macOS AirPlay占用，应用已自动切换到端口5001
+
+## 使用方法
+
+### 单个交易分析
+
+1. 在"单个交易"标签页中，输入交易哈希（0x开头，66个字符）
+2. 点击"分析"按钮
+3. 等待分析完成，查看结果
+4. 可以点击"下载结果"保存分析报告
+
+### 批量分析
+
+1. 准备CSV文件，格式如下：
+```csv
+0x0807fd45ea0116616ab5cb6b81dd1c395179713fd2465c1d610df14c0c404004
+0x4036183ad1acab4c38a6d3027eb6e734fcc587477b6f26a109f1c6f49cbd5ec1
+0x3d59ac33bcc54b76ba9000443983c0fa9b347423348231be1810d07aa724ae69
+```
+
+2. 在"批量分析"标签页中，点击"选择CSV文件"
+3. 选择准备好的CSV文件
+4. 点击"开始批量分析"
+5. 查看每个交易的分析结果
+
+## API接口
+
+### POST /api/analyze
+分析单个交易
+
+**请求**:
+```json
+{
+  "tx_hash": "0x..."
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "tx_hash": "0x...",
+  "stats": {
+    "swaps_count": 3,
+    "transfers_count": 3,
+    "router_count": 0,
+    "direct_count": 3,
+    "virtual_count": 0,
+    "total_gas": 23864
+  },
+  "swaps": [...],
+  "transfers": [...],
+  "execution_tree": {...},
+  "formatted_output": "..."
+}
+```
+
+### POST /api/analyze-batch
+批量分析交易
+
+**请求**: FormData with CSV file
+
+**响应**:
+```json
+{
+  "success": true,
+  "total": 3,
+  "results": [
+    {
+      "tx_hash": "0x...",
+      "success": true,
+      "stats": {...},
+      "formatted_output": "..."
+    },
+    ...
+  ]
+}
+```
+
+### POST /api/download-result
+下载分析结果
+
+**请求**:
+```json
+{
+  "tx_hash": "0x...",
+  "formatted_output": "..."
+}
+```
+
+**响应**: 文本文件下载
+
+## 注意事项
+
+1. **性能**: 每个交易分析需要约15-20秒（需要访问BlockSec页面并等待API响应）
+2. **限制**: 批量分析最多支持10个交易
+3. **网络**: 需要能够访问BlockSec网站
+4. **浏览器**: 使用Playwright的Chromium浏览器进行数据提取
+
+## 技术栈
+
+- **后端**: Flask (Python)
+- **前端**: HTML + CSS + JavaScript (原生)
+- **数据提取**: Playwright
+- **数据处理**: convert_to_test_case_v2.py
+
+## 故障排除
+
+### 问题: 分析失败，提示"未能获取trace数据"
+- 检查交易哈希是否正确
+- 确认网络连接正常
+- 确认交易在以太坊主网上
+
+### 问题: Playwright相关错误
+- 运行 `playwright install chromium` 安装浏览器
+- 确认已安装所有依赖
+
+### 问题: 端口被占用
+- 修改 `app.py` 中的端口号（默认5000）
+- 或使用 `lsof -ti:5000 | xargs kill` 释放端口
+
