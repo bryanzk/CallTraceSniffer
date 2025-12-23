@@ -38,13 +38,14 @@ def process_tx_data(trace_data, tx_hash=None):
     router_count = sum(1 for t in transfers if t.get('type') == 'Router')
     direct_count = sum(1 for t in transfers if t.get('type') == 'Direct')
     virtual_count = sum(1 for t in transfers if t.get('type') == 'Virtual')
+    display_swaps = converter.get_display_swaps(swaps, execution_tree)
     
     return {
         'swaps': swaps,
         'transfers': transfers,
         'execution_tree': execution_tree,
         'stats': {
-            'swaps_count': len(swaps),
+            'swaps_count': len(display_swaps),
             'transfers_count': len(transfers),
             'router_count': router_count,
             'direct_count': direct_count,
@@ -186,7 +187,7 @@ def register_routes(app, extracted_data_cache):
                         'error': str(e)
                     })
             
-            return jsonify({'success': True, 'results': results})
+            return jsonify({'success': True, 'results': results, 'total': len(results)})
             
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500

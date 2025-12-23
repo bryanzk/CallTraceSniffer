@@ -797,6 +797,40 @@ class TransactionConverter:
         )
         return [item[1] for item in transfers]
 
+    def get_display_swaps(self, swaps: List[Dict], execution_tree: Dict) -> List[Dict]:
+        """根据ExecutionTree生成用于展示的Swaps列表"""
+        nodes = execution_tree.get('nodes', {})
+        root_nodes = execution_tree.get('root_nodes', [])
+        swap_items = []
+        seen = set()
+        if len(root_nodes) == 1:
+            root_id = root_nodes[0]
+            for swap in swaps:
+                node_id = str(swap.get('node_id') or swap.get('id') or '')
+                if node_id == root_id:
+                    node = nodes.get(node_id, {})
+                    swap_items.append({
+                        'swap': swap,
+                        'node': node,
+                        'children': node.get('children', [])
+                    })
+                    break
+        else:
+            for swap in swaps:
+                swap_addr = swap.get('address', '')
+                node_id = str(swap.get('node_id') or swap.get('id') or '')
+                if not swap_addr or node_id in seen:
+                    continue
+                seen.add(node_id)
+                node = nodes.get(node_id, {})
+                children = node.get('children', [])
+                swap_items.append({
+                    'swap': swap,
+                    'node': node,
+                    'children': children
+                })
+        return swap_items
+
     def extract_transfers_from_data(self, data_map: Dict) -> List[Dict]:
         """从dataMap中提取所有transfer调用"""
         transfers = []
@@ -1253,34 +1287,7 @@ class TransactionConverter:
         nodes = execution_tree.get('nodes', {})
         root_nodes = execution_tree.get('root_nodes', [])
         
-        swap_items = []
-        seen = set()
-        if len(root_nodes) == 1:
-            root_id = root_nodes[0]
-            for swap in swaps:
-                node_id = str(swap.get('node_id') or swap.get('id') or '')
-                if node_id == root_id:
-                    node = nodes.get(node_id, {})
-                    swap_items.append({
-                        'swap': swap,
-                        'node': node,
-                        'children': node.get('children', [])
-                    })
-                    break
-        else:
-            for swap in swaps:
-                swap_addr = swap.get('address', '')
-                node_id = str(swap.get('node_id') or swap.get('id') or '')
-                if not swap_addr or node_id in seen:
-                    continue
-                seen.add(node_id)
-                node = nodes.get(node_id, {})
-                children = node.get('children', [])
-                swap_items.append({
-                    'swap': swap,
-                    'node': node,
-                    'children': children
-                })
+        swap_items = self.get_display_swaps(swaps, execution_tree)
         
         # #region agent log
         if LOG_ENABLED:
