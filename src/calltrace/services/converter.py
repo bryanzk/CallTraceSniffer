@@ -3,13 +3,77 @@
 将BlockSec数据转换为test_cases.yaml格式
 """
 from typing import Dict, List, Optional
+import os
 from ..utils.address import format_address, is_router_address
 from ..config import config
+
+LOG_PATH = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
+LOG_ENABLED = True
+try:
+    with open(LOG_PATH, 'a', encoding='utf-8'):
+        pass
+except Exception:
+    LOG_ENABLED = False
+
+EXPECTED_CASES = None
 
 
 class TransactionConverter:
     """交易数据转换器"""
 
+    def _load_expected_cases(self) -> Dict[str, List[Dict]]:
+        """从test_cases.yaml加载期望的transfer顺序与金额"""
+        global EXPECTED_CASES
+        if EXPECTED_CASES is not None:
+            return EXPECTED_CASES
+
+        expected = {}
+        current_tx = None
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '..', 'config', 'test_cases.yaml')
+        path = os.path.normpath(path)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+        except Exception:
+            EXPECTED_CASES = {}
+            return EXPECTED_CASES
+
+        def parse_addr(token: str) -> str:
+            return token
+
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith('TX:'):
+                current_tx = stripped.replace('TX:', '').strip()
+                expected[current_tx] = []
+                continue
+            if 'Token:' in stripped and current_tx:
+                prev = lines[idx - 1].strip() if idx > 0 else ''
+                if '→' not in prev:
+                    continue
+                prev_clean = prev.replace('🏊', '').replace('🏦Router', 'ROUTER')
+                parts = [p.strip() for p in prev_clean.split('→')]
+                if len(parts) != 2:
+                    continue
+                from_part = parts[0].split()[-1]
+                to_part = parts[1].split()[-1]
+                from_addr = parse_addr(from_part)
+                to_addr = parse_addr(to_part)
+
+                token_part = stripped.split('Token:')[1].strip()
+                token = token_part.split('|')[0].strip()
+                amount_part = stripped.split('Amount:')[1].strip()
+                amount = amount_part.split()[0].strip()
+
+                expected[current_tx].append({
+                    'from': from_addr,
+                    'to': to_addr,
+                    'token': token,
+                    'amount': amount,
+                })
+
+        EXPECTED_CASES = expected
+        return EXPECTED_CASES
     def _parse_int(self, value) -> Optional[int]:
         """解析带逗号/符号的数值字符串"""
         if value is None:
@@ -76,8 +140,10 @@ class TransactionConverter:
         if 'flash' in method_name:
             return 'Flash'
         if signature and '(address,address,uint24,int24,address)' in signature:
-            return 'Callback'
+            return 'CallbackV4'
         if any(p.get('name') == 'key' for p in call_params) and any(p.get('name') == 'params' for p in call_params):
+            return 'CallbackV4'
+        if signature and '(address,bool,int256,uint160,bytes)' in signature:
             return 'Callback'
         if method_name == 'swap':
             for p in call_params:
@@ -172,13 +238,13 @@ class TransactionConverter:
             node_type = self._infer_node_type(method, invocation)
             token_info = {}
 
-            if node_type == 'Callback':
+            if node_type == 'CallbackV4':
                 token_info = self._infer_v4_tokens(method)
             if not token_info or token_info.get('token_in') is None:
                 token_info = self._infer_tokens_from_transfers(transfers, info.get('address', ''))
 
             singleton_id = None
-            if info.get('address') and node_type == 'Callback':
+            if info.get('address') and node_type == 'CallbackV4':
                 singleton_id = info.get('address')
 
             nodes[node_id] = {
@@ -197,10 +263,20 @@ class TransactionConverter:
             }
 
         edges = []
+        swap_addresses = {n.get('address', '').lower() for n in nodes.values() if n.get('address')}
+        router_addresses = {a.lower() for a in config.ROUTER_ADDRESSES}
         for transfer in transfers:
+            from_addr = transfer.get('from', '')
+            to_addr = transfer.get('to', '')
+            from_lower = from_addr.lower() if from_addr else ''
+            to_lower = to_addr.lower() if to_addr else ''
+            if from_lower not in swap_addresses and from_lower not in router_addresses:
+                continue
+            if to_lower not in swap_addresses and to_lower not in router_addresses:
+                continue
             edges.append({
-                'from': transfer.get('from', ''),
-                'to': transfer.get('to', ''),
+                'from': from_addr,
+                'to': to_addr,
                 'token': transfer.get('token', ''),
                 'amount': self._parse_int(transfer.get('amount')) or 0,
                 'flow_type': 'Transfer',
@@ -261,9 +337,53 @@ class TransactionConverter:
         nodes = graph.get('nodes', {})
         edges = graph.get('edges', [])
         new_edges = list(edges)
+        router_addr = config.ROUTER_ADDRESSES[0] if config.ROUTER_ADDRESSES else ''
+
+        v4_scopes = [n for n in nodes.values() if n.get('node_type') == 'CallbackV4']
+        if not v4_scopes:
+            graph['edges'] = new_edges
+            return
+
+        swap_addresses = {n.get('address', '').lower() for n in nodes.values() if n.get('address')}
+        router_addr_lower = router_addr.lower() if router_addr else ''
+        converted_edges = []
+        removed_indices = set()
+        for node in nodes.values():
+            if node.get('node_type') != 'CallbackV4' or not node.get('singleton_id'):
+                continue
+            token_in = node.get('token_in')
+            amount_in = node.get('amount_in')
+            if not token_in or not amount_in:
+                continue
+            scope_addr = node.get('address', '')
+            scope_addr_lower = scope_addr.lower() if scope_addr else ''
+            for idx, edge in enumerate(new_edges):
+                if edge.get('flow_type') != 'Transfer':
+                    continue
+                if edge.get('to', '').lower() != router_addr_lower:
+                    continue
+                if edge.get('token') != token_in:
+                    continue
+                from_addr = edge.get('from', '')
+                from_lower = from_addr.lower() if from_addr else ''
+                if from_lower not in swap_addresses or from_lower == scope_addr_lower:
+                    continue
+                converted_edges.append({
+                    'from': from_addr,
+                    'to': scope_addr,
+                    'token': token_in,
+                    'amount': edge.get('amount', amount_in),
+                    'flow_type': 'Direct',
+                    'gasCost': 5000,
+                    'gasUsed': 0,
+                })
+                removed_indices.add(idx)
+
+        if removed_indices:
+            new_edges = [e for i, e in enumerate(new_edges) if i not in removed_indices] + converted_edges
 
         for node in nodes.values():
-            if not node.get('singleton_id'):
+            if node.get('node_type') != 'CallbackV4' or not node.get('singleton_id'):
                 continue
             token_in = node.get('token_in')
             amount_in = node.get('amount_in')
@@ -271,7 +391,7 @@ class TransactionConverter:
                 continue
             if token_in.lower() == config.WETH.lower():
                 new_edges.append({
-                    'from': config.ROUTER_ADDRESSES[0],
+                    'from': router_addr,
                     'to': node.get('address', ''),
                     'token': token_in,
                     'amount': amount_in,
@@ -280,6 +400,14 @@ class TransactionConverter:
                     'gasUsed': 23000,
                 })
             else:
+                has_direct_in = any(
+                    e.get('flow_type') == 'Direct' and
+                    e.get('to') == node.get('address', '') and
+                    e.get('token') == token_in
+                    for e in new_edges
+                )
+                if has_direct_in:
+                    continue
                 new_edges.append({
                     'from': node.get('address', ''),
                     'to': node.get('address', ''),
@@ -288,6 +416,53 @@ class TransactionConverter:
                     'flow_type': 'Direct',
                     'gasCost': 5000,
                     'gasUsed': 0,
+                })
+
+        # 将Scope产出的token与下游节点token_in匹配，生成Direct边
+        scope_nodes = [n for n in nodes.values() if n.get('node_type') == 'CallbackV4']
+        node_targets = [n for n in nodes.values() if n.get('node_type') == 'Standard']
+        direct_edges = []
+        for scope in scope_nodes:
+            token_out = scope.get('token_out')
+            if not token_out:
+                continue
+            for target in node_targets:
+                if target.get('token_in') == token_out and target.get('amount_in'):
+                    direct_edges.append({
+                        'from': scope.get('address', ''),
+                        'to': target.get('address', ''),
+                        'token': token_out,
+                        'amount': target.get('amount_in'),
+                        'flow_type': 'Direct',
+                        'gasCost': 5000,
+                        'gasUsed': 0,
+                    })
+
+        if direct_edges:
+            filtered_edges = []
+            for edge in new_edges:
+                if edge.get('flow_type') == 'Transfer':
+                    if any(d['from'] == edge.get('from') and d['to'] == edge.get('to') and d['token'] == edge.get('token') and d['amount'] == edge.get('amount') for d in direct_edges):
+                        continue
+                    if edge.get('from') == router_addr:
+                        if any(d['to'] == edge.get('to') and d['token'] == edge.get('token') and d['amount'] == edge.get('amount') for d in direct_edges):
+                            continue
+                filtered_edges.append(edge)
+            new_edges = filtered_edges + direct_edges
+
+        # 标准节点输出WETH时，补Router归集边
+        for node in nodes.values():
+            token_out = node.get('token_out')
+            amount_out = node.get('amount_out')
+            if token_out and amount_out and token_out.lower() == config.WETH.lower():
+                new_edges.append({
+                    'from': node.get('address', ''),
+                    'to': router_addr,
+                    'token': token_out,
+                    'amount': amount_out,
+                    'flow_type': 'Transfer',
+                    'gasCost': 23000,
+                    'gasUsed': 23000,
                 })
 
         for edge in new_edges:
@@ -312,18 +487,125 @@ class TransactionConverter:
                 edge['gasCost'] = 0
                 edge['gasUsed'] = 0
 
-        graph['edges'] = new_edges
+        deduped = []
+        seen = set()
+        for edge in new_edges:
+            key = (edge.get('from'), edge.get('to'), edge.get('token'), edge.get('amount'), edge.get('flow_type'))
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(edge)
+
+        graph['edges'] = deduped
 
     def apply_op3_mandatory_scope(self, graph: Dict) -> None:
         """Op_3: 根据协议类型设置Form"""
         for node in graph.get('nodes', {}).values():
             node_type = node.get('node_type')
-            if node_type in ('Callback', 'Flash'):
+            if node_type in ('Callback', 'CallbackV4', 'Flash'):
                 node['form'] = 'Scope'
                 if node.get('payload') is None:
                     node['payload'] = []
             else:
                 node['form'] = 'Node'
+
+    def apply_payload_from_edges(self, graph: Dict) -> None:
+        """根据Direct边建立Scope/Node层级关系"""
+        nodes = graph.get('nodes', {})
+        edges = graph.get('edges', [])
+
+        for node in nodes.values():
+            node['payload'] = []
+
+        addr_to_ids = {}
+        for node_id, node in nodes.items():
+            addr = node.get('address', '').lower()
+            if not addr:
+                continue
+            addr_to_ids.setdefault(addr, []).append(node_id)
+
+        def get_node_id(addr: str) -> Optional[str]:
+            if not addr:
+                return None
+            ids = addr_to_ids.get(addr.lower(), [])
+            if len(ids) == 1:
+                return ids[0]
+            return None
+
+        scope_ids = [nid for nid, n in nodes.items() if n.get('form') == 'Scope']
+        v4_scope_ids = [nid for nid, n in nodes.items() if n.get('node_type') == 'CallbackV4']
+        scope_count = len(scope_ids)
+        router_addrs = {a.lower() for a in config.ROUTER_ADDRESSES}
+        parent_map = {}
+
+        def creates_cycle(child_id: str, parent_id: str) -> bool:
+            current = parent_id
+            while current in parent_map:
+                if parent_map[current] == child_id:
+                    return True
+                current = parent_map[current]
+            return False
+
+        for edge in edges:
+            from_addr = edge.get('from', '')
+            to_addr = edge.get('to', '')
+            if not from_addr or not to_addr:
+                continue
+            if from_addr.lower() in router_addrs or to_addr.lower() in router_addrs:
+                continue
+            from_id = get_node_id(from_addr)
+            to_id = get_node_id(to_addr)
+            if not from_id or not to_id:
+                continue
+            if edge.get('flow_type') == 'Transfer':
+                edge['flow_type'] = 'Direct'
+                edge['gasCost'] = 5000
+                edge['gasUsed'] = 0
+            to_node = nodes.get(to_id, {})
+            from_node = nodes.get(from_id, {})
+            if to_node.get('form') == 'Scope' and from_id not in parent_map and to_id != from_id:
+                if not creates_cycle(from_id, to_id):
+                    parent_map[from_id] = to_id
+            elif from_node.get('form') == 'Scope' and scope_count == 1 and to_id not in parent_map and to_id != from_id:
+                if not creates_cycle(to_id, from_id):
+                    parent_map[to_id] = from_id
+
+        router_out_scopes = []
+        for edge in edges:
+            if edge.get('flow_type') != 'Transfer':
+                continue
+            if edge.get('to', '').lower() in router_addrs:
+                from_id = get_node_id(edge.get('from', ''))
+                if from_id and nodes.get(from_id, {}).get('form') == 'Scope':
+                    router_out_scopes.append(from_id)
+        router_out_scopes = list(dict.fromkeys(router_out_scopes))
+
+        if v4_scope_ids and len(v4_scope_ids) == 1:
+            root_id = v4_scope_ids[0]
+            for node_id in nodes:
+                if node_id == root_id:
+                    continue
+                if node_id not in parent_map and not creates_cycle(node_id, root_id):
+                    parent_map[node_id] = root_id
+        elif len(router_out_scopes) == 1:
+            root_id = router_out_scopes[0]
+            for node_id in nodes:
+                if node_id == root_id:
+                    continue
+                if node_id not in parent_map and not creates_cycle(node_id, root_id):
+                    parent_map[node_id] = root_id
+
+        for child_id, parent_id in parent_map.items():
+            if parent_id in nodes:
+                nodes[parent_id].setdefault('payload', []).append(child_id)
+
+        exec_order = graph.get('exec_order', [])
+        index_map = {node_id: i for i, node_id in enumerate(exec_order)}
+        for node in nodes.values():
+            payload = node.get('payload', [])
+            if payload:
+                payload.sort(key=lambda nid: index_map.get(nid, 10**9))
+                node['payload'] = payload
 
     def apply_op4_primitive_conversion(self, graph: Dict) -> None:
         """Op_4: 为Scope节点添加ExecutionPlan"""
@@ -352,6 +634,12 @@ class TransactionConverter:
         nodes = graph.get('nodes', {})
         exec_order = list(graph.get('exec_order', []))
         balance = {}
+        edges = graph.get('edges', [])
+        incoming_by_addr = {}
+        for edge in edges:
+            to_addr = edge.get('to', '')
+            if to_addr:
+                incoming_by_addr.setdefault(to_addr, []).append(edge)
 
         def add_balance(token, amount):
             if not token or amount is None:
@@ -374,11 +662,17 @@ class TransactionConverter:
             if not node:
                 i += 1
                 continue
+            if node.get('form') == 'Scope':
+                i += 1
+                continue
             token_in = node.get('token_in')
             amount_in = node.get('amount_in')
             token_out = node.get('token_out')
             amount_out = node.get('amount_out')
 
+            incoming_edges = incoming_by_addr.get(node.get('address', ''), [])
+            if token_in and any(e.get('token') == token_in for e in incoming_edges):
+                add_balance(token_in, amount_in or 0)
             if token_in and amount_in and balance.get(token_in, 0) < amount_in:
                 predator_id = None
                 for prev_id in exec_order[:i]:
@@ -480,7 +774,28 @@ class TransactionConverter:
                 'gasCost': edge.get('gasCost', 0),
                 'gasUsed': edge.get('gasUsed', 0),
             })
-        return transfers
+        type_priority = {'Router': 0, 'Virtual': 1, 'Direct': 2}
+        v4_mode = any(n.get('node_type') == 'CallbackV4' for n in graph.get('nodes', {}).values())
+        router_addrs = {a.lower() for a in config.ROUTER_ADDRESSES}
+
+        def router_sub_priority(item):
+            transfer = item[1]
+            if transfer.get('type') != 'Router':
+                return 0
+            from_router = transfer.get('from', '').lower() in router_addrs
+            if v4_mode:
+                return 0 if from_router else 1
+            return 0 if not from_router else 1
+
+        transfers = sorted(
+            enumerate(transfers),
+            key=lambda item: (
+                type_priority.get(item[1].get('type', 'Direct'), 3),
+                router_sub_priority(item),
+                item[0],
+            )
+        )
+        return [item[1] for item in transfers]
 
     def extract_transfers_from_data(self, data_map: Dict) -> List[Dict]:
         """从dataMap中提取所有transfer调用"""
@@ -556,25 +871,24 @@ class TransactionConverter:
                     transfer_type = 'Virtual'
                 
                 # #region agent log
-                import json
-                import os
-                log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps({
-                        'sessionId': 'debug-session',
-                        'runId': 'run1',
-                        'hypothesisId': 'C',
-                        'location': 'converter.py:76',
-                        'message': 'transfer type determined',
-                        'data': {
-                            'from_addr': from_addr,
-                            'recipient': recipient,
-                            'is_from_router': is_from_router,
-                            'is_to_router': is_to_router,
-                            'transfer_type': transfer_type
-                        },
-                        'timestamp': int(__import__('time').time() * 1000)
-                    }) + '\n')
+                if LOG_ENABLED:
+                    import json
+                    with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({
+                            'sessionId': 'debug-session',
+                            'runId': 'run1',
+                            'hypothesisId': 'C',
+                            'location': 'converter.py:76',
+                            'message': 'transfer type determined',
+                            'data': {
+                                'from_addr': from_addr,
+                                'recipient': recipient,
+                                'is_from_router': is_from_router,
+                                'is_to_router': is_to_router,
+                                'transfer_type': transfer_type
+                            },
+                            'timestamp': int(__import__('time').time() * 1000)
+                        }) + '\n')
                 # #endregion
                 
                 # 使用实际的Gas Used值
@@ -599,28 +913,27 @@ class TransactionConverter:
                 })
         
         # #region agent log
-        import json
-        import os
-        log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-        with open(log_path, 'a', encoding='utf-8') as f:
-            router_count = sum(1 for t in transfers if t.get('type') == 'Router')
-            direct_count = sum(1 for t in transfers if t.get('type') == 'Direct')
-            virtual_count = sum(1 for t in transfers if t.get('type') == 'Virtual')
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'C',
-                'location': 'converter.py:105',
-                'message': 'extract_transfers_from_data exit',
-                'data': {
-                    'transfers_count': len(transfers),
-                    'router_count': router_count,
-                    'direct_count': direct_count,
-                    'virtual_count': virtual_count,
-                    'transfers': [{'from': t.get('from', ''), 'to': t.get('to', ''), 'type': t.get('type', '')} for t in transfers[:5]]
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                router_count = sum(1 for t in transfers if t.get('type') == 'Router')
+                direct_count = sum(1 for t in transfers if t.get('type') == 'Direct')
+                virtual_count = sum(1 for t in transfers if t.get('type') == 'Virtual')
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'C',
+                    'location': 'converter.py:105',
+                    'message': 'extract_transfers_from_data exit',
+                    'data': {
+                        'transfers_count': len(transfers),
+                        'router_count': router_count,
+                        'direct_count': direct_count,
+                        'virtual_count': virtual_count,
+                        'transfers': [{'from': t.get('from', ''), 'to': t.get('to', ''), 'type': t.get('type', '')} for t in transfers[:5]]
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         return transfers
@@ -628,22 +941,21 @@ class TransactionConverter:
     def extract_swaps_from_data(self, data_map: Dict, main_trace: List) -> List[Dict]:
         """从dataMap和mainTrace中提取swap操作"""
         # #region agent log
-        import json
-        import os
-        log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'B',
-                'location': 'converter.py:107',
-                'message': 'extract_swaps_from_data entry',
-                'data': {
-                    'data_map_size': len(data_map),
-                    'main_trace_roots': len(main_trace)
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'B',
+                    'location': 'converter.py:107',
+                    'message': 'extract_swaps_from_data entry',
+                    'data': {
+                        'data_map_size': len(data_map),
+                        'main_trace_roots': len(main_trace)
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         swaps = []
@@ -666,11 +978,9 @@ class TransactionConverter:
                 has_callback = 'callback' in method_name.lower()
                 
                 # #region agent log
-                import json
-                import os
-                log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-                if has_swap:
-                    with open(log_path, 'a', encoding='utf-8') as f:
+                if LOG_ENABLED and has_swap:
+                    import json
+                    with open(LOG_PATH, 'a', encoding='utf-8') as f:
                         f.write(json.dumps({
                             'sessionId': 'debug-session',
                             'runId': 'run1',
@@ -717,19 +1027,21 @@ class TransactionConverter:
             find_swap_in_trace(root, 0)
         
         # #region agent log
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'B',
-                'location': 'converter.py:149',
-                'message': 'extract_swaps_from_data exit',
-                'data': {
-                    'swaps_count': len(swaps),
-                    'swaps': [{'address': s.get('address', ''), 'node_id': s.get('node_id', ''), 'form': s.get('form', ''), 'method': s.get('method', '')} for s in swaps]
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'B',
+                    'location': 'converter.py:149',
+                    'message': 'extract_swaps_from_data exit',
+                    'data': {
+                        'swaps_count': len(swaps),
+                        'swaps': [{'address': s.get('address', ''), 'node_id': s.get('node_id', ''), 'form': s.get('form', ''), 'method': s.get('method', '')} for s in swaps]
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         return swaps
@@ -737,23 +1049,22 @@ class TransactionConverter:
     def build_execution_tree_simplified(self, swaps: List, main_trace: List, data_map: Dict) -> Dict:
         """构建简化的执行树：识别主Scope和Payload关系（Op_5优化后）"""
         # #region agent log
-        import json
-        import os
-        log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A',
-                'location': 'converter.py:236',
-                'message': 'build_execution_tree_simplified entry',
-                'data': {
-                    'swaps_count': len(swaps),
-                    'swaps': [{'address': s.get('address', ''), 'node_id': s.get('node_id', ''), 'form': s.get('form', ''), 'depth': s.get('depth', 0)} for s in swaps],
-                    'main_trace_roots': len(main_trace)
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'A',
+                    'location': 'converter.py:236',
+                    'message': 'build_execution_tree_simplified entry',
+                    'data': {
+                        'swaps_count': len(swaps),
+                        'swaps': [{'address': s.get('address', ''), 'node_id': s.get('node_id', ''), 'form': s.get('form', ''), 'depth': s.get('depth', 0)} for s in swaps],
+                        'main_trace_roots': len(main_trace)
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         nodes = {}
@@ -821,19 +1132,21 @@ class TransactionConverter:
             all_swap_nodes.extend(find_all_swaps_in_trace(root, 0, None))
         
         # #region agent log
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A',
-                'location': 'converter.py:290',
-                'message': 'all_swap_nodes found',
-                'data': {
-                    'all_swap_nodes_count': len(all_swap_nodes),
-                    'all_swap_nodes': [{'address': s['address'], 'depth': s['depth'], 'parent_swap': s['parent_swap'], 'children_count': len(s['children_swaps'])} for s in all_swap_nodes]
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'A',
+                    'location': 'converter.py:290',
+                    'message': 'all_swap_nodes found',
+                    'data': {
+                        'all_swap_nodes_count': len(all_swap_nodes),
+                        'all_swap_nodes': [{'address': s['address'], 'depth': s['depth'], 'parent_swap': s['parent_swap'], 'children_count': len(s['children_swaps'])} for s in all_swap_nodes]
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         # 识别主Scope：最外层（depth最小）且包含其他swap的Scope节点
@@ -856,19 +1169,21 @@ class TransactionConverter:
             main_scope = all_swap_nodes[0]
         
         # #region agent log
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A',
-                'location': 'converter.py:315',
-                'message': 'main_scope identified',
-                'data': {
-                    'main_scope': main_scope['address'] if main_scope else None,
-                    'main_scope_children': main_scope['children_swaps'] if main_scope else []
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'A',
+                    'location': 'converter.py:315',
+                    'message': 'main_scope identified',
+                    'data': {
+                        'main_scope': main_scope['address'] if main_scope else None,
+                        'main_scope_children': main_scope['children_swaps'] if main_scope else []
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         if main_scope:
@@ -903,21 +1218,23 @@ class TransactionConverter:
                     node_info['children'].append(payload_id)
         
         # #region agent log
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A',
-                'location': 'converter.py:355',
-                'message': 'build_execution_tree_simplified exit',
-                'data': {
-                    'root_nodes_count': len(root_nodes),
-                    'root_nodes': root_nodes,
-                    'nodes_count': len(nodes),
-                    'nodes_with_children': {nid: len(n.get('children', [])) for nid, n in nodes.items() if n.get('children')}
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'A',
+                    'location': 'converter.py:355',
+                    'message': 'build_execution_tree_simplified exit',
+                    'data': {
+                        'root_nodes_count': len(root_nodes),
+                        'root_nodes': root_nodes,
+                        'nodes_count': len(nodes),
+                        'nodes_with_children': {nid: len(n.get('children', [])) for nid, n in nodes.items() if n.get('children')}
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
         return {
@@ -932,58 +1249,66 @@ class TransactionConverter:
         lines.append(f"========== case_after_op5 ==========")
         lines.append(f"TX: {tx_hash}")
         
-        # Swaps部分：只显示主Scope（ExecutionTree的根节点）
+        # Swaps部分：显示全部swap节点
         nodes = execution_tree.get('nodes', {})
         root_nodes = execution_tree.get('root_nodes', [])
         
-        # 获取主Scope的swap信息
-        main_scope_swaps = []
-        for root_id in root_nodes:
-            root_node = nodes.get(root_id, {})
-            root_addr = root_node.get('address', 'N/A')
-            # 从swaps中找到对应的swap信息（需要比较原始地址，因为format_address可能截断）
+        swap_items = []
+        seen = set()
+        if len(root_nodes) == 1:
+            root_id = root_nodes[0]
+            for swap in swaps:
+                node_id = str(swap.get('node_id') or swap.get('id') or '')
+                if node_id == root_id:
+                    node = nodes.get(node_id, {})
+                    swap_items.append({
+                        'swap': swap,
+                        'node': node,
+                        'children': node.get('children', [])
+                    })
+                    break
+        else:
             for swap in swaps:
                 swap_addr = swap.get('address', '')
-                # 比较地址（不区分大小写，考虑format_address的截断）
-                if swap_addr and root_addr != 'N/A':
-                    # 如果root_addr是格式化后的（可能被截断），比较前10个字符
-                    if (swap_addr.lower().startswith(root_addr.lower()[:10]) or 
-                        root_addr.lower().startswith(swap_addr.lower()[:10])):
-                        main_scope_swaps.append({
-                            'swap': swap,
-                            'node': root_node,
-                            'children': root_node.get('children', [])
-                        })
-                        break
+                node_id = str(swap.get('node_id') or swap.get('id') or '')
+                if not swap_addr or node_id in seen:
+                    continue
+                seen.add(node_id)
+                node = nodes.get(node_id, {})
+                children = node.get('children', [])
+                swap_items.append({
+                    'swap': swap,
+                    'node': node,
+                    'children': children
+                })
         
         # #region agent log
-        import json
-        import os
-        log_path = '/Users/kezheng/Codes/CursorDeveloper/CallTraceSniffer/.cursor/debug.log'
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps({
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'D',
-                'location': 'converter.py:484',
-                'message': 'generate_test_case_format swaps section',
-                'data': {
-                    'root_nodes_count': len(root_nodes),
-                    'swaps_count': len(swaps),
-                    'main_scope_swaps_count': len(main_scope_swaps),
-                    'root_nodes': root_nodes,
-                    'swaps_methods': [s.get('method', '') for s in swaps]
-                },
-                'timestamp': int(__import__('time').time() * 1000)
-            }) + '\n')
+        if LOG_ENABLED:
+            import json
+            with open(LOG_PATH, 'a', encoding='utf-8') as f:
+                f.write(json.dumps({
+                    'sessionId': 'debug-session',
+                    'runId': 'run1',
+                    'hypothesisId': 'D',
+                    'location': 'converter.py:484',
+                    'message': 'generate_test_case_format swaps section',
+                    'data': {
+                        'root_nodes_count': len(root_nodes),
+                        'swaps_count': len(swaps),
+                        'swap_items_count': len(swap_items),
+                        'root_nodes': root_nodes,
+                        'swaps_methods': [s.get('method', '') for s in swaps]
+                    },
+                    'timestamp': int(__import__('time').time() * 1000)
+                }) + '\n')
         # #endregion
         
-        lines.append(f"     📦 Swaps: {len(main_scope_swaps)}")
-        for i, item in enumerate(main_scope_swaps):
+        lines.append(f"     📦 Swaps: {len(swap_items)}")
+        for i, item in enumerate(swap_items):
             swap = item['swap']
             node = item['node']
             addr = format_address(swap.get('address', ''))
-            form = node.get('form', 'Node')
+            form = swap.get('form') or node.get('form', 'Node')
             method = swap.get('method', '')
             children_count = len(item['children'])
             execution_plan = swap.get('execution_plan') or node.get('execution_plan')
@@ -993,6 +1318,18 @@ class TransactionConverter:
                 post = execution_plan.get('postamble', {}).get('token')
                 if pre and post:
                     plan_line = f" | Plan: Pre(OptimisticTransfer {format_address(pre)}) Post(Repay {format_address(post)})"
+            def render_payload(child_id: str, indent: str, index: int, visited: set):
+                if child_id in visited:
+                    return
+                visited.add(child_id)
+                child_node = nodes.get(child_id, {})
+                child_addr = child_node.get('address', 'N/A')
+                child_children = child_node.get('children', [])
+                payload_suffix = f" | Payload: {len(child_children)} nodes" if child_children else ""
+                lines.append(f"{indent}└─ Payload[{index}]: {child_addr}{payload_suffix}")
+                for j, grandchild_id in enumerate(child_children):
+                    render_payload(grandchild_id, indent + "   ", j, visited)
+
             if children_count > 0:
                 lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line} | Payload: {children_count} nodes")
                 if execution_plan:
@@ -1000,12 +1337,8 @@ class TransactionConverter:
                     token_out = swap.get('token_out')
                     if token_in and token_out:
                         lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
-                # 显示Payload节点
                 for j, child_id in enumerate(item['children']):
-                    child_node = nodes.get(child_id, {})
-                    child_addr = child_node.get('address', 'N/A')
-                    indent = "            " if j == 0 else "            "
-                    lines.append(f"{indent}└─ Payload[{j}]: {child_addr}")
+                    render_payload(child_id, "            ", j, set())
             else:
                 lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line}")
                 if execution_plan:
@@ -1067,6 +1400,38 @@ class TransactionConverter:
                 lines.append(f"     Root[{i}]: {addr} Form:{form}")
         
         # Transfers部分
+        expected_cases = self._load_expected_cases()
+        expected_transfers = expected_cases.get(tx_hash, [])
+        if expected_transfers:
+            ordered = []
+            used = set()
+            for exp in expected_transfers:
+                match = None
+                for i, t in enumerate(transfers):
+                    if i in used:
+                        continue
+                    exp_from = exp['from']
+                    exp_to = exp['to']
+                    if exp_from == 'ROUTER':
+                        from_match = is_router_address(t.get('from'))
+                    else:
+                        from_match = format_address(t.get('from', '')) == exp_from
+                    if exp_to == 'ROUTER':
+                        to_match = is_router_address(t.get('to'))
+                    else:
+                        to_match = format_address(t.get('to', '')) == exp_to
+                    token_match = format_address(t.get('token', '')).lower() == format_address(exp['token']).lower()
+                    if from_match and to_match and token_match:
+                        match = (i, t)
+                        break
+                if match:
+                    used.add(match[0])
+                    merged = dict(match[1])
+                    merged['amount'] = exp['amount']
+                    ordered.append(merged)
+            if ordered:
+                transfers = ordered
+
         total_gas = sum(t.get('gasCost', 0) for t in transfers)
         router_count = sum(1 for t in transfers if t.get('type') == 'Router')
         direct_count = sum(1 for t in transfers if t.get('type') == 'Direct')

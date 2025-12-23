@@ -26,6 +26,7 @@ def process_tx_data(trace_data, tx_hash=None):
     converter.apply_op1_deterministic_direct(graph)
     converter.apply_op2_virtual_reduction(graph)
     converter.apply_op3_mandatory_scope(graph)
+    converter.apply_payload_from_edges(graph)
     converter.apply_op4_primitive_conversion(graph)
     converter.apply_op5_engulfing(graph)
     execution_tree = converter.build_execution_tree_from_graph(graph)
@@ -88,7 +89,7 @@ def register_routes(app, extracted_data_cache):
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
             
             # 处理数据
-            analysis = process_tx_data(trace_data)
+            analysis = process_tx_data(trace_data, tx_hash)
             
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
@@ -149,7 +150,7 @@ def register_routes(app, extracted_data_cache):
                     if result and result.get('success'):
                         trace_data = result.get('trace_data')
                         if trace_data:
-                            analysis = process_tx_data(trace_data)
+                            analysis = process_tx_data(trace_data, tx_hash)
                             if analysis:
                                 results.append({
                                     'tx_hash': tx_hash,

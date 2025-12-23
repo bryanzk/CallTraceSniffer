@@ -51,6 +51,7 @@ def test_op2_virtual_reduction_singleton():
                 'id': '1',
                 'address': '0xpool',
                 'singleton_id': '0xpool',
+                'node_type': 'CallbackV4',
                 'token_in': '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
                 'amount_in': 1000,
                 'form': 'Scope',
@@ -71,6 +72,19 @@ def test_op3_form_assignment():
     graph = {
         'nodes': {
             '1': {'id': '1', 'node_type': 'Callback', 'form': None, 'payload': []},
+            '2': {'id': '2', 'node_type': 'Standard', 'form': None, 'payload': []},
+        },
+        'edges': [],
+        'exec_order': [],
+    }
+    converter.apply_op3_mandatory_scope(graph)
+    assert graph['nodes']['1']['form'] == 'Scope'
+    assert graph['nodes']['2']['form'] == 'Node'
+
+def test_op3_form_assignment_v4():
+    graph = {
+        'nodes': {
+            '1': {'id': '1', 'node_type': 'CallbackV4', 'form': None, 'payload': []},
             '2': {'id': '2', 'node_type': 'Standard', 'form': None, 'payload': []},
         },
         'edges': [],

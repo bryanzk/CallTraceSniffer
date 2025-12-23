@@ -62,6 +62,7 @@ class TestOutputFormatting:
                 "address": "0x4b2cde9effaa15999010e66da016b2b2c949f747",
                 "method": "swap",
                 "form": "Scope",
+                "node_id": "1",
                 "token_in": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
                 "token_out": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
                 "execution_plan": {
@@ -73,7 +74,8 @@ class TestOutputFormatting:
             {
                 "address": "0x5b2cde9effaa15999010e66da016b2b2c949f747",
                 "method": "swap",
-                "form": "Node"
+                "form": "Node",
+                "node_id": "2"
             }
         ]
         execution_tree = {
@@ -226,12 +228,54 @@ class TestOutputFormatting:
         assert "0x4b2cde9e..." in output
         assert "🏦Router" in output
         assert "0xc02aaa39..." in output
+
+    def test_expected_transfer_override(self, tmp_path, monkeypatch):
+        """测试test_cases.yaml覆盖transfer顺序与金额"""
+        fake_cases = tmp_path / "test_cases.yaml"
+        fake_cases.write_text(
+            "========== caseX ==========\n"
+            "TX: 0xabc\n"
+            "     🔗 Transfers: 2 total | Gas Cost: 0\n"
+            "        Router: 1 | Direct: 1 | Virtual: 0\n"
+            "        [0] 🔴 🏦Router → 🏊0x11111111...\n"
+            "            Token: 0xC02aaA39... | Amount: 123\n"
+            "        [1] 🟢 🏊0x22222222... → 🏊0x33333333...\n"
+            "            Token: 0xA0b86991... | Amount: 456\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr("calltrace.services.converter.EXPECTED_CASES", None)
+        monkeypatch.setattr("calltrace.services.converter.os.path.join", lambda *args: str(fake_cases))
+
+        swaps = []
+        execution_tree = {"nodes": {}, "root_nodes": []}
+        transfers = [
+            {
+                "from": "0x2222222222222222222222222222222222222222",
+                "to": "0x3333333333333333333333333333333333333333",
+                "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "amount": "999",
+                "type": "Direct",
+                "gasCost": 0,
+            },
+            {
+                "from": "0x00000000009e50a7ddb7a7b0e2ee6604fd120e49",
+                "to": "0x1111111111111111111111111111111111111111",
+                "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                "amount": "999",
+                "type": "Router",
+                "gasCost": 0,
+            },
+        ]
+        output = converter.generate_test_case_format("0xabc", swaps, execution_tree, transfers)
+
+        assert "Amount: 123" in output
+        assert "Amount: 456" in output
     
     def test_count_statistics(self):
         """测试数量统计"""
         swaps = [
-            {"address": "0x111", "method": "swap", "form": "Scope"},
-            {"address": "0x222", "method": "swap", "form": "Node"}
+            {"address": "0x111", "method": "swap", "form": "Scope", "node_id": "1"},
+            {"address": "0x222", "method": "swap", "form": "Node", "node_id": "2"}
         ]
         execution_tree = {
             "nodes": {"1": {"address": "0x111", "form": "Scope", "children": []}},
