@@ -3,10 +3,11 @@
 """
 import pytest
 from calltrace.services.converter import TransactionConverter
-from calltrace.utils.address import
-from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
 
-converter = TransactionConverter() generate_test_case_format, format_address
+pytest.skip("Deprecated top-level tests; use tests/unit instead.", allow_module_level=True)
+
+converter = TransactionConverter()
 
 
 class TestOutputFormatting:
@@ -309,4 +310,3 @@ class TestOutputFormatting:
         assert "261367284155547648" in output
         assert "Type: Direct" in output
         assert "Cost: 8862 gas" in output
-

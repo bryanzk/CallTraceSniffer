@@ -119,9 +119,17 @@ class TestIntegration:
         data_map = sample_trace_data.get('dataMap', {})
         main_trace = sample_trace_data.get('mainTrace', [])
         
-        transfers = converter.extract_transfers_from_data(data_map)
-        swaps = converter.extract_swaps_from_data(data_map, main_trace)
-        execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
+        transfers_raw = converter.extract_transfers_from_data(data_map)
+        converter.extract_swaps_from_data(data_map, main_trace)
+        graph = converter.build_execution_graph(data_map, main_trace, transfers_raw)
+        converter.apply_op1_deterministic_direct(graph)
+        converter.apply_op2_virtual_reduction(graph)
+        converter.apply_op3_mandatory_scope(graph)
+        converter.apply_op4_primitive_conversion(graph)
+        converter.apply_op5_engulfing(graph)
+        execution_tree = converter.build_execution_tree_from_graph(graph)
+        swaps = converter.graph_to_swaps(graph)
+        transfers = converter.graph_to_transfers(graph)
         
         # 使用process_tx_data
         result = process_tx_data(sample_trace_data)
@@ -130,4 +138,3 @@ class TestIntegration:
         assert len(result['transfers']) == len(transfers)
         assert len(result['swaps']) == len(swaps)
         assert len(result['execution_tree']['root_nodes']) == len(execution_tree['root_nodes'])
-

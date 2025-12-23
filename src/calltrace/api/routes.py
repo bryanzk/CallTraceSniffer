@@ -20,9 +20,17 @@ def process_tx_data(trace_data, tx_hash=None):
     main_trace = trace_data.get('mainTrace', [])
     
     # 提取数据
-    transfers = converter.extract_transfers_from_data(data_map)
-    swaps = converter.extract_swaps_from_data(data_map, main_trace)
-    execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
+    transfers_raw = converter.extract_transfers_from_data(data_map)
+    converter.extract_swaps_from_data(data_map, main_trace)
+    graph = converter.build_execution_graph(data_map, main_trace, transfers_raw)
+    converter.apply_op1_deterministic_direct(graph)
+    converter.apply_op2_virtual_reduction(graph)
+    converter.apply_op3_mandatory_scope(graph)
+    converter.apply_op4_primitive_conversion(graph)
+    converter.apply_op5_engulfing(graph)
+    execution_tree = converter.build_execution_tree_from_graph(graph)
+    swaps = converter.graph_to_swaps(graph)
+    transfers = converter.graph_to_transfers(graph)
     
     # 计算统计信息
     total_gas = sum(t.get('gasCost', 0) for t in transfers)
@@ -205,4 +213,3 @@ def register_routes(app, extracted_data_cache):
             as_attachment=True,
             download_name=filename
         )
-

@@ -16,9 +16,8 @@ class Config:
     
     # Router地址配置
     ROUTER_ADDRESSES: List[str] = [
-        '0x000000000004444c5dc75cb358380d2e3de08a90',  # Uniswap V4 Pool Manager
-        '0xe6f5c83b9d2005bf14333d7e48d3002fff4c93a7',
         '0x00000000009e50a7ddb7a7b0e2ee6604fd120e49',  # 0e49 as Router
+        '0xe6f5c83b9d2005bf14333d7e48d3002fff4c93a7',
     ]
     
     # 常见Token地址
@@ -38,4 +37,3 @@ class Config:
 
 # 创建全局配置实例
 config = Config()
-

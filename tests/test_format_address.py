@@ -5,6 +5,8 @@ import pytest
 from calltrace.services.converter import TransactionConverter
 from calltrace.utils.address import format_address
 
+pytest.skip("Deprecated top-level tests; use tests/unit instead.", allow_module_level=True)
+
 
 class TestFormatAddress:
     """测试format_address函数"""
@@ -67,4 +69,3 @@ class TestFormatAddress:
         result = format_address(addr)
         assert result == "0x00000000..."
         assert len(result) == 13
-

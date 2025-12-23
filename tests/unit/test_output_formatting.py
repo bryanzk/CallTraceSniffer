@@ -61,7 +61,14 @@ class TestOutputFormatting:
             {
                 "address": "0x4b2cde9effaa15999010e66da016b2b2c949f747",
                 "method": "swap",
-                "form": "Scope"
+                "form": "Scope",
+                "token_in": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                "token_out": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "execution_plan": {
+                    "preamble": {"type": "OptimisticTransfer", "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"},
+                    "postamble": {"type": "Repay", "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"},
+                    "body": []
+                }
             },
             {
                 "address": "0x5b2cde9effaa15999010e66da016b2b2c949f747",
@@ -69,14 +76,26 @@ class TestOutputFormatting:
                 "form": "Node"
             }
         ]
-        execution_tree = {"nodes": {}, "root_nodes": []}
+        execution_tree = {
+            "nodes": {
+                "1": {
+                    "address": format_address("0x4b2cde9effaa15999010e66da016b2b2c949f747"),
+                    "form": "Scope",
+                    "children": []
+                }
+            },
+            "root_nodes": ["1"]
+        }
         transfers = []
         output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
-        assert "Swaps: 2" in output
+        assert "Swaps: 1" in output
         assert "0x4b2cde9e..." in output
         assert "Form: Scope" in output
         assert "Method: swap" in output
+        assert "Plan: Pre(OptimisticTransfer" in output
+        assert "0xc02aaa39..." in output
+        assert "0xa0b86991..." in output
     
     def test_execution_tree_section_format(self):
         """测试ExecutionTree部分格式（根节点和子节点）"""
@@ -110,9 +129,11 @@ class TestOutputFormatting:
         """测试Transfers部分格式（Router/Direct/Virtual图标）"""
         swaps = []
         execution_tree = {"nodes": {}, "root_nodes": []}
+        from calltrace.config import config
+        router_addr = config.ROUTER_ADDRESSES[0]
         transfers = [
             {
-                "from": "0x000000000004444c5dc75cb358380d2e3de08a90",  # Router
+                "from": router_addr,  # Router
                 "to": "0x2222222222222222222222222222222222222222",
                 "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
                 "amount": "1000000",
@@ -203,7 +224,7 @@ class TestOutputFormatting:
         
         # 地址应该被格式化
         assert "0x4b2cde9e..." in output
-        assert "0x00000000..." in output
+        assert "🏦Router" in output
         assert "0xc02aaa39..." in output
     
     def test_count_statistics(self):
@@ -223,7 +244,7 @@ class TestOutputFormatting:
         ]
         output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
-        assert "Swaps: 2" in output
+        assert "Swaps: 1" in output
         assert "Transfers: 3 total" in output
         assert "Router: 1" in output
         assert "Direct: 2" in output

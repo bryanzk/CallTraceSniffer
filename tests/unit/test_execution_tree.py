@@ -69,9 +69,9 @@ class TestExecutionTree:
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
         tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
-        assert len(tree['root_nodes']) == 2
+        assert len(tree['root_nodes']) == 1
         assert "1" in tree['nodes']
-        assert "2" in tree['nodes']
+        assert "2" not in tree['nodes']
     
     def test_swap_with_payload_children(self):
         """测试swap节点带Payload子节点"""
@@ -107,7 +107,7 @@ class TestExecutionTree:
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
         tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
-        assert len(tree['root_nodes']) == 2
+        assert len(tree['root_nodes']) == 1
         # 第一个swap应该有children（如果第二个swap是它的子节点）
         node1 = tree['nodes'].get("1", {})
         # 检查是否有子节点关系
@@ -161,7 +161,7 @@ class TestExecutionTree:
             "3": {"invocation": {"address": "0x6b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
         tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
-        assert len(tree['root_nodes']) == 3
+        assert len(tree['root_nodes']) == 1
         assert all(str(i) in tree['nodes'] for i in [1, 2, 3])
     
     def test_node_id_generation(self):
@@ -312,9 +312,9 @@ class TestExecutionTree:
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
         tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
-        # 即使找不到，也应该创建节点（使用node_id）
-        assert len(tree['root_nodes']) == 1
-        assert "1" in tree['nodes']
+        # 找不到swap时不创建root节点
+        assert len(tree['root_nodes']) == 0
+        assert "1" not in tree['nodes']
     
     def test_deep_nesting_structure(self):
         """测试深层嵌套结构"""
@@ -343,5 +343,5 @@ class TestExecutionTree:
             for i in range(1, 6)
         }
         tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
-        assert len(tree['root_nodes']) == 5
+        assert len(tree['root_nodes']) == 1
         assert all(str(i) in tree['nodes'] for i in range(1, 6))

@@ -2,14 +2,486 @@
 交易数据转换服务
 将BlockSec数据转换为test_cases.yaml格式
 """
-from typing import Dict, List
+from typing import Dict, List, Optional
 from ..utils.address import format_address, is_router_address
 from ..config import config
 
 
 class TransactionConverter:
     """交易数据转换器"""
-    
+
+    def _parse_int(self, value) -> Optional[int]:
+        """解析带逗号/符号的数值字符串"""
+        if value is None:
+            return None
+        try:
+            if isinstance(value, (int, float)):
+                return int(value)
+            value_str = str(value).replace(',', '').strip()
+            if value_str == '':
+                return None
+            return int(value_str)
+        except Exception:
+            return None
+
+    def _collect_swap_nodes(self, data_map: Dict) -> Dict[str, Dict]:
+        """收集所有swap节点的原始信息"""
+        swaps = {}
+        for node_id, node_data in data_map.items():
+            if not isinstance(node_data, dict):
+                continue
+
+            invocation = node_data.get('invocation', {})
+            if not isinstance(invocation, dict):
+                continue
+
+            method = invocation.get('decodedMethod', {})
+            if not isinstance(method, dict):
+                continue
+
+            method_name = method.get('name', '')
+            has_swap = 'swap' in method_name.lower()
+            has_callback = 'callback' in method_name.lower()
+            if has_swap and not has_callback:
+                swaps[str(node_id)] = {
+                    'node_id': str(node_id),
+                    'address': invocation.get('address', ''),
+                    'method': method_name,
+                    'decoded_method': method,
+                    'invocation': invocation,
+                    'gasUsed': invocation.get('gasUsed', 0) or 0,
+                }
+        return swaps
+
+    def _derive_exec_order(self, main_trace: List, swap_nodes: Dict[str, Dict]) -> List[str]:
+        """从main_trace提取swap的执行顺序（先序遍历）"""
+        order = []
+
+        def walk(node):
+            node_id = str(node.get('id', ''))
+            if node_id in swap_nodes:
+                order.append(node_id)
+            for child in node.get('children', []):
+                walk(child)
+
+        for root in main_trace:
+            walk(root)
+        return order
+
+    def _infer_node_type(self, method: Dict, invocation: Dict) -> str:
+        """基于方法签名/参数推断节点类型"""
+        method_name = method.get('name', '').lower()
+        signature = method.get('signature', '').lower()
+        call_params = method.get('callParams', [])
+        if 'flash' in method_name:
+            return 'Flash'
+        if signature and '(address,address,uint24,int24,address)' in signature:
+            return 'Callback'
+        if any(p.get('name') == 'key' for p in call_params) and any(p.get('name') == 'params' for p in call_params):
+            return 'Callback'
+        if method_name == 'swap':
+            for p in call_params:
+                if p.get('name') == 'data':
+                    if str(p.get('value', '')).strip() and str(p.get('value', '')).strip() != '0x':
+                        return 'Callback'
+            return 'Standard'
+        if 'swap' in method_name:
+            return 'Standard'
+        return 'Standard'
+
+    def _infer_v4_tokens(self, method: Dict) -> Dict[str, Optional[str]]:
+        """从V4 swap参数中推断token和金额"""
+        call_params = method.get('callParams', [])
+        key = None
+        swap_params = None
+        for param in call_params:
+            if param.get('name') == 'key':
+                key = param.get('value')
+            elif param.get('name') == 'params':
+                swap_params = param.get('value')
+
+        if not key or not swap_params:
+            return {'token_in': None, 'token_out': None, 'amount_in': None}
+
+        currency0 = None
+        currency1 = None
+        zero_for_one = None
+        amount_specified = None
+
+        for item in key:
+            if item.get('name') == 'currency0':
+                currency0 = item.get('value')
+            elif item.get('name') == 'currency1':
+                currency1 = item.get('value')
+
+        for item in swap_params:
+            if item.get('name') == 'zeroForOne':
+                zero_for_one = item.get('value')
+            elif item.get('name') == 'amountSpecified':
+                amount_specified = item.get('value')
+
+        if currency0 == '0x0000000000000000000000000000000000000000':
+            currency0 = config.WETH
+        if currency1 == '0x0000000000000000000000000000000000000000':
+            currency1 = config.WETH
+
+        amount_in = self._parse_int(amount_specified)
+        if amount_in is not None:
+            amount_in = abs(amount_in)
+
+        if zero_for_one is True:
+            token_in = currency0
+            token_out = currency1
+        else:
+            token_in = currency1
+            token_out = currency0
+
+        return {'token_in': token_in, 'token_out': token_out, 'amount_in': amount_in}
+
+    def _infer_tokens_from_transfers(self, transfers: List[Dict], address: str) -> Dict[str, Optional[str]]:
+        """从transfer中推断输入/输出token"""
+        token_in = None
+        token_out = None
+        amount_in = None
+        amount_out = None
+
+        for transfer in transfers:
+            if transfer.get('to') == address and token_in is None:
+                token_in = transfer.get('token')
+                amount_in = self._parse_int(transfer.get('amount'))
+            if transfer.get('from') == address and token_out is None:
+                token_out = transfer.get('token')
+                amount_out = self._parse_int(transfer.get('amount'))
+
+        return {
+            'token_in': token_in,
+            'token_out': token_out,
+            'amount_in': amount_in,
+            'amount_out': amount_out,
+        }
+
+    def build_execution_graph(self, data_map: Dict, main_trace: List, transfers: List[Dict]) -> Dict:
+        """构建ExecutionGraph（Op_1~Op_5前的初始图）"""
+        swap_nodes = self._collect_swap_nodes(data_map)
+        exec_order = self._derive_exec_order(main_trace, swap_nodes)
+
+        nodes = {}
+        for node_id, info in swap_nodes.items():
+            invocation = info.get('invocation', {})
+            method = info.get('decoded_method', {})
+            node_type = self._infer_node_type(method, invocation)
+            token_info = {}
+
+            if node_type == 'Callback':
+                token_info = self._infer_v4_tokens(method)
+            if not token_info or token_info.get('token_in') is None:
+                token_info = self._infer_tokens_from_transfers(transfers, info.get('address', ''))
+
+            singleton_id = None
+            if info.get('address') and node_type == 'Callback':
+                singleton_id = info.get('address')
+
+            nodes[node_id] = {
+                'id': node_id,
+                'address': info.get('address', ''),
+                'method': info.get('method', ''),
+                'form': None,
+                'node_type': node_type,
+                'payload': [],
+                'token_in': token_info.get('token_in'),
+                'token_out': token_info.get('token_out'),
+                'amount_in': token_info.get('amount_in'),
+                'amount_out': token_info.get('amount_out'),
+                'execution_plan': None,
+                'singleton_id': singleton_id,
+            }
+
+        edges = []
+        for transfer in transfers:
+            edges.append({
+                'from': transfer.get('from', ''),
+                'to': transfer.get('to', ''),
+                'token': transfer.get('token', ''),
+                'amount': self._parse_int(transfer.get('amount')) or 0,
+                'flow_type': 'Transfer',
+                'gasCost': transfer.get('gasCost', 0),
+                'gasUsed': transfer.get('gasUsed', 0),
+            })
+
+        return {
+            'nodes': nodes,
+            'edges': edges,
+            'exec_order': exec_order,
+        }
+
+    def apply_op1_deterministic_direct(self, graph: Dict) -> None:
+        """Op_1: Router中转 -> Direct边降级"""
+        edges = graph.get('edges', [])
+        new_edges = []
+        consumed = set()
+        router_addrs = set(a.lower() for a in config.ROUTER_ADDRESSES)
+
+        for i, edge in enumerate(edges):
+            if i in consumed or edge.get('flow_type') != 'Transfer':
+                continue
+            if edge.get('to', '').lower() not in router_addrs:
+                continue
+
+            for j, edge2 in enumerate(edges):
+                if j in consumed or j == i or edge2.get('flow_type') != 'Transfer':
+                    continue
+                if edge2.get('from', '').lower() not in router_addrs:
+                    continue
+                if edge2.get('token') != edge.get('token'):
+                    continue
+                if edge2.get('amount') != edge.get('amount'):
+                    continue
+
+                new_edges.append({
+                    'from': edge.get('from', ''),
+                    'to': edge2.get('to', ''),
+                    'token': edge.get('token', ''),
+                    'amount': edge.get('amount', 0),
+                    'flow_type': 'Direct',
+                    'gasCost': 5000,
+                    'gasUsed': 0,
+                })
+                consumed.add(i)
+                consumed.add(j)
+                break
+
+        for idx, edge in enumerate(edges):
+            if idx not in consumed:
+                new_edges.append(edge)
+
+        graph['edges'] = new_edges
+
+    def apply_op2_virtual_reduction(self, graph: Dict) -> None:
+        """Op_2: 同Singleton Direct边降级为Virtual"""
+        nodes = graph.get('nodes', {})
+        edges = graph.get('edges', [])
+        new_edges = list(edges)
+
+        for node in nodes.values():
+            if not node.get('singleton_id'):
+                continue
+            token_in = node.get('token_in')
+            amount_in = node.get('amount_in')
+            if not token_in or not amount_in:
+                continue
+            if token_in.lower() == config.WETH.lower():
+                new_edges.append({
+                    'from': config.ROUTER_ADDRESSES[0],
+                    'to': node.get('address', ''),
+                    'token': token_in,
+                    'amount': amount_in,
+                    'flow_type': 'Transfer',
+                    'gasCost': 23000,
+                    'gasUsed': 23000,
+                })
+            else:
+                new_edges.append({
+                    'from': node.get('address', ''),
+                    'to': node.get('address', ''),
+                    'token': token_in,
+                    'amount': amount_in,
+                    'flow_type': 'Direct',
+                    'gasCost': 5000,
+                    'gasUsed': 0,
+                })
+
+        for edge in new_edges:
+            if edge.get('flow_type') != 'Direct':
+                continue
+            from_addr = edge.get('from', '')
+            to_addr = edge.get('to', '')
+            if from_addr == to_addr:
+                edge['flow_type'] = 'Virtual'
+                edge['gasCost'] = 0
+                edge['gasUsed'] = 0
+                continue
+            from_singleton = None
+            to_singleton = None
+            for node in nodes.values():
+                if node.get('address') == from_addr:
+                    from_singleton = node.get('singleton_id')
+                if node.get('address') == to_addr:
+                    to_singleton = node.get('singleton_id')
+            if from_singleton and from_singleton == to_singleton:
+                edge['flow_type'] = 'Virtual'
+                edge['gasCost'] = 0
+                edge['gasUsed'] = 0
+
+        graph['edges'] = new_edges
+
+    def apply_op3_mandatory_scope(self, graph: Dict) -> None:
+        """Op_3: 根据协议类型设置Form"""
+        for node in graph.get('nodes', {}).values():
+            node_type = node.get('node_type')
+            if node_type in ('Callback', 'Flash'):
+                node['form'] = 'Scope'
+                if node.get('payload') is None:
+                    node['payload'] = []
+            else:
+                node['form'] = 'Node'
+
+    def apply_op4_primitive_conversion(self, graph: Dict) -> None:
+        """Op_4: 为Scope节点添加ExecutionPlan"""
+        for node in graph.get('nodes', {}).values():
+            if node.get('form') != 'Scope':
+                continue
+            token_in = node.get('token_in')
+            token_out = node.get('token_out')
+            amount_in = node.get('amount_in')
+            node['execution_plan'] = {
+                'preamble': {
+                    'type': 'OptimisticTransfer',
+                    'token': token_out,
+                    'amount': None,
+                },
+                'body': list(node.get('payload', [])),
+                'postamble': {
+                    'type': 'Repay',
+                    'token': token_in,
+                    'amount': amount_in,
+                },
+            }
+
+    def apply_op5_engulfing(self, graph: Dict) -> None:
+        """Op_5: 模拟执行并吞噬缺钱节点"""
+        nodes = graph.get('nodes', {})
+        exec_order = list(graph.get('exec_order', []))
+        balance = {}
+
+        def add_balance(token, amount):
+            if not token or amount is None:
+                return
+            balance[token] = balance.get(token, 0) + amount
+
+        def sub_balance(token, amount):
+            if not token or amount is None:
+                return False
+            balance[token] = balance.get(token, 0) - amount
+            return balance[token] >= 0
+
+        i = 0
+        max_attempts = len(exec_order) * 2 if exec_order else 0
+        attempts = 0
+        while i < len(exec_order) and attempts < max_attempts:
+            attempts += 1
+            node_id = exec_order[i]
+            node = nodes.get(node_id)
+            if not node:
+                i += 1
+                continue
+            token_in = node.get('token_in')
+            amount_in = node.get('amount_in')
+            token_out = node.get('token_out')
+            amount_out = node.get('amount_out')
+
+            if token_in and amount_in and balance.get(token_in, 0) < amount_in:
+                predator_id = None
+                for prev_id in exec_order[:i]:
+                    prev_node = nodes.get(prev_id)
+                    if prev_node and prev_node.get('form') == 'Scope':
+                        if prev_node.get('token_out') == token_in:
+                            predator_id = prev_id
+                            break
+                if predator_id is None:
+                    for next_id in exec_order[i + 1:]:
+                        next_node = nodes.get(next_id)
+                        if next_node and next_node.get('form') == 'Scope':
+                            if next_node.get('token_out') == token_in:
+                                predator_id = next_id
+                                break
+                    if predator_id is None:
+                        i += 1
+                        continue
+                    predator = nodes[predator_id]
+                    predator.setdefault('payload', [])
+                    predator['payload'].append(node_id)
+                    exec_order.remove(predator_id)
+                    exec_order.insert(0, predator_id)
+                    exec_order.pop(i + 1)
+                    i = 0
+                    continue
+                predator = nodes[predator_id]
+                predator.setdefault('payload', [])
+                predator['payload'].append(node_id)
+                exec_order.pop(i)
+                continue
+
+            sub_balance(token_in, amount_in or 0)
+            add_balance(token_out, amount_out or 0)
+            i += 1
+
+        graph['exec_order'] = exec_order
+
+    def build_execution_tree_from_graph(self, graph: Dict) -> Dict:
+        """基于Payload构建ExecutionTree"""
+        nodes = {}
+        root_nodes = []
+        for node_id, node in graph.get('nodes', {}).items():
+            nodes[node_id] = {
+                'id': node_id,
+                'address': format_address(node.get('address', '')),
+                'form': node.get('form', 'Node'),
+                'parent': None,
+                'children': [],
+            }
+
+        for node_id, node in graph.get('nodes', {}).items():
+            for child_id in node.get('payload', []):
+                if child_id in nodes:
+                    nodes[child_id]['parent'] = node_id
+                    nodes[node_id]['children'].append(child_id)
+
+        for node_id, node in nodes.items():
+            if node.get('parent') is None:
+                root_nodes.append(node_id)
+
+        return {'nodes': nodes, 'root_nodes': root_nodes}
+
+    def graph_to_swaps(self, graph: Dict) -> List[Dict]:
+        """将ExecutionGraph转换为Swaps列表"""
+        swaps = []
+        for node_id in graph.get('exec_order', []):
+            node = graph['nodes'].get(node_id)
+            if not node:
+                continue
+            swaps.append(node)
+        for node_id, node in graph.get('nodes', {}).items():
+            if node_id not in graph.get('exec_order', []):
+                swaps.append(node)
+        return swaps
+
+    def graph_to_transfers(self, graph: Dict) -> List[Dict]:
+        """将ExecutionGraph转换为Transfers列表"""
+        transfers = []
+        for edge in graph.get('edges', []):
+            flow_type = edge.get('flow_type', 'Transfer')
+            transfer_type = 'Direct'
+            if flow_type == 'Virtual':
+                transfer_type = 'Virtual'
+            elif flow_type == 'Direct':
+                transfer_type = 'Direct'
+            else:
+                if is_router_address(edge.get('from')) or is_router_address(edge.get('to')):
+                    transfer_type = 'Router'
+                else:
+                    transfer_type = 'Direct'
+
+            transfers.append({
+                'from': edge.get('from', ''),
+                'to': edge.get('to', ''),
+                'token': edge.get('token', ''),
+                'amount': str(edge.get('amount', 0)),
+                'type': transfer_type,
+                'gasCost': edge.get('gasCost', 0),
+                'gasUsed': edge.get('gasUsed', 0),
+            })
+        return transfers
+
     def extract_transfers_from_data(self, data_map: Dict) -> List[Dict]:
         """从dataMap中提取所有transfer调用"""
         transfers = []
@@ -223,6 +695,8 @@ class TransactionConverter:
                         'method': method_name,
                         'node_id': node_id,
                         'gasUsed': invocation.get('gasUsed', 0) or 0,
+                        'form': None,
+                        'depth': None,
                     }
         
         # 从mainTrace中构建swap的层级关系
@@ -512,8 +986,20 @@ class TransactionConverter:
             form = node.get('form', 'Node')
             method = swap.get('method', '')
             children_count = len(item['children'])
+            execution_plan = swap.get('execution_plan') or node.get('execution_plan')
+            plan_line = ''
+            if execution_plan:
+                pre = execution_plan.get('preamble', {}).get('token')
+                post = execution_plan.get('postamble', {}).get('token')
+                if pre and post:
+                    plan_line = f" | Plan: Pre(OptimisticTransfer {format_address(pre)}) Post(Repay {format_address(post)})"
             if children_count > 0:
-                lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method} | Payload: {children_count} nodes")
+                lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line} | Payload: {children_count} nodes")
+                if execution_plan:
+                    token_in = swap.get('token_in')
+                    token_out = swap.get('token_out')
+                    if token_in and token_out:
+                        lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
                 # 显示Payload节点
                 for j, child_id in enumerate(item['children']):
                     child_node = nodes.get(child_id, {})
@@ -521,7 +1007,12 @@ class TransactionConverter:
                     indent = "            " if j == 0 else "            "
                     lines.append(f"{indent}└─ Payload[{j}]: {child_addr}")
             else:
-                lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}")
+                lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line}")
+                if execution_plan:
+                    token_in = swap.get('token_in')
+                    token_out = swap.get('token_out')
+                    if token_in and token_out:
+                        lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
         
         # ExecutionTree部分
         nodes = execution_tree.get('nodes', {})
@@ -618,4 +1109,3 @@ class TransactionConverter:
                 lines.append("")
         
         return '\n'.join(lines)
-
