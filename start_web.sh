@@ -34,5 +34,5 @@ echo "   注意: 如果5001端口被占用，请修改app.py中的端口号"
 echo "   按 Ctrl+C 停止服务器"
 echo ""
 
-python3 app.py
+python3 run.py
 

@@ -1,17 +1,15 @@
 """
 集成测试 - 测试完整的数据处理流程
 """
-import pytest
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
 
-from app import process_tx_data
-from convert_to_test_case_v2 import (
-    extract_transfers_from_data,
-    extract_swaps_from_data,
-    build_execution_tree_simplified
-)
+import pytest
+from calltrace.api.routes import process_tx_data
+from calltrace.services.converter import TransactionConverter
+
+converter = TransactionConverter()
 
 
 class TestIntegration:
@@ -121,9 +119,9 @@ class TestIntegration:
         data_map = sample_trace_data.get('dataMap', {})
         main_trace = sample_trace_data.get('mainTrace', [])
         
-        transfers = extract_transfers_from_data(data_map)
-        swaps = extract_swaps_from_data(data_map, main_trace)
-        execution_tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
+        execution_tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         
         # 使用process_tx_data
         result = process_tx_data(sample_trace_data)

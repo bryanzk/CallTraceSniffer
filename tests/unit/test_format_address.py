@@ -2,7 +2,8 @@
 测试地址格式化函数
 """
 import pytest
-from convert_to_test_case_v2 import format_address
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
 
 
 class TestFormatAddress:

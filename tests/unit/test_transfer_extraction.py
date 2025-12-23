@@ -1,8 +1,17 @@
 """
 测试Transfer提取函数
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+
 import pytest
-from convert_to_test_case_v2 import extract_transfers_from_data, is_router_address, ROUTER_ADDRESSES
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import is_router_address
+from calltrace.config import config
+
+converter = TransactionConverter()
+ROUTER_ADDRESSES = config.ROUTER_ADDRESSES
 
 
 class TestTransferExtraction:
@@ -10,7 +19,7 @@ class TestTransferExtraction:
     
     def test_transfer_by_selector(self, sample_data_map):
         """测试通过selector识别transfer（0xa9059cbb）"""
-        transfers = extract_transfers_from_data(sample_data_map)
+        transfers = converter.extract_transfers_from_data(sample_data_map)
         # 应该找到多个transfer
         assert len(transfers) > 0
         # 验证所有transfer都有正确的字段
@@ -43,7 +52,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['amount'] == "1000000"
     
@@ -62,7 +71,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 0
     
     def test_transfer_parameter_variants(self):
@@ -93,7 +102,7 @@ class TestTransferExtraction:
                     }
                 }
             }
-            transfers = extract_transfers_from_data(data_map)
+            transfers = converter.extract_transfers_from_data(data_map)
             assert len(transfers) == 1
             assert transfers[0]['to'] == recipient_param['value']
             assert transfers[0]['amount'] == str(amount_param['value']).replace(',', '')
@@ -119,7 +128,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['to'].lower() == recipient.lower()
         assert transfers[0]['amount'] == str(amount)
@@ -146,7 +155,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['type'] == 'Router'
         
@@ -168,7 +177,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers2 = extract_transfers_from_data(data_map2)
+        transfers2 = converter.extract_transfers_from_data(data_map2)
         assert len(transfers2) == 1
         assert transfers2[0]['type'] == 'Router'
     
@@ -191,7 +200,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['type'] == 'Direct'
     
@@ -215,7 +224,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers1 = extract_transfers_from_data(data_map1)
+        transfers1 = converter.extract_transfers_from_data(data_map1)
         assert len(transfers1) == 1
         assert transfers1[0]['type'] == 'Virtual'
         
@@ -237,7 +246,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers2 = extract_transfers_from_data(data_map2)
+        transfers2 = converter.extract_transfers_from_data(data_map2)
         assert len(transfers2) == 1
         assert transfers2[0]['type'] == 'Virtual'
     
@@ -260,7 +269,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['gasUsed'] == 8862
         assert transfers[0]['gasCost'] == 8862  # gasCost应该等于gasUsed
@@ -285,7 +294,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers1 = extract_transfers_from_data(data_map1)
+        transfers1 = converter.extract_transfers_from_data(data_map1)
         assert len(transfers1) == 1
         assert transfers1[0]['gasUsed'] == 0
         assert transfers1[0]['gasCost'] == 0
@@ -308,14 +317,14 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers2 = extract_transfers_from_data(data_map2)
+        transfers2 = converter.extract_transfers_from_data(data_map2)
         assert len(transfers2) == 1
         assert transfers2[0]['gasUsed'] == 0
         assert transfers2[0]['gasCost'] == 0
     
     def test_empty_data_map(self, empty_data_map):
         """测试空dataMap"""
-        transfers = extract_transfers_from_data(empty_data_map)
+        transfers = converter.extract_transfers_from_data(empty_data_map)
         assert transfers == []
     
     def test_invalid_node_data_structure(self):
@@ -327,7 +336,7 @@ class TestTransferExtraction:
                 "not_invocation": {}
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert transfers == []
     
     def test_missing_invocation_field(self):
@@ -337,7 +346,7 @@ class TestTransferExtraction:
                 "not_invocation": {}
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert transfers == []
     
     def test_missing_recipient_or_amount(self):
@@ -360,7 +369,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers1 = extract_transfers_from_data(data_map1)
+        transfers1 = converter.extract_transfers_from_data(data_map1)
         assert len(transfers1) == 0
         
         # 只有amount，没有recipient
@@ -381,7 +390,7 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers2 = extract_transfers_from_data(data_map2)
+        transfers2 = converter.extract_transfers_from_data(data_map2)
         assert len(transfers2) == 0
     
     def test_amount_with_commas(self):
@@ -403,7 +412,6 @@ class TestTransferExtraction:
                 }
             }
         }
-        transfers = extract_transfers_from_data(data_map)
+        transfers = converter.extract_transfers_from_data(data_map)
         assert len(transfers) == 1
         assert transfers[0]['amount'] == "1000000"  # 逗号应该被移除
-

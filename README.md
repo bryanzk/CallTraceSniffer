@@ -31,7 +31,7 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 启动应用
-python app.py
+python run.py
 ```
 
 访问: http://localhost:5001
@@ -40,26 +40,45 @@ python app.py
 
 ```
 CallTraceSniffer/
-├── app.py                      # Flask Web应用
-├── convert_to_test_case_v2.py # 数据转换模块
-├── Dockerfile                  # Docker镜像配置
-├── docker-compose.yml          # Docker Compose配置
-├── build_and_run.sh            # 一键构建运行脚本
-├── requirements.txt            # Python依赖
+├── run.py                      # 应用入口点
+├── src/                        # 源代码目录
+│   └── calltrace/              # 主应用包
+│       ├── app.py              # Flask应用
+│       ├── config.py           # 配置管理
+│       ├── services/           # 业务逻辑层
+│       │   ├── converter.py    # 数据转换服务
+│       │   └── extractor.py   # 数据提取服务
+│       ├── utils/              # 工具函数
+│       │   └── address.py     # 地址处理
+│       └── api/                # API路由
+│           └── routes.py
+├── scripts/                    # 脚本目录
+│   ├── extract/                # 数据提取脚本
+│   ├── process/                # 数据处理脚本
+│   ├── parse/                  # 数据解析脚本
+│   └── utils/                  # 工具脚本
+├── tests/                      # 测试目录
+│   ├── unit/                   # 单元测试
+│   ├── integration/            # 集成测试
+│   └── fixtures/               # 测试数据
+├── docs/                       # 文档目录
+│   ├── deployment/             # 部署文档
+│   ├── development/            # 开发文档
+│   └── setup/                  # 设置文档
+├── config/                     # 配置目录
+│   └── test_cases.yaml         # 测试用例参考
 ├── templates/                  # HTML模板
-│   └── index.html
 ├── static/                     # 静态资源
-│   ├── css/
-│   └── js/
-├── test_cases.yaml             # 测试用例参考
-└── README*.md                  # 文档
+├── Dockerfile                  # Docker配置
+└── docker-compose.yml          # Docker Compose配置
 ```
 
 ## 📖 文档
 
-- [Docker部署指南](README_DOCKER.md) - 完整的Docker使用说明
-- [快速开始](QUICKSTART_DOCKER.md) - Docker快速上手指南
-- [Web界面使用](README_WEB.md) - Web应用使用说明
+- [Docker部署指南](docs/deployment/README_DOCKER.md) - 完整的Docker使用说明
+- [快速开始](docs/deployment/QUICKSTART_DOCKER.md) - Docker快速上手指南
+- [Web界面使用](docs/development/README_WEB.md) - Web应用使用说明
+- [测试文档](docs/development/testing.md) - 测试指南
 
 ## 🛠️ 技术栈
 

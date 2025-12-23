@@ -1,8 +1,15 @@
 """
 测试输出格式化函数
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+
 import pytest
-from convert_to_test_case_v2 import generate_test_case_format, format_address
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
+
+converter = TransactionConverter()
 
 
 class TestOutputFormatting:
@@ -39,7 +46,7 @@ class TestOutputFormatting:
                 "gasCost": 8862
             }
         ]
-        output = generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
         
         # 验证基本结构
         assert "TX:" in output
@@ -64,7 +71,7 @@ class TestOutputFormatting:
         ]
         execution_tree = {"nodes": {}, "root_nodes": []}
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Swaps: 2" in output
         assert "0x4b2cde9e..." in output
@@ -92,7 +99,7 @@ class TestOutputFormatting:
             "root_nodes": ["1"]
         }
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "ExecutionTree: 1 root nodes" in output
         assert "Root[0]:" in output
@@ -129,7 +136,7 @@ class TestOutputFormatting:
                 "gasCost": 0
             }
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Transfers: 3 total" in output
         assert "Router: 1" in output
@@ -149,7 +156,7 @@ class TestOutputFormatting:
             {"gasCost": 5000, "type": "Direct"},
             {"gasCost": 0, "type": "Virtual"}
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Gas Cost: 28000" in output  # 23000 + 5000 + 0
     
@@ -159,7 +166,7 @@ class TestOutputFormatting:
         swaps = []
         execution_tree = {"nodes": {}, "root_nodes": []}
         transfers = []
-        output = generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format(tx_hash, swaps, execution_tree, transfers)
         
         assert f"TX: {tx_hash}" in output
     
@@ -192,7 +199,7 @@ class TestOutputFormatting:
                 "gasCost": 8862
             }
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         # 地址应该被格式化
         assert "0x4b2cde9e..." in output
@@ -214,7 +221,7 @@ class TestOutputFormatting:
             {"gasCost": 2000, "type": "Direct"},
             {"gasCost": 3000, "type": "Direct"}
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Swaps: 2" in output
         assert "Transfers: 3 total" in output
@@ -231,7 +238,7 @@ class TestOutputFormatting:
             {"gasCost": 5000, "type": "Direct"},
             {"gasCost": 8940, "type": "Direct"}
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         total_gas = 23000 + 5000 + 8940
         assert f"Gas Cost: {total_gas}" in output
@@ -241,7 +248,7 @@ class TestOutputFormatting:
         swaps = []
         execution_tree = {"nodes": {}, "root_nodes": []}
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Swaps: 0" in output
     
@@ -250,7 +257,7 @@ class TestOutputFormatting:
         swaps = [{"address": "0x111", "method": "swap", "form": "Scope"}]
         execution_tree = {"nodes": {"1": {"address": "0x111", "form": "Scope", "children": []}}, "root_nodes": ["1"]}
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Transfers: 0 total" in output
         assert "Gas Cost: 0" in output
@@ -260,7 +267,7 @@ class TestOutputFormatting:
         swaps = [{"address": "0x111", "method": "swap", "form": "Scope"}]
         execution_tree = {"nodes": {}, "root_nodes": []}
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "ExecutionTree: 0 root nodes" in output
     
@@ -278,7 +285,7 @@ class TestOutputFormatting:
             "root_nodes": ["1", "2"]
         }
         transfers = []
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "ExecutionTree: 2 root nodes" in output
         assert "Root[0]:" in output
@@ -298,11 +305,10 @@ class TestOutputFormatting:
                 "gasCost": 8862
             }
         ]
-        output = generate_test_case_format("0x123", swaps, execution_tree, transfers)
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
         
         assert "Token:" in output
         assert "Amount:" in output
         assert "261367284155547648" in output
         assert "Type: Direct" in output
         assert "Cost: 8862 gas" in output
-

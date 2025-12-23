@@ -1,8 +1,15 @@
 """
 测试Router地址识别函数
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+
 import pytest
-from convert_to_test_case_v2 import is_router_address, ROUTER_ADDRESSES
+from calltrace.utils.address import is_router_address
+from calltrace.config import config
+
+ROUTER_ADDRESSES = config.ROUTER_ADDRESSES
 
 
 class TestRouterDetection:

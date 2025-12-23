@@ -8,17 +8,15 @@ from typing import Dict, List
 # 导入被测试的模块
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
 
-from convert_to_test_case_v2 import (
-    format_address,
-    is_router_address,
-    extract_transfers_from_data,
-    extract_swaps_from_data,
-    build_execution_tree_simplified,
-    generate_test_case_format,
-    ROUTER_ADDRESSES
-)
+from calltrace.utils.address import format_address, is_router_address
+from calltrace.services.converter import TransactionConverter
+from calltrace.config import config
+
+# 创建converter实例用于测试
+converter = TransactionConverter()
+ROUTER_ADDRESSES = config.ROUTER_ADDRESSES
 
 
 @pytest.fixture

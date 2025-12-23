@@ -1,8 +1,14 @@
 """
 测试Swap提取函数
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+
 import pytest
-from convert_to_test_case_v2 import extract_swaps_from_data
+from calltrace.services.converter import TransactionConverter
+
+converter = TransactionConverter()
 
 
 class TestSwapExtraction:
@@ -30,7 +36,7 @@ class TestSwapExtraction:
                 "children": []
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 1
         assert swaps[0]['address'] == "0x4b2cde9effaa15999010e66da016b2b2c949f747"
         assert swaps[0]['method'] == "swap"
@@ -66,7 +72,7 @@ class TestSwapExtraction:
             {"id": 1, "to": "0x4b2cde9effaa15999010e66da016b2b2c949f747", "children": []},
             {"id": 2, "to": "0x5b2cde9effaa15999010e66da016b2b2c949f747", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 2
     
     def test_exclude_non_swap_methods(self):
@@ -99,7 +105,7 @@ class TestSwapExtraction:
             {"id": 1, "to": "0x4b2cde9effaa15999010e66da016b2b2c949f747", "children": []},
             {"id": 2, "to": "0x4b2cde9effaa15999010e66da016b2b2c949f747", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 0
     
     def test_form_type_scope(self):
@@ -126,7 +132,7 @@ class TestSwapExtraction:
                 ]
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 1
         assert swaps[0]['form'] == 'Scope'
     
@@ -152,7 +158,7 @@ class TestSwapExtraction:
                 "children": []  # 无children
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 1
         assert swaps[0]['form'] == 'Node'
     
@@ -195,7 +201,7 @@ class TestSwapExtraction:
                 ]
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         # 实际实现会识别所有包含'swap'的方法名，包括'uniswapV3SwapCallback'
         # 所以会找到2个：swap和uniswapV3SwapCallback
         assert len(swaps) >= 1
@@ -241,7 +247,7 @@ class TestSwapExtraction:
                 ]
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 2
         # 第一个swap在depth 0
         swap1 = next(s for s in swaps if s['node_id'] == "1")
@@ -272,7 +278,7 @@ class TestSwapExtraction:
             {"id": 1, "to": "0x4b2cde9effaa15999010e66da016b2b2c949f747", "children": []},
             {"id": 2, "to": "0x5b2cde9effaa15999010e66da016b2b2c949f747", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 2
     
     def test_nested_swap_structure(self):
@@ -306,7 +312,7 @@ class TestSwapExtraction:
                 ]
             }
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert len(swaps) == 2
         # 父swap应该是Scope
         swap1 = next(s for s in swaps if s['node_id'] == "1")
@@ -317,7 +323,7 @@ class TestSwapExtraction:
     
     def test_empty_data_map_and_trace(self, empty_data_map, empty_main_trace):
         """测试空dataMap和mainTrace"""
-        swaps = extract_swaps_from_data(empty_data_map, empty_main_trace)
+        swaps = converter.extract_swaps_from_data(empty_data_map, empty_main_trace)
         assert swaps == []
     
     def test_invalid_data_structure(self):
@@ -327,7 +333,7 @@ class TestSwapExtraction:
             "2": None
         }
         main_trace = []
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert swaps == []
     
     def test_missing_decoded_method(self):
@@ -345,7 +351,7 @@ class TestSwapExtraction:
         main_trace = [
             {"id": 1, "to": "0x4b2cde9effaa15999010e66da016b2b2c949f747", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         assert swaps == []
     
     def test_swap_not_in_main_trace(self):
@@ -362,7 +368,7 @@ class TestSwapExtraction:
         main_trace = [
             {"id": 999, "to": "0x9999999999999999999999999999999999999999", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
         # 实际实现只在mainTrace中查找swap节点
         # 如果swap不在mainTrace中，就不会被添加到结果中
         # 所以这里应该找到0个
@@ -385,8 +391,7 @@ class TestSwapExtraction:
         main_trace = [
             {"id": 1, "to": "0x00000000009e50a7ddb7a7b0e2ee6604fd120e49", "children": []}
         ]
-        swaps = extract_swaps_from_data(data_map, main_trace)
-        # 注意：当前实现会识别包含'swap'的所有方法，所以这个会被识别
+        swaps = converter.extract_swaps_from_data(data_map, main_trace)
+        # 注意：当前实现会识别包含'swap'的所有方法名，所以这个会被识别
         # 如果需要排除callback，需要修改实现
         assert len(swaps) >= 0  # 取决于实现
-

@@ -1,8 +1,15 @@
 """
 测试执行树构建函数
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
+
 import pytest
-from convert_to_test_case_v2 import build_execution_tree_simplified, format_address
+from calltrace.services.converter import TransactionConverter
+from calltrace.utils.address import format_address
+
+converter = TransactionConverter()
 
 
 class TestExecutionTree:
@@ -32,7 +39,7 @@ class TestExecutionTree:
                 }
             }
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 1
         assert "1" in tree['nodes']
         assert tree['nodes']["1"]['address'] == format_address("0x4b2cde9effaa15999010e66da016b2b2c949f747")
@@ -61,7 +68,7 @@ class TestExecutionTree:
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}},
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 2
         assert "1" in tree['nodes']
         assert "2" in tree['nodes']
@@ -99,7 +106,7 @@ class TestExecutionTree:
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}},
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 2
         # 第一个swap应该有children（如果第二个swap是它的子节点）
         node1 = tree['nodes'].get("1", {})
@@ -153,7 +160,7 @@ class TestExecutionTree:
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}},
             "3": {"invocation": {"address": "0x6b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 3
         assert all(str(i) in tree['nodes'] for i in [1, 2, 3])
     
@@ -173,7 +180,7 @@ class TestExecutionTree:
         data_map = {
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert "1" in tree['nodes']
         assert tree['nodes']["1"]['id'] == "1"
     
@@ -193,7 +200,7 @@ class TestExecutionTree:
         data_map = {
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         node = tree['nodes']["1"]
         assert node['address'] == format_address("0x4b2cde9effaa15999010e66da016b2b2c949f747")
         assert node['address'] == "0x4b2cde9e..."
@@ -218,7 +225,7 @@ class TestExecutionTree:
         data_map = {
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         node = tree['nodes']["1"]
         assert node['form'] == 'Scope'  # 有children
     
@@ -255,7 +262,7 @@ class TestExecutionTree:
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}},
             "2": {"invocation": {"address": "0x5b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         # 如果第二个swap是第一个的payload，应该有父子关系
         node1 = tree['nodes'].get("1", {})
         node2 = tree['nodes'].get("2", {})
@@ -268,7 +275,7 @@ class TestExecutionTree:
         swaps = []
         main_trace = []
         data_map = {}
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 0
         assert len(tree['nodes']) == 0
     
@@ -284,7 +291,7 @@ class TestExecutionTree:
         ]
         main_trace = []
         data_map = {}
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         # 空地址的swap应该被跳过
         assert len(tree['root_nodes']) == 0
     
@@ -304,7 +311,7 @@ class TestExecutionTree:
         data_map = {
             "1": {"invocation": {"address": "0x4b2cde9effaa15999010e66da016b2b2c949f747"}}
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         # 即使找不到，也应该创建节点（使用node_id）
         assert len(tree['root_nodes']) == 1
         assert "1" in tree['nodes']
@@ -335,7 +342,6 @@ class TestExecutionTree:
             str(i): {"invocation": {"address": f"0x{i}b2cde9effaa15999010e66da016b2b2c949f747"}}
             for i in range(1, 6)
         }
-        tree = build_execution_tree_simplified(swaps, main_trace, data_map)
+        tree = converter.build_execution_tree_simplified(swaps, main_trace, data_map)
         assert len(tree['root_nodes']) == 5
         assert all(str(i) in tree['nodes'] for i in range(1, 6))
-

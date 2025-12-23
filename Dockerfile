@@ -38,8 +38,8 @@ RUN playwright install chromium
 RUN playwright install-deps chromium
 
 # 复制应用文件
-COPY app.py .
-COPY convert_to_test_case_v2.py .
+COPY run.py .
+COPY src/ ./src/
 COPY templates/ ./templates/
 COPY static/ ./static/
 
@@ -54,5 +54,5 @@ ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # 启动命令
-CMD ["python3", "app.py"]
+CMD ["python3", "run.py"]
 
