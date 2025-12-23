@@ -21,7 +21,7 @@ chmod +x build_and_run.sh
 ./build_and_run.sh
 ```
 
-详细说明: [QUICKSTART_DOCKER.md](QUICKSTART_DOCKER.md)
+详细说明: [QUICKSTART_DOCKER.md](docs/deployment/QUICKSTART_DOCKER.md)
 
 ### 方式2: 本地Python环境
 
@@ -78,7 +78,8 @@ CallTraceSniffer/
 - [Docker部署指南](docs/deployment/README_DOCKER.md) - 完整的Docker使用说明
 - [快速开始](docs/deployment/QUICKSTART_DOCKER.md) - Docker快速上手指南
 - [Web界面使用](docs/development/README_WEB.md) - Web应用使用说明
-- [测试文档](docs/development/testing.md) - 测试指南
+- [IR映射文档](docs/development/IR_MAPPING.md) - IR操作映射说明
+- [测试文档](tests/README.md) - 测试指南
 
 ## 🛠️ 技术栈
 
@@ -110,7 +111,7 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 运行开发服务器
-python app.py
+python run.py
 ```
 
 ## 📝 使用示例
@@ -153,7 +154,7 @@ docker run -d \
 docker-compose up -d
 ```
 
-详细说明: [README_DOCKER.md](README_DOCKER.md)
+详细说明: [README_DOCKER.md](docs/deployment/README_DOCKER.md)
 
 ## 📊 输出格式
 

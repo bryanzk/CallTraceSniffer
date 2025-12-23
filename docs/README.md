@@ -9,7 +9,8 @@
 
 ### 开发文档 (development/)
 - [Web界面使用](development/README_WEB.md) - Web应用使用说明
-- [测试指南](development/testing.md) - 单元测试和集成测试
+- [IR映射文档](development/IR_MAPPING.md) - IR操作映射说明
+- [测试指南](../tests/README.md) - 单元测试和集成测试
 
 ### 设置文档 (setup/)
 - [GitHub设置指南](setup/GITHUB_SETUP.md) - GitHub仓库设置
