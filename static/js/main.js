@@ -1,6 +1,7 @@
 let currentTab = 'single';
 let singleResultData = null;
 let batchResultData = null;
+let simulationResultData = null;
 
 function switchTab(tab) {
     currentTab = tab;
@@ -19,6 +20,7 @@ function switchTab(tab) {
     
     // 隐藏结果
     document.getElementById('single-result').style.display = 'none';
+    document.getElementById('simulation-result').style.display = 'none';
     document.getElementById('batch-result').style.display = 'none';
 }
 
@@ -100,6 +102,86 @@ function displaySingleResult(data) {
     // 显示格式化输出
     outputDiv.textContent = data.formatted_output;
     
+    resultSection.style.display = 'block';
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// 模拟交易分析
+async function analyzeSimulation() {
+    const simUrl = document.getElementById('simulation-url').value.trim();
+
+    if (!simUrl) {
+        showError('请输入模拟交易URL');
+        return;
+    }
+
+    if (!simUrl.includes('blocksec.com') || !simUrl.includes('/explorer/tx/eth/')) {
+        showError('无效的BlockSec模拟URL');
+        return;
+    }
+
+    showLoading();
+    hideError();
+
+    try {
+        const response = await fetch('/api/analyze-simulation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ simulation_url: simUrl })
+        });
+
+        const data = await response.json();
+
+        hideLoading();
+
+        if (data.success) {
+            simulationResultData = data;
+            displaySimulationResult(data);
+        } else {
+            showError(data.error || '模拟分析失败');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('请求失败: ' + error.message);
+    }
+}
+
+function displaySimulationResult(data) {
+    const resultSection = document.getElementById('simulation-result');
+    const statsDiv = document.getElementById('simulation-stats');
+    const outputDiv = document.getElementById('simulation-output');
+
+    statsDiv.innerHTML = `
+        <div class="stat-card">
+            <h3>${data.stats.swaps_count}</h3>
+            <p>Swaps</p>
+        </div>
+        <div class="stat-card">
+            <h3>${data.stats.transfers_count}</h3>
+            <p>Transfers</p>
+        </div>
+        <div class="stat-card">
+            <h3>${data.stats.router_count}</h3>
+            <p>Router</p>
+        </div>
+        <div class="stat-card">
+            <h3>${data.stats.direct_count}</h3>
+            <p>Direct</p>
+        </div>
+        <div class="stat-card">
+            <h3>${data.stats.virtual_count}</h3>
+            <p>Virtual</p>
+        </div>
+        <div class="stat-card">
+            <h3>${data.stats.total_gas.toLocaleString()}</h3>
+            <p>Total Gas</p>
+        </div>
+    `;
+
+    outputDiv.textContent = data.formatted_output;
+
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
@@ -235,6 +317,11 @@ function downloadResult(type) {
             tx_hash: singleResultData.tx_hash,
             formatted_output: singleResultData.formatted_output
         };
+    } else if (type === 'simulation' && simulationResultData) {
+        data = {
+            tx_hash: simulationResultData.tx_hash,
+            formatted_output: simulationResultData.formatted_output
+        };
     } else if (type === 'batch' && batchResultData) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
@@ -325,3 +412,8 @@ document.getElementById('tx-hash').addEventListener('keypress', function(e) {
     }
 });
 
+document.getElementById('simulation-url').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        analyzeSimulation();
+    }
+});

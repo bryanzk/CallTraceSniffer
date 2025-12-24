@@ -15,6 +15,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('single')">单个交易</button>
+            <button class="tab-btn" onclick="switchTab('simulation')">单个TX 模拟</button>
             <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
         </div>
 
@@ -36,6 +37,27 @@
                 </div>
                 <div id="single-stats" class="stats-grid"></div>
                 <div id="single-output" class="output-box"></div>
+            </div>
+        </div>
+
+        <!-- 单个TX模拟分析 -->
+        <div id="simulation-tab" class="tab-content">
+            <div class="input-section">
+                <label for="simulation-url">模拟交易URL:</label>
+                <div class="input-group">
+                    <input type="text" id="simulation-url" placeholder="https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation" class="tx-input">
+                    <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
+                </div>
+                <small class="hint">请输入BlockSec模拟交易URL（event=simulation）</small>
+            </div>
+
+            <div id="simulation-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>模拟分析结果</h2>
+                    <button onclick="downloadResult('simulation')" class="btn btn-secondary">下载结果</button>
+                </div>
+                <div id="simulation-stats" class="stats-grid"></div>
+                <div id="simulation-output" class="output-box"></div>
             </div>
         </div>
 
@@ -76,4 +98,3 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
-

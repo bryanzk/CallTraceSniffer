@@ -113,6 +113,53 @@ def register_routes(app, extracted_data_cache):
             
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+
+    @app.route('/api/analyze-simulation', methods=['POST'])
+    def analyze_simulation_tx():
+        """分析模拟交易"""
+        data = request.json
+        sim_url = data.get('simulation_url', '').strip()
+
+        if not sim_url:
+            return jsonify({'success': False, 'error': '模拟URL不能为空'}), 400
+
+        try:
+            tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+
+        try:
+            extractor = BlockSecExtractor()
+            result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
+
+            if not result or not result.get('success'):
+                error_msg = result.get('error', '无法提取模拟交易数据') if result else '无法提取模拟交易数据'
+                return jsonify({'success': False, 'error': error_msg}), 500
+
+            trace_data = result.get('trace_data')
+            if not trace_data:
+                return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
+
+            analysis = process_tx_data(trace_data, tx_hash)
+            if not analysis:
+                return jsonify({'success': False, 'error': '数据处理失败'}), 500
+
+            extracted_data_cache[tx_hash] = {
+                'trace_data': trace_data,
+                'analysis': analysis
+            }
+
+            return jsonify({
+                'success': True,
+                'tx_hash': tx_hash,
+                'swaps': analysis['swaps'],
+                'transfers': analysis['transfers'],
+                'execution_tree': analysis['execution_tree'],
+                'stats': analysis['stats'],
+                'formatted_output': analysis['formatted_output']
+            })
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
     
     @app.route('/api/analyze-batch', methods=['POST'])
     def analyze_batch_tx():

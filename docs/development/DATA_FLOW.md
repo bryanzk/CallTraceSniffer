@@ -196,7 +196,7 @@ async def extract_blocksec_data(tx_hash: str) -> Optional[Dict]
 ```
 
 **使用场景**:
-- **Web应用**: `src/calltrace/api/routes.py` - `/api/analyze` 和 `/api/analyze-batch` 端点
+- **Web应用**: `src/calltrace/api/routes.py` - `/api/analyze`、`/api/analyze-batch`、`/api/analyze-simulation` 端点
 - **批量提取**: `scripts/extract/extract_all_cases.py` - 批量提取多个交易
 - **单交易提取**: `scripts/extract/extract_tx_case0.py` - 提取单个交易
 
@@ -520,9 +520,11 @@ sequenceDiagram
     participant Converter as TransactionConverter
     participant Output as 输出生成
 
-    User->>Frontend: 输入tx_hash
+    User->>Frontend: 输入tx_hash / simulation_url
     Frontend->>API: POST /api/analyze
+    Frontend->>API: POST /api/analyze-simulation
     API->>Extractor: extract_blocksec_data()
+    API->>Extractor: extract_blocksec_simulation_data()
     Extractor-->>API: trace_data
     API->>Converter: process_tx_data()
     Converter->>Converter: extract_transfers()
@@ -715,5 +717,4 @@ src/calltrace/api/routes.py (API层)
 ## 更新日志
 
 - 2024-12-23: 创建数据流转文档，包含完整的数据流图和详细说明
-
 
