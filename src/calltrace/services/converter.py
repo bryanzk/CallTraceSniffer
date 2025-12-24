@@ -319,8 +319,8 @@ class TransactionConverter:
                     'token': edge.get('token', ''),
                     'amount': edge.get('amount', 0),
                     'flow_type': 'Direct',
-                    'gasCost': 5000,
-                    'gasUsed': 0,
+                    'gasCost': (edge.get('gasCost', 0) or 0) + (edge2.get('gasCost', 0) or 0),
+                    'gasUsed': (edge.get('gasUsed', 0) or 0) + (edge2.get('gasUsed', 0) or 0),
                 })
                 consumed.add(i)
                 consumed.add(j)
@@ -374,8 +374,8 @@ class TransactionConverter:
                     'token': token_in,
                     'amount': edge.get('amount', amount_in),
                     'flow_type': 'Direct',
-                    'gasCost': 5000,
-                    'gasUsed': 0,
+                    'gasCost': edge.get('gasCost', 0),
+                    'gasUsed': edge.get('gasUsed', 0),
                 })
                 removed_indices.add(idx)
 
@@ -396,8 +396,8 @@ class TransactionConverter:
                     'token': token_in,
                     'amount': amount_in,
                     'flow_type': 'Transfer',
-                    'gasCost': 23000,
-                    'gasUsed': 23000,
+                    'gasCost': 0,
+                    'gasUsed': 0,
                 })
             else:
                 has_direct_in = any(
@@ -414,7 +414,7 @@ class TransactionConverter:
                     'token': token_in,
                     'amount': amount_in,
                     'flow_type': 'Direct',
-                    'gasCost': 5000,
+                    'gasCost': 0,
                     'gasUsed': 0,
                 })
 
@@ -434,7 +434,7 @@ class TransactionConverter:
                         'token': token_out,
                         'amount': target.get('amount_in'),
                         'flow_type': 'Direct',
-                        'gasCost': 5000,
+                        'gasCost': 0,
                         'gasUsed': 0,
                     })
 
@@ -461,8 +461,8 @@ class TransactionConverter:
                     'token': token_out,
                     'amount': amount_out,
                     'flow_type': 'Transfer',
-                    'gasCost': 23000,
-                    'gasUsed': 23000,
+                    'gasCost': 0,
+                    'gasUsed': 0,
                 })
 
         for edge in new_edges:
@@ -472,8 +472,6 @@ class TransactionConverter:
             to_addr = edge.get('to', '')
             if from_addr == to_addr:
                 edge['flow_type'] = 'Virtual'
-                edge['gasCost'] = 0
-                edge['gasUsed'] = 0
                 continue
             from_singleton = None
             to_singleton = None
@@ -484,8 +482,6 @@ class TransactionConverter:
                     to_singleton = node.get('singleton_id')
             if from_singleton and from_singleton == to_singleton:
                 edge['flow_type'] = 'Virtual'
-                edge['gasCost'] = 0
-                edge['gasUsed'] = 0
 
         deduped = []
         seen = set()
@@ -559,8 +555,6 @@ class TransactionConverter:
                 continue
             if edge.get('flow_type') == 'Transfer':
                 edge['flow_type'] = 'Direct'
-                edge['gasCost'] = 5000
-                edge['gasUsed'] = 0
             to_node = nodes.get(to_id, {})
             from_node = nodes.get(from_id, {})
             if to_node.get('form') == 'Scope' and from_id not in parent_map and to_id != from_id:

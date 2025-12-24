@@ -22,8 +22,8 @@ def test_op1_deterministic_direct():
                 'token': config.WETH,
                 'amount': 100,
                 'flow_type': 'Transfer',
-                'gasCost': 23000,
-                'gasUsed': 23000,
+                'gasCost': 120,
+                'gasUsed': 120,
             },
             {
                 'from': config.ROUTER_ADDRESSES[0],
@@ -31,8 +31,8 @@ def test_op1_deterministic_direct():
                 'token': config.WETH,
                 'amount': 100,
                 'flow_type': 'Transfer',
-                'gasCost': 23000,
-                'gasUsed': 23000,
+                'gasCost': 80,
+                'gasUsed': 80,
             },
         ],
         'exec_order': [],
@@ -42,6 +42,8 @@ def test_op1_deterministic_direct():
     assert graph['edges'][0]['flow_type'] == 'Direct'
     assert graph['edges'][0]['from'] == '0xaaa'
     assert graph['edges'][0]['to'] == '0xbbb'
+    assert graph['edges'][0]['gasCost'] == 200
+    assert graph['edges'][0]['gasUsed'] == 200
 
 
 def test_op2_virtual_reduction_singleton():
@@ -131,6 +133,30 @@ def test_payload_sorting_by_dependency():
     }
     converter.apply_payload_from_edges(graph)
     assert graph['nodes']['root']['payload'] == ['a', 'b']
+
+def test_payload_transfer_preserves_gas():
+    graph = {
+        'nodes': {
+            '1': {'id': '1', 'address': '0xaaa', 'form': 'Scope', 'node_type': 'Callback', 'payload': []},
+            '2': {'id': '2', 'address': '0xbbb', 'form': 'Scope', 'node_type': 'Callback', 'payload': []},
+        },
+        'edges': [
+            {
+                'from': '0xbbb',
+                'to': '0xaaa',
+                'token': '0xtoken',
+                'amount': 1,
+                'flow_type': 'Transfer',
+                'gasCost': 123,
+                'gasUsed': 123,
+            }
+        ],
+        'exec_order': [],
+    }
+    converter.apply_payload_from_edges(graph)
+    assert graph['edges'][0]['flow_type'] == 'Direct'
+    assert graph['edges'][0]['gasCost'] == 123
+    assert graph['edges'][0]['gasUsed'] == 123
 
 
 def test_op4_execution_plan():
