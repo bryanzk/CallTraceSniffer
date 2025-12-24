@@ -5,6 +5,7 @@
 ## ✨ 功能特性
 
 - 🔍 **单个交易分析**: 输入交易哈希，获取详细分析
+- 🧪 **单个TX模拟**: 输入BlockSec模拟交易URL，解析模拟call trace
 - 📊 **批量分析**: 上传CSV文件，批量处理多个交易
 - 📈 **实时统计**: 显示Swaps、Transfers、Gas消耗等统计信息
 - 📝 **格式化输出**: 生成与test_cases.yaml格式一致的分析结果
@@ -80,6 +81,7 @@ CallTraceSniffer/
 - [Web界面使用](docs/development/README_WEB.md) - Web应用使用说明
 - [数据流转文档](docs/development/DATA_FLOW.md) - 数据在各模块间的流转过程
 - [IR映射文档](docs/development/IR_MAPPING.md) - IR操作映射说明
+- [Gas记账规范](docs/development/GAS_ACCOUNTING.md) - Gas计算与展示规范
 - [测试文档](tests/README.md) - 测试指南
 
 ## 🛠️ 技术栈
@@ -131,6 +133,13 @@ python run.py
 3. 点击"开始批量分析"
 4. 查看每个交易的结果
 
+### 单个TX模拟
+
+1. 打开 http://localhost:5001
+2. 在"单个TX 模拟"标签页输入BlockSec模拟交易URL
+3. 点击"分析"按钮
+4. 查看结果并下载
+
 ## 🐳 Docker部署
 
 ### 构建镜像
@@ -179,4 +188,3 @@ docker-compose up -d
 - BlockSec - 提供交易数据源
 - Playwright - 浏览器自动化
 - Flask - Web框架
-

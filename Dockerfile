@@ -2,6 +2,7 @@ FROM python:3.11-slim-bookworm
 
 # 安装系统依赖（Playwright需要）
 RUN apt-get update && apt-get install -y \
+    curl \
     wget \
     gnupg \
     ca-certificates \
@@ -55,4 +56,3 @@ ENV PYTHONUNBUFFERED=1
 
 # 启动命令
 CMD ["python3", "run.py"]
-
