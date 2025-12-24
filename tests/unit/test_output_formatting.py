@@ -98,6 +98,24 @@ class TestOutputFormatting:
         assert "Plan: Pre(OptimisticTransfer" in output
         assert "0xc02aaa39..." in output
         assert "0xa0b86991..." in output
+
+    def test_node_swap_shows_token_flow(self):
+        """测试Node swap没有execution_plan时也显示token流向"""
+        swaps = [
+            {
+                "address": "0x225f5447f3d475d25bb7fc3f4a03247f8c3f3f93",
+                "method": "swap",
+                "form": "Node",
+                "node_id": "1",
+                "token_in": "0x473bcd6e3f7f0e4d1a174c07b6a1f22b0e0e0e0e",
+                "token_out": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            }
+        ]
+        execution_tree = {"nodes": {}, "root_nodes": []}
+        transfers = []
+        output = converter.generate_test_case_format("0x123", swaps, execution_tree, transfers)
+
+        assert "0x473bcd6e... → 0xc02aaa39..." in output
     
     def test_execution_tree_section_format(self):
         """测试ExecutionTree部分格式（根节点和子节点）"""

@@ -197,12 +197,15 @@ def register_routes(app, extracted_data_cache):
         """下载分析结果"""
         data = request.json
         tx_hash = data.get('tx_hash', '')
+        provided_output = data.get('formatted_output', '')
         
-        if tx_hash not in extracted_data_cache:
+        if tx_hash in extracted_data_cache:
+            analysis = extracted_data_cache[tx_hash]['analysis']
+            output = analysis.get('formatted_output', '')
+        elif provided_output:
+            output = provided_output
+        else:
             return jsonify({'success': False, 'error': '未找到分析结果'}), 404
-        
-        analysis = extracted_data_cache[tx_hash]['analysis']
-        output = analysis.get('formatted_output', '')
         
         # 创建文件对象
         output_bytes = output.encode('utf-8')

@@ -186,7 +186,10 @@ function displayBatchResult(data) {
         if (result.success) {
             return `
                 <div class="batch-item success">
-                    <h3>交易 ${index + 1}: ${result.tx_hash.substring(0, 20)}...</h3>
+                    <div class="batch-item-header">
+                        <h3>交易 ${index + 1}: ${result.tx_hash.substring(0, 20)}...</h3>
+                        <button onclick="downloadBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                    </div>
                     <div class="tx-hash">${result.tx_hash}</div>
                     <div class="stats-grid" style="margin-top: 15px;">
                         <div class="stat-card" style="padding: 10px; font-size: 0.9em;">
@@ -247,19 +250,39 @@ function downloadResult(type) {
         return;
     }
     
+    requestDownload(data);
+}
+
+function downloadBatchItem(index) {
+    if (!batchResultData || !batchResultData.results || !batchResultData.results[index]) {
+        showError('没有可下载的结果');
+        return;
+    }
+    const result = batchResultData.results[index];
+    if (!result.success) {
+        showError('该交易分析失败，无法下载');
+        return;
+    }
+    requestDownload({
+        tx_hash: result.tx_hash,
+        formatted_output: result.formatted_output
+    });
+}
+
+function requestDownload(payload) {
     fetch('/api/download-result', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
     })
     .then(response => response.blob())
     .then(blob => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `tx_analysis_${data.tx_hash.substring(0, 10)}_${new Date().getTime()}.txt`;
+        a.download = `tx_analysis_${payload.tx_hash.substring(0, 10)}_${new Date().getTime()}.txt`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

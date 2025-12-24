@@ -21,3 +21,4 @@ def is_router_address(addr: Optional[str]) -> bool:
         return False
     return addr.lower() in [r.lower() for r in config.ROUTER_ADDRESSES]
 
+

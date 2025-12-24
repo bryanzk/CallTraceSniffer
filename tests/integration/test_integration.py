@@ -138,3 +138,4 @@ class TestIntegration:
         assert len(result['transfers']) == len(transfers)
         assert len(result['swaps']) == len(swaps)
         assert len(result['execution_tree']['root_nodes']) == len(execution_tree['root_nodes'])
+

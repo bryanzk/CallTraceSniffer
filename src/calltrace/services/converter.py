@@ -595,6 +595,16 @@ class TransactionConverter:
                 if node_id not in parent_map and not creates_cycle(node_id, root_id):
                     parent_map[node_id] = root_id
 
+        edge_tokens = {}
+        for edge in edges:
+            from_id = get_node_id(edge.get('from', ''))
+            to_id = get_node_id(edge.get('to', ''))
+            if not from_id or not to_id:
+                continue
+            token = (edge.get('token') or '').lower()
+            if token:
+                edge_tokens.setdefault((from_id, to_id), set()).add(token)
+
         for child_id, parent_id in parent_map.items():
             if parent_id in nodes:
                 nodes[parent_id].setdefault('payload', []).append(child_id)
@@ -604,7 +614,20 @@ class TransactionConverter:
         for node in nodes.values():
             payload = node.get('payload', [])
             if payload:
-                payload.sort(key=lambda nid: index_map.get(nid, 10**9))
+                parent_token_out = (node.get('token_out') or '').lower()
+
+                def payload_sort_key(child_id: str):
+                    match = False
+                    if parent_token_out:
+                        child_node = nodes.get(child_id, {})
+                        child_token_in = (child_node.get('token_in') or '').lower()
+                        if child_token_in and child_token_in == parent_token_out:
+                            match = True
+                        elif parent_token_out in edge_tokens.get((child_id, node.get('id')), set()):
+                            match = True
+                    return (0 if match else 1, index_map.get(child_id, 10**9))
+
+                payload.sort(key=payload_sort_key)
                 node['payload'] = payload
 
     def apply_op4_primitive_conversion(self, graph: Dict) -> None:
@@ -1339,20 +1362,18 @@ class TransactionConverter:
 
             if children_count > 0:
                 lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line} | Payload: {children_count} nodes")
-                if execution_plan:
-                    token_in = swap.get('token_in')
-                    token_out = swap.get('token_out')
-                    if token_in and token_out:
-                        lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
+                token_in = swap.get('token_in')
+                token_out = swap.get('token_out')
+                if token_in and token_out and (execution_plan or form == 'Node'):
+                    lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
                 for j, child_id in enumerate(item['children']):
                     render_payload(child_id, "            ", j, set())
             else:
                 lines.append(f"        [{i}] {addr} | Form: {form} | Method: {method}{plan_line}")
-                if execution_plan:
-                    token_in = swap.get('token_in')
-                    token_out = swap.get('token_out')
-                    if token_in and token_out:
-                        lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
+                token_in = swap.get('token_in')
+                token_out = swap.get('token_out')
+                if token_in and token_out and (execution_plan or form == 'Node'):
+                    lines.append(f"            {format_address(token_in)} → {format_address(token_out)}")
         
         # ExecutionTree部分
         nodes = execution_tree.get('nodes', {})

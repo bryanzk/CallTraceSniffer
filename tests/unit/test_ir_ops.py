@@ -95,6 +95,44 @@ def test_op3_form_assignment_v4():
     assert graph['nodes']['2']['form'] == 'Node'
 
 
+def test_payload_sorting_by_dependency():
+    graph = {
+        'nodes': {
+            'root': {
+                'id': 'root',
+                'address': '0xroot',
+                'form': 'Scope',
+                'node_type': 'Callback',
+                'token_out': '0xtokenx',
+                'payload': [],
+            },
+            'a': {
+                'id': 'a',
+                'address': '0xaaa',
+                'form': 'Node',
+                'node_type': 'Standard',
+                'token_in': '0xtokenx',
+                'payload': [],
+            },
+            'b': {
+                'id': 'b',
+                'address': '0xbbb',
+                'form': 'Scope',
+                'node_type': 'Callback',
+                'token_in': '0xtokeny',
+                'payload': [],
+            },
+        },
+        'edges': [
+            {'from': '0xaaa', 'to': '0xroot', 'token': '0xtokenx', 'amount': 1, 'flow_type': 'Transfer', 'gasCost': 0, 'gasUsed': 0},
+            {'from': '0xbbb', 'to': '0xroot', 'token': '0xtokeny', 'amount': 1, 'flow_type': 'Transfer', 'gasCost': 0, 'gasUsed': 0},
+        ],
+        'exec_order': ['root', 'b', 'a'],
+    }
+    converter.apply_payload_from_edges(graph)
+    assert graph['nodes']['root']['payload'] == ['a', 'b']
+
+
 def test_op4_execution_plan():
     graph = {
         'nodes': {
