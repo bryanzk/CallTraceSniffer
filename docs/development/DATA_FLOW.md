@@ -708,7 +708,7 @@ src/calltrace/api/routes.py (API层)
   - `process_all_cases.py` - 批量处理
 
 ### 文档
-- **IR映射说明**: `docs/development/IR_MAPPING.md`
+- **IR规范文档**: `docs/development/IR_SPEC.md`
 - **开发文档**: `docs/development/README.md`
 - **Web使用说明**: `docs/development/README_WEB.md`
 
@@ -717,4 +717,3 @@ src/calltrace/api/routes.py (API层)
 ## 更新日志
 
 - 2024-12-23: 创建数据流转文档，包含完整的数据流图和详细说明
-

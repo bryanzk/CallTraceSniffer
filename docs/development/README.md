@@ -4,7 +4,7 @@
 
 - [Web界面使用说明](README_WEB.md) - Web应用使用说明
 - [数据流转文档](DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
-- [IR映射文档](IR_MAPPING.md) - IR操作映射说明
+- [IR规范文档](IR_SPEC.md) - IR结构与字段规范（中英对照）
 - [测试文档](../tests/README.md) - 单元测试和集成测试指南
 
 ## 开发指南
@@ -15,8 +15,8 @@
 ### 数据流转
 - [数据流转文档](DATA_FLOW.md) - 详细说明数据从BlockSec API到最终输出的完整流转过程
 
-### IR映射
-- [IR映射文档](IR_MAPPING.md) - IR操作映射说明
+### IR规范
+- [IR规范文档](IR_SPEC.md) - IR结构与字段规范（中英对照）
 
 ### 测试
 - [测试文档](../tests/README.md) - 单元测试和集成测试指南
@@ -53,4 +53,3 @@ python run.py
 ```
 
 服务器将在 http://localhost:5001 启动
-

@@ -10,7 +10,7 @@
 ### 开发文档 (development/)
 - [Web界面使用](development/README_WEB.md) - Web应用使用说明（含单个交易/模拟/批量）
 - [数据流转文档](development/DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
-- [IR映射文档](development/IR_MAPPING.md) - IR操作映射说明
+- [IR规范文档](development/IR_SPEC.md) - IR结构与字段规范（中英对照）
 - [Gas记账规范](development/GAS_ACCOUNTING.md) - Gas计算与展示规范
 - [测试指南](../tests/README.md) - 单元测试和集成测试
 

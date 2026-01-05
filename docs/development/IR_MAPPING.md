@@ -1,7 +1,7 @@
-# Call Trace To IR Mapping | Call Trace 到 IR 映射说明
+# Call Trace To IR Mapping (Obsolete) | Call Trace 到 IR 映射说明（已废弃）
 
-This document explains how BlockSec invocation flow / call trace is transformed into the final IR (ExecutionGraph) through Op_1~Op_5.  
-本文说明如何将 BlockSec 的 invocation flow / call trace 通过 Op_1~Op_5 转换为最终 IR（ExecutionGraph）。
+This document is obsolete. Please use `IR_SPEC.md` as the current IR specification.  
+本文已废弃，请以 `IR_SPEC.md` 为当前 IR 规范。
 
 ## 1) Input Sources | 输入来源
 
