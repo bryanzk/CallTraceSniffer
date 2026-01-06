@@ -383,8 +383,6 @@ def register_routes(app, extracted_data_cache):
             output = provided_ir_json
         elif output_type == 'ir_v1' and provided_ir is not None:
             output = provided_ir
-        elif provided_output:
-            output = provided_output
 
         if output is None:
             return jsonify({'success': False, 'error': '未找到分析结果'}), 404

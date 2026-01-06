@@ -2,6 +2,7 @@
 Flask Web应用入口
 """
 from flask import Flask, render_template
+from flask_cors import CORS
 from .config import config
 from .api.routes import register_routes
 
@@ -9,6 +10,15 @@ from .api.routes import register_routes
 app = Flask(__name__, 
             template_folder='../../templates',
             static_folder='../../static')
+
+# 启用 CORS 支持（允许跨域访问 API）
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",  # 生产环境可以限制为特定域名
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # 存储提取的数据（临时）
 extracted_data_cache = {}
