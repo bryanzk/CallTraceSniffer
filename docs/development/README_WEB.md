@@ -2,12 +2,11 @@
 
 ## 功能特性
 
-- ✅ **单个交易分析**: 输入交易哈希，获取详细的Swaps、Transfers和ExecutionTree分析
+- ✅ **单个交易分析**: 输入交易哈希，输出 IR V1 JSON
 - ✅ **单个TX模拟**: 输入BlockSec模拟交易URL，解析模拟call trace
 - ✅ **批量分析**: 上传CSV文件，批量处理多个交易（最多10个）
-- ✅ **实时统计**: 显示Swaps数量、Transfers数量、Gas消耗等统计信息
-- ✅ **格式化输出**: 生成与test_cases.yaml格式一致的分析结果
-- ✅ **结果下载**: 支持下载分析结果为文本文件
+- ✅ **实时统计**: 基于 IR V1 的 swap/transfer 数量统计
+- ✅ **结果下载**: 支持下载 IR V1 JSON 文件
 
 ## 安装步骤
 
@@ -49,7 +48,7 @@ python app.py
 1. 在"单个交易"标签页中，输入交易哈希（0x开头，66个字符）
 2. 点击"分析"按钮
 3. 等待分析完成，查看结果
-4. 可以点击"下载结果"保存分析报告
+4. 可以点击"下载结果"保存 IR V1 JSON
 
 ### 批量分析
 
@@ -63,7 +62,7 @@ python app.py
 2. 在"批量分析"标签页中，点击"选择CSV文件"
 3. 选择准备好的CSV文件
 4. 点击"开始批量分析"
-5. 查看每个交易的分析结果
+5. 查看每个交易的 IR V1 结果
 
 ### 单个TX模拟
 
@@ -71,7 +70,7 @@ python app.py
    `https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation&type=0`）
 2. 点击"分析"按钮
 3. 等待分析完成，查看结果
-4. 可以点击"下载结果"保存分析报告
+4. 可以点击"下载结果"保存 IR V1 JSON
 
 **注意**: 如果页面被Cloudflare拦截，需要在浏览器登录并通过验证后再访问模拟URL。
 
@@ -92,18 +91,16 @@ python app.py
 {
   "success": true,
   "tx_hash": "0x...",
+  "ir_v1": {...},
+  "ir_v1_json": "{...}",
   "stats": {
     "swaps_count": 3,
     "transfers_count": 3,
     "router_count": 0,
-    "direct_count": 3,
+    "direct_count": 0,
     "virtual_count": 0,
-    "total_gas": 23864
-  },
-  "swaps": [...],
-  "transfers": [...],
-  "execution_tree": {...},
-  "formatted_output": "..."
+    "total_gas": 0
+  }
 }
 ```
 
@@ -121,8 +118,9 @@ python app.py
     {
       "tx_hash": "0x...",
       "success": true,
-      "stats": {...},
-      "formatted_output": "..."
+      "ir_v1": {...},
+      "ir_v1_json": "{...}",
+      "stats": {...}
     },
     ...
   ]
@@ -144,33 +142,36 @@ python app.py
 {
   "success": true,
   "tx_hash": "0x...",
-  "stats": {
-    "swaps_count": 3,
-    "transfers_count": 3,
-    "router_count": 0,
-    "direct_count": 3,
-    "virtual_count": 0,
-    "total_gas": 23864
-  },
-  "swaps": [...],
-  "transfers": [...],
-  "execution_tree": {...},
-  "formatted_output": "..."
+  "ir_v1": {...},
+  "ir_v1_json": "{...}",
+  "stats": {...}
 }
 ```
 
 ### POST /api/download-result
-下载分析结果
+下载 IR V1 JSON
 
 **请求**:
 ```json
 {
   "tx_hash": "0x...",
-  "formatted_output": "..."
+  "output_type": "ir_v1"
 }
 ```
 
-**响应**: 文本文件下载
+**响应**: JSON文件下载
+
+### POST /api/ir_parse
+返回 IR V1 JSON
+
+**请求**:
+```json
+{
+  "tx_hash": "0x..."
+}
+```
+
+**响应**: 仅 IR V1 JSON
 
 ## 注意事项
 
@@ -184,7 +185,7 @@ python app.py
 - **后端**: Flask (Python)
 - **前端**: HTML + CSS + JavaScript (原生)
 - **数据提取**: Playwright
-- **数据处理**: convert_to_test_case_v2.py
+- **数据处理**: IR V1 解析与生成
 
 ## 故障排除
 

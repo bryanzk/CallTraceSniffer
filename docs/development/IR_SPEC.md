@@ -112,6 +112,42 @@ TransferData 字段：
 - to: string（收款地址）
 - amount: string | number
 
+FlowType Rules (ExecutionGraph) / FlowType 规则（执行图）
+-------------------------------------------------------
+FlowType is used to classify transfer edges in the optimized ExecutionGraph.
+It is derived by applying Op_1 and Op_2 as defined in the TX Optimization Design.
+
+FlowType 用于标记优化后执行图中的资金边类型，
+其判定基于《交易路径优化和执行编排的设计方案》中 Op_1/Op_2 的规则。
+
+FlowType: Transfer
+- Meaning: must route via Router (A → Router → B).
+- Default for router-mediated edges before Op_1.
+
+FlowType: Direct
+- Meaning: router path eliminated via Op_1.
+- Transformation: A → Router → B  →  A → B.
+- Conditions: Topological Uniqueness + Capability Permission + Amount Coverage.
+
+FlowType: Virtual
+- Meaning: internal transfer inside a Singleton (no actual ERC20 transfer).
+- Transformation: Direct → Virtual via Op_2.
+- Conditions: Direct edge + Same Singleton + Protocol supports internal balance.
+
+FlowType: Transfer
+- 含义：必须通过 Router 中转（A → Router → B）。
+- Op_1 前的默认路由边。
+
+FlowType: Direct
+- 含义：通过 Op_1 消除 Router 中转。
+- 变换：A → Router → B  →  A → B。
+- 条件：拓扑唯一性 + 能力许可 + 资金覆盖。
+
+FlowType: Virtual
+- 含义：Singleton 内部转账（不产生 ERC20 实际转账）。
+- 变换：Op_2 将 Direct 降级为 Virtual。
+- 条件：Direct 边 + 结算域一致 + 协议支持内部余额。
+
 Field Mapping: BlockSec vs Tenderly / 字段映射：BlockSec 与 Tenderly
 -------------------------------------------------------------------
 - tx_hash:

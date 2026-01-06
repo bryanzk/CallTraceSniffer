@@ -6,7 +6,7 @@
 ```
 CallTraceSniffer/
 ├── app.py                          # Flask应用（根目录）
-├── convert_to_test_case_v2.py     # 核心业务逻辑（根目录）
+├── src/calltrace/services/ir_v1_blocksec.py  # IR V1 解析模块
 ├── extract_*.py                   # 多个提取脚本（根目录）
 ├── process_*.py                   # 多个处理脚本（根目录）
 ├── parse_*.py                     # 解析脚本（根目录）
@@ -48,7 +48,7 @@ CallTraceSniffer/
 │       ├── services/               # 业务逻辑层
 │       │   ├── __init__.py
 │       │   ├── extractor.py       # 数据提取服务
-│       │   ├── converter.py      # 数据转换服务（convert_to_test_case_v2.py）
+│       │   ├── ir_v1_blocksec.py # IR V1 解析服务
 │       │   └── analyzer.py        # 分析服务
 │       ├── utils/                 # 工具函数
 │       │   ├── __init__.py
@@ -64,12 +64,9 @@ CallTraceSniffer/
 │   │   ├── extract_tx_case0.py
 │   │   └── extract_all_cases.py
 │   ├── process/                   # 数据处理脚本
-│   │   ├── process_case0.py
-│   │   └── process_all_cases.py
 │   ├── parse/                     # 解析脚本
 │   │   └── parse_invocation_flow.py
 │   └── utils/                     # 工具脚本
-│       ├── convert_to_test_case.py
 │       └── compare_blocksec_tenderly.py
 │
 ├── tests/                         # ✅ 测试目录（保持现有结构）
@@ -131,7 +128,7 @@ mkdir -p config
 mkdir -p tests/{unit,integration}
 
 # 移动文件
-mv convert_to_test_case_v2.py src/calltrace/services/converter.py
+mv ir_v1_blocksec.py src/calltrace/services/
 mv app.py src/calltrace/app.py
 mv extract_*.py scripts/extract/
 mv process_*.py scripts/process/
@@ -174,20 +171,13 @@ mv test_cases.yaml config/
 
 ### 1. 模块化业务逻辑
 
-**当前**: `convert_to_test_case_v2.py` 在根目录，包含所有业务逻辑
+**当前**: 核心解析已迁移为 IR V1
 
-**建议**: 
+**建议**:
 ```python
-# src/calltrace/services/converter.py
-class TransactionConverter:
-    def extract_transfers(self, data_map):
-        ...
-    
-    def extract_swaps(self, data_map, main_trace):
-        ...
-    
-    def build_execution_tree(self, swaps, main_trace, data_map):
-        ...
+# src/calltrace/services/ir_v1_blocksec.py
+def build_blocksec_ir(trace_data, tx_hash=None):
+    ...
 ```
 
 ### 2. 配置管理
@@ -286,4 +276,3 @@ BLOCKSEC_BASE_URL=https://...
 - [Python项目结构最佳实践](https://docs.python-guide.org/writing/structure/)
 - [Flask项目结构](https://flask.palletsprojects.com/en/latest/tutorial/layout/)
 - [12 Factor App](https://12factor.net/)
-

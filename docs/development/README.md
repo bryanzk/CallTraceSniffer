@@ -5,6 +5,7 @@
 - [Web界面使用说明](README_WEB.md) - Web应用使用说明
 - [数据流转文档](DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
 - [IR规范文档](IR_SPEC.md) - IR结构与字段规范（中英对照）
+- [IR V1 解析流程](IR_V1_FLOW.md) - BlockSec→IR V1 标准流程（中英对照）
 - [测试文档](../tests/README.md) - 单元测试和集成测试指南
 
 ## 开发指南
@@ -30,8 +31,8 @@ src/calltrace/
 ├── app.py              # Flask应用主文件
 ├── config.py           # 配置管理
 ├── services/           # 业务逻辑层
-│   ├── converter.py    # 数据转换服务
-│   └── extractor.py    # 数据提取服务
+│   ├── ir_v1_blocksec.py  # IR V1 解析服务
+│   └── extractor.py       # 数据提取服务
 ├── utils/              # 工具函数
 │   └── address.py      # 地址处理
 └── api/                # API路由

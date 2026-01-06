@@ -3,7 +3,7 @@
 ## ✅ 核心功能文件（建议提交）
 
 ### 测试相关（重要）
-- `tests/` - 完整的测试套件（80个测试用例）
+- `tests/` - IR V1 测试套件
 - `pytest.ini` - pytest配置文件
 - `run_tests.sh` - 测试运行脚本
 - `.github/workflows/tests.yml` - CI/CD配置
@@ -15,19 +15,9 @@
 ## ⚠️ 其他文件（根据需求决定）
 
 ### 数据处理脚本（可能是临时脚本）
-- `extract_invocation_flow.py`
-- `extract_tx_case0.py`
-- `extract_all_cases.py`
-- `process_case0.py`
-- `process_all_cases.py`
-- `parse_invocation_flow.py`
-- `extract_simple.py`
-- `extract_tenderly.py`
-- `extract_invocation.js`
-- `convert_to_test_case.py`
-- `convert_tenderly_to_test_case.py`
-- `compare_blocksec_tenderly.py`
-- `pdf_to_markdown_simple.py`
+- `scripts/extract/*`
+- `scripts/parse/*`
+- `scripts/utils/compare_blocksec_tenderly.py`
 
 ### 文档和报告
 - `detailed_all_cases_report.md` - 分析报告
@@ -48,9 +38,9 @@ git add run_tests.sh
 git add .github/workflows/tests.yml
 git add .gitignore
 git add requirements.txt
-git commit -m "添加单元测试套件
+git commit -m "添加IR V1测试套件
 
-- 添加80个测试用例，覆盖所有核心业务模块
+- 覆盖V1解析与API流程
 - 配置pytest和覆盖率工具
 - 添加CI/CD测试流程
 - 更新依赖和.gitignore"
@@ -62,7 +52,7 @@ git commit -m "添加单元测试套件
 git add tests/ pytest.ini run_tests.sh .github/ .gitignore requirements.txt
 
 # 如果需要，也可以添加其他脚本
-git add extract_*.py process_*.py parse_*.py convert_*.py compare_*.py
+git add scripts/extract scripts/parse scripts/utils/compare_blocksec_tenderly.py
 
 git commit -m "添加单元测试和数据处理脚本"
 ```
@@ -76,4 +66,3 @@ git commit -m "添加单元测试和数据处理脚本"
 - `*.pdf` - PDF文件
 - `__pycache__/` - Python缓存
 - `*.pyc` - 编译的Python文件
-

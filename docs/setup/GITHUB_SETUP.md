@@ -60,7 +60,7 @@ git push
 
 ### 核心应用
 - `app.py` - Flask Web应用
-- `convert_to_test_case_v2.py` - 数据转换模块
+- `src/calltrace/services/ir_v1_blocksec.py` - IR V1 解析模块
 - `requirements.txt` - Python依赖
 
 ### Docker配置
@@ -110,7 +110,7 @@ git push
 
 ### 添加描述
 ```
-分析以太坊交易的Web应用，从BlockSec提取Swaps、Transfers和ExecutionTree信息。支持Docker一键部署。
+分析以太坊交易的Web应用，从BlockSec提取并生成 IR V1 JSON。支持Docker一键部署。
 ```
 
 ### 添加README徽章（可选）
@@ -147,4 +147,3 @@ git push
 1. **认证失败**: 检查GitHub token或SSH key配置
 2. **权限错误**: 确认仓库访问权限
 3. **冲突**: 使用 `git pull` 先拉取远程更改
-

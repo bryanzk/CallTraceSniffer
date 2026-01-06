@@ -10,7 +10,7 @@
 - ✅ 重组 `tests/` 目录（unit, integration）
 
 ### 2. 代码模块化
-- ✅ 将 `convert_to_test_case_v2.py` 重构为 `TransactionConverter` 类
+- ✅ 将旧版转换流程迁移为 IR V1 解析模块
 - ✅ 提取工具函数到 `utils/address.py`
 - ✅ 创建配置管理模块 `config.py`
 - ✅ 创建数据提取服务 `extractor.py`
@@ -45,7 +45,7 @@ CallTraceSniffer/
 │       ├── config.py           # 配置管理
 │       ├── services/
 │       │   ├── __init__.py
-│       │   ├── converter.py    # 数据转换服务
+│       │   ├── ir_v1_blocksec.py  # IR V1 解析服务
 │       │   └── extractor.py    # 数据提取服务
 │       ├── utils/
 │       │   ├── __init__.py
@@ -79,7 +79,7 @@ CallTraceSniffer/
 | 原文件/路径 | 新文件/路径 |
 |------------|------------|
 | `app.py` | `src/calltrace/app.py` |
-| `convert_to_test_case_v2.py` | `src/calltrace/services/converter.py` |
+| 旧版转换脚本 | `src/calltrace/services/ir_v1_blocksec.py` |
 | `extract_*.py` | `scripts/extract/` |
 | `process_*.py` | `scripts/process/` |
 | `parse_*.py` | `scripts/parse/` |
@@ -101,24 +101,22 @@ pytest tests/
 
 ### 导入模块
 ```python
-from calltrace.services.converter import TransactionConverter
+from calltrace.services.ir_v1_blocksec import build_blocksec_ir
 from calltrace.utils.address import format_address
 from calltrace.config import config
 ```
 
 ## ⚠️ 注意事项
 
-1. **旧文件处理**: 根目录的 `app.py` 和 `convert_to_test_case_v2.py` 可以删除（已迁移到新结构）
+1. **旧文件处理**: 旧版转换脚本已弃用（已迁移到 IR V1）
 2. **脚本路径**: 如果脚本中有相对路径引用，需要更新
 3. **Docker构建**: 已更新Dockerfile，使用新的入口点
 4. **测试验证**: 所有测试已更新导入路径
 
 ## 📝 后续工作
 
-- [ ] 删除旧的根目录文件（app.py, convert_to_test_case_v2.py）
+- [ ] 删除旧版转换脚本
 - [ ] 更新脚本中的导入路径（如果需要）
 - [ ] 验证Docker构建
 - [ ] 更新CI/CD配置（如果需要）
 - [ ] 提交重构后的代码
-
-

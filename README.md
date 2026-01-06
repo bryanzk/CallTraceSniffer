@@ -1,15 +1,15 @@
 # BlockSec 交易分析工具
 
-一个用于分析以太坊交易的Web应用，可以从BlockSec页面提取并分析交易的Swaps、Transfers和ExecutionTree信息。
+一个用于分析以太坊交易的Web应用，可以从BlockSec页面提取并生成 IR V1 JSON。
 
 ## ✨ 功能特性
 
 - 🔍 **单个交易分析**: 输入交易哈希，获取详细分析
 - 🧪 **单个TX模拟**: 输入BlockSec模拟交易URL，解析模拟call trace
 - 📊 **批量分析**: 上传CSV文件，批量处理多个交易
-- 📈 **实时统计**: 显示Swaps、Transfers、Gas消耗等统计信息
-- 📝 **格式化输出**: 生成与test_cases.yaml格式一致的分析结果
-- 💾 **结果下载**: 支持下载分析结果为文本文件
+- 📈 **实时统计**: 基于 IR V1 的 swap/transfer 数量统计
+- 📝 **IR V1 输出**: 生成 IR V1 JSON（与 IR 规范一致）
+- 💾 **结果下载**: 支持下载 IR V1 JSON 文件
 - 🐳 **Docker支持**: 完全容器化，无需配置环境
 
 ## 🚀 快速开始
@@ -47,7 +47,7 @@ CallTraceSniffer/
 │       ├── app.py              # Flask应用
 │       ├── config.py           # 配置管理
 │       ├── services/           # 业务逻辑层
-│       │   ├── converter.py    # 数据转换服务
+│       │   ├── ir_v1_blocksec.py  # IR V1 解析服务
 │       │   └── extractor.py   # 数据提取服务
 │       ├── utils/              # 工具函数
 │       │   └── address.py     # 地址处理
@@ -168,12 +168,8 @@ docker-compose up -d
 
 ## 📊 输出格式
 
-分析结果格式与`test_cases.yaml`一致，包括：
-
-- **Swaps**: 交换操作列表
-- **ExecutionTree**: 执行树结构
-- **Transfers**: 转账信息（Router/Direct/Virtual类型）
-- **Gas统计**: 总Gas消耗和分类统计
+分析结果输出为 IR V1 JSON，规范见：
+- `docs/development/IR_SPEC.md`
 
 ## 🤝 贡献
 

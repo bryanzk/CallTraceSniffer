@@ -1,5 +1,7 @@
 # 重构实施计划
 
+> 已完成并迁移到 IR V1 解析流程，旧版转换与执行树流程已移除。
+
 ## 🎯 目标
 
 将项目重构为符合Python最佳实践的标准结构，提高可维护性和可扩展性。
@@ -10,7 +12,7 @@
 ```
 CallTraceSniffer/
 ├── app.py                    # Flask应用
-├── convert_to_test_case_v2.py
+├── src/calltrace/services/ir_v1_blocksec.py
 ├── extract_*.py (5个文件)
 ├── process_*.py (2个文件)
 ├── parse_*.py (1个文件)
@@ -52,8 +54,7 @@ mv README_*.md QUICKSTART_*.md DOCKER_*.md GITHUB_*.md SET_*.md docs/
 mkdir -p config
 mv test_cases.yaml config/
 
-# 4. 保持核心代码在根目录（app.py, convert_to_test_case_v2.py）
-# 这样改动最小，风险最低
+# 4. 核心解析保留在 src/calltrace/services/ir_v1_blocksec.py
 ```
 
 ### 方案B: 完整重构（长期目标）
@@ -75,12 +76,9 @@ mv extract_all_cases.py scripts/extract/
 mv extract_simple.py scripts/extract/
 mv extract_invocation.js scripts/extract/
 
-mv process_case0.py scripts/process/
-mv process_all_cases.py scripts/process/
-
 mv parse_invocation_flow.py scripts/parse/
 
-mv convert_to_test_case.py scripts/utils/
+mv compare_blocksec_tenderly.py scripts/utils/
 mv pdf_to_markdown_simple.py scripts/utils/
 ```
 
@@ -152,7 +150,7 @@ docker build -t test .
 | `README_*.md` | `docs/` |
 | `test_cases.yaml` | `config/` |
 | `app.py` | 保持不变（根目录） |
-| `convert_to_test_case_v2.py` | 保持不变（根目录） |
+| `src/calltrace/services/ir_v1_blocksec.py` | IR V1 解析模块 |
 
 ## 📝 检查清单
 
@@ -175,4 +173,3 @@ docker build -t test .
 2. 创建配置管理模块
 3. 添加环境变量管理
 4. 优化测试结构
-
