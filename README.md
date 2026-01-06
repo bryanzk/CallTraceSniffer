@@ -76,8 +76,15 @@ CallTraceSniffer/
 
 ## 📖 文档
 
+### 部署文档
 - [Docker部署指南](docs/deployment/README_DOCKER.md) - 完整的Docker使用说明
 - [快速开始](docs/deployment/QUICKSTART_DOCKER.md) - Docker快速上手指南
+- [远程访问部署选项](docs/deployment/REMOTE_ACCESS_OPTIONS.md) - 让同事远程访问服务的多种方式（Web UI + API）
+- [免费云平台部署](docs/deployment/FREE_CLOUD_DEPLOYMENT.md) - Vercel、Cloudflare、Railway 等免费平台部署指南
+- [Railway 部署指南](docs/deployment/RAILWAY_DEPLOYMENT.md) - Railway 平台详细部署说明
+- [API 使用指南](docs/deployment/API_USAGE.md) - API 接口使用文档和代码示例
+
+### 开发文档
 - [Web界面使用](docs/development/README_WEB.md) - Web应用使用说明
 - [数据流转文档](docs/development/DATA_FLOW.md) - 数据在各模块间的流转过程
 - [IR规范文档](docs/development/IR_SPEC.md) - IR结构与字段规范（中英对照）
