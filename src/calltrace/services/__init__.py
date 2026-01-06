@@ -1,9 +1,9 @@
 """
 业务逻辑服务模块
 """
-from .converter import TransactionConverter
-from .extractor import BlockSecExtractor
+try:
+    from .extractor import BlockSecExtractor
+except Exception:  # Optional dependency (playwright) may be unavailable in tests.
+    BlockSecExtractor = None
 
-__all__ = ['TransactionConverter', 'BlockSecExtractor']
-
-
+__all__ = ['BlockSecExtractor']
