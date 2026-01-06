@@ -249,6 +249,12 @@ header h1 {
     overflow-y: auto;
 }
 
+.output-label {
+    margin: 16px 0 8px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
 .batch-stats {
     margin-bottom: 20px;
 }
@@ -343,4 +349,3 @@ header h1 {
         grid-template-columns: 1fr;
     }
 }
-

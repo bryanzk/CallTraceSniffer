@@ -69,7 +69,7 @@ async function analyzeSingle() {
 function displaySingleResult(data) {
     const resultSection = document.getElementById('single-result');
     const statsDiv = document.getElementById('single-stats');
-    const outputDiv = document.getElementById('single-output');
+    const irDiv = document.getElementById('single-ir');
     
     // 显示统计信息
     statsDiv.innerHTML = `
@@ -99,8 +99,7 @@ function displaySingleResult(data) {
         </div>
     `;
     
-    // 显示格式化输出
-    outputDiv.textContent = data.formatted_output;
+    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
     
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -151,7 +150,7 @@ async function analyzeSimulation() {
 function displaySimulationResult(data) {
     const resultSection = document.getElementById('simulation-result');
     const statsDiv = document.getElementById('simulation-stats');
-    const outputDiv = document.getElementById('simulation-output');
+    const irDiv = document.getElementById('simulation-ir');
 
     statsDiv.innerHTML = `
         <div class="stat-card">
@@ -180,7 +179,7 @@ function displaySimulationResult(data) {
         </div>
     `;
 
-    outputDiv.textContent = data.formatted_output;
+    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -287,8 +286,9 @@ function displayBatchResult(data) {
                             <p>Total Gas</p>
                         </div>
                     </div>
-                    <div class="output-box" style="margin-top: 15px; max-height: 300px;">
-                        ${escapeHtml(result.formatted_output)}
+                    <div class="output-label">IR (V1)</div>
+                    <div class="output-box" style="margin-top: 10px; max-height: 300px;">
+                        ${escapeHtml(result.ir_v1_json || formatJson(result.ir_v1))}
                     </div>
                 </div>
             `;
@@ -310,27 +310,31 @@ function displayBatchResult(data) {
 }
 
 function downloadResult(type) {
-    let data, filename;
+    let data;
     
     if (type === 'single' && singleResultData) {
         data = {
             tx_hash: singleResultData.tx_hash,
-            formatted_output: singleResultData.formatted_output
+            ir_v1: singleResultData.ir_v1,
+            ir_v1_json: singleResultData.ir_v1_json,
+            output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
         data = {
             tx_hash: simulationResultData.tx_hash,
-            formatted_output: simulationResultData.formatted_output
+            ir_v1: simulationResultData.ir_v1,
+            ir_v1_json: simulationResultData.ir_v1_json,
+            output_type: 'ir_v1'
         };
     } else if (type === 'batch' && batchResultData) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
             .filter(r => r.success)
-            .map(r => `\n========== ${r.tx_hash} ==========\n${r.formatted_output}`)
-            .join('\n\n');
+            .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
         data = {
             tx_hash: 'batch',
-            formatted_output: allOutput
+            ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
+            output_type: 'ir_v1'
         };
     } else {
         showError('没有可下载的结果');
@@ -352,7 +356,9 @@ function downloadBatchItem(index) {
     }
     requestDownload({
         tx_hash: result.tx_hash,
-        formatted_output: result.formatted_output
+        ir_v1: result.ir_v1,
+        ir_v1_json: result.ir_v1_json,
+        output_type: 'ir_v1'
     });
 }
 
@@ -369,7 +375,8 @@ function requestDownload(payload) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `tx_analysis_${payload.tx_hash.substring(0, 10)}_${new Date().getTime()}.txt`;
+        const extension = payload.output_type === 'ir_v1' ? 'json' : 'txt';
+        a.download = `tx_analysis_${payload.tx_hash.substring(0, 10)}_${new Date().getTime()}.${extension}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -403,6 +410,39 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatJson(data) {
+    if (!data) {
+        return 'N/A';
+    }
+    try {
+        return JSON.stringify(prioritizeTxHash(data), null, 2);
+    } catch (error) {
+        return 'Invalid JSON';
+    }
+}
+
+function prioritizeTxHash(data) {
+    if (!data) {
+        return data;
+    }
+    if (Array.isArray(data)) {
+        return data.map(item => prioritizeTxHash(item));
+    }
+    if (typeof data !== 'object') {
+        return data;
+    }
+    if (!Object.prototype.hasOwnProperty.call(data, 'tx_hash')) {
+        return data;
+    }
+    const reordered = { tx_hash: data.tx_hash };
+    Object.keys(data).forEach(key => {
+        if (key !== 'tx_hash') {
+            reordered[key] = data[key];
+        }
+    });
+    return reordered;
 }
 
 // 支持回车键提交
