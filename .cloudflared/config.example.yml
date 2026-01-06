@@ -1,0 +1,18 @@
+# Cloudflare Tunnel 配置示例
+# 使用方法：
+# 1. 运行: cloudflared tunnel login
+# 2. 运行: cloudflared tunnel create calltrace
+# 3. 复制此文件到 ~/.cloudflared/config.yml
+# 4. 替换 <你的隧道ID> 和 yourdomain.com
+# 5. 运行: cloudflared tunnel run calltrace
+
+tunnel: <你的隧道ID>
+credentials-file: /Users/你的用户名/.cloudflared/<隧道ID>.json
+
+ingress:
+  # 主域名（替换为你的域名）
+  - hostname: calltrace.yourdomain.com
+    service: http://localhost:5001
+  
+  # 默认规则（必须放在最后）
+  - service: http_status:404
