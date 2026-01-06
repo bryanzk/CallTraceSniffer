@@ -53,7 +53,7 @@ def test_analyze_simulation_route_success(monkeypatch, sample_trace_data):
     data = resp.get_json()
     assert data["success"] is True
     assert data["tx_hash"] == sample_trace_data["tx_hash"]
-    assert "formatted_output" in data
+    assert "ir_v1_json" in data
 
 
 def test_analyze_simulation_route_invalid_url():

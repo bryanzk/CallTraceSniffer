@@ -2,7 +2,6 @@
 测试地址格式化函数
 """
 import pytest
-from calltrace.services.converter import TransactionConverter
 from calltrace.utils.address import format_address
 
 
@@ -67,4 +66,3 @@ class TestFormatAddress:
         result = format_address(addr)
         assert result == "0x00000000..."
         assert len(result) == 13
-
