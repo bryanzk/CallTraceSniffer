@@ -4,9 +4,11 @@ Unit tests for API stats helpers (FlowType + gas + IR JSON ordering).
 import sys
 import os
 import json
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
 
+pytest.importorskip("flask")
 from calltrace.api import routes
 from calltrace.config import config
 
@@ -73,3 +75,44 @@ def test_serialize_ir_payload_orders_tx_hash_first():
     assert output.lstrip().startswith('{\n  "tx_hash":')
     parsed = json.loads(output)
     assert parsed["tx_hash"] == "0xabc"
+
+
+def test_count_ir_nodes_nested():
+    root = {
+        "type": "swap",
+        "swap": {},
+        "transfer": None,
+        "callback": [
+            {"type": "transfer", "swap": None, "transfer": {}},
+            {
+                "type": "swap",
+                "swap": {},
+                "transfer": None,
+                "callback": [{"type": "transfer", "swap": None, "transfer": {}}],
+            },
+        ],
+    }
+    swaps, transfers = routes._count_ir_nodes(root)
+    assert swaps == 2
+    assert transfers == 2
+
+
+def test_extract_transfer_edges_filters_and_normalizes():
+    trace_data = {
+        "dataMap": {
+            "1": _transfer_invocation("0xAAA", "0xBBB", "0xToken", 123),
+            "2": {
+                "invocation": {
+                    "address": "0xOther",
+                    "decodedMethod": {"name": "swap", "callParams": []},
+                }
+            },
+        }
+    }
+    edges = routes._extract_transfer_edges(trace_data)
+    assert len(edges) == 1
+    edge = edges[0]
+    assert edge["from"] == "0xaaa"
+    assert edge["to"] == "0xbbb"
+    assert edge["token"] == "0xtoken"
+    assert edge["amount"] == 123
