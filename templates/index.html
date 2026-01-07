@@ -15,7 +15,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('single')">单个交易</button>
-            <button class="tab-btn" onclick="switchTab('simulation')">单个TX 模拟</button>
+            <button class="tab-btn" onclick="switchTab('simulation')">模拟TX</button>
             <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
         </div>
 
@@ -46,10 +46,10 @@
             <div class="input-section">
                 <label for="simulation-url">模拟交易URL:</label>
                 <div class="input-group">
-                    <input type="text" id="simulation-url" placeholder="https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation" class="tx-input">
+                    <textarea id="simulation-url" rows="4" placeholder="每行一个模拟交易URL&#10;https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation" class="tx-input"></textarea>
                     <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
                 </div>
-                <small class="hint">请输入BlockSec模拟交易URL（event=simulation）</small>
+                <small class="hint">支持换行粘贴多个BlockSec模拟交易URL（event=simulation）</small>
             </div>
 
             <div id="simulation-result" class="result-section" style="display: none;">
@@ -60,6 +60,7 @@
                 <div id="simulation-stats" class="stats-grid"></div>
                 <div class="output-label">IR (V1)</div>
                 <div id="simulation-ir" class="output-box"></div>
+                <div id="simulation-output" class="batch-output" style="display: none;"></div>
             </div>
         </div>
 

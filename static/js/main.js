@@ -107,39 +107,68 @@ function displaySingleResult(data) {
 
 // 模拟交易分析
 async function analyzeSimulation() {
-    const simUrl = document.getElementById('simulation-url').value.trim();
+    const rawInput = document.getElementById('simulation-url').value;
+    const simUrls = rawInput
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
 
-    if (!simUrl) {
+    if (simUrls.length === 0) {
         showError('请输入模拟交易URL');
         return;
     }
 
-    if (!simUrl.includes('blocksec.com') || !simUrl.includes('/explorer/tx/eth/')) {
-        showError('无效的BlockSec模拟URL');
-        return;
-    }
-
-    showLoading();
-    hideError();
-
     try {
-        const response = await fetch('/api/analyze-simulation', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ simulation_url: simUrl })
-        });
+        if (simUrls.length === 1) {
+            const simUrl = simUrls[0];
+            if (!simUrl.includes('blocksec.com') || !simUrl.includes('/explorer/tx/eth/')) {
+                showError('无效的BlockSec模拟URL');
+                return;
+            }
 
-        const data = await response.json();
+            showLoading();
+            hideError();
 
-        hideLoading();
+            const response = await fetch('/api/analyze-simulation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ simulation_url: simUrl })
+            });
 
-        if (data.success) {
-            simulationResultData = data;
-            displaySimulationResult(data);
+            const data = await response.json();
+
+            hideLoading();
+
+            if (data.success) {
+                simulationResultData = data;
+                displaySimulationResult(data);
+            } else {
+                showError(data.error || '模拟分析失败');
+            }
         } else {
-            showError(data.error || '模拟分析失败');
+            showLoading();
+            hideError();
+
+            const response = await fetch('/api/analyze-simulation-batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ simulation_urls: simUrls })
+            });
+
+            const data = await response.json();
+
+            hideLoading();
+
+            if (data.success) {
+                simulationResultData = data;
+                displaySimulationBatchResult(data);
+            } else {
+                showError(data.error || '模拟批量分析失败');
+            }
         }
     } catch (error) {
         hideLoading();
@@ -151,6 +180,7 @@ function displaySimulationResult(data) {
     const resultSection = document.getElementById('simulation-result');
     const statsDiv = document.getElementById('simulation-stats');
     const irDiv = document.getElementById('simulation-ir');
+    const outputDiv = document.getElementById('simulation-output');
 
     statsDiv.innerHTML = `
         <div class="stat-card">
@@ -179,8 +209,82 @@ function displaySimulationResult(data) {
         </div>
     `;
 
+    outputDiv.style.display = 'none';
     irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
+    irDiv.style.display = 'block';
 
+    resultSection.style.display = 'block';
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function displaySimulationBatchResult(data) {
+    const resultSection = document.getElementById('simulation-result');
+    const statsDiv = document.getElementById('simulation-stats');
+    const irDiv = document.getElementById('simulation-ir');
+    const outputDiv = document.getElementById('simulation-output');
+
+    const successCount = data.results.filter(r => r.success).length;
+    const failCount = data.results.length - successCount;
+
+    statsDiv.innerHTML = `
+        <div class="stat-card">
+            <h3>${data.total}</h3>
+            <p>总交易数</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+            <h3>${successCount}</h3>
+            <p>成功</p>
+        </div>
+        <div class="stat-card" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
+            <h3>${failCount}</h3>
+            <p>失败</p>
+        </div>
+    `;
+
+    outputDiv.innerHTML = data.results.map((result, index) => {
+        if (result.success) {
+            return `
+                <div class="batch-item success">
+                    <div class="batch-item-header">
+                        <h3>交易 ${index + 1}: ${result.tx_hash.substring(0, 20)}...</h3>
+                        <button onclick="downloadSimulationBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                    </div>
+                    <div class="tx-hash">${result.tx_hash}</div>
+                    <div class="tx-hash">${result.simulation_url}</div>
+                    <div class="stats-grid" style="margin-top: 15px;">
+                        <div class="stat-card" style="padding: 10px; font-size: 0.9em;">
+                            <h3 style="font-size: 1.5em;">${result.stats.swaps_count}</h3>
+                            <p>Swaps</p>
+                        </div>
+                        <div class="stat-card" style="padding: 10px; font-size: 0.9em;">
+                            <h3 style="font-size: 1.5em;">${result.stats.transfers_count}</h3>
+                            <p>Transfers</p>
+                        </div>
+                        <div class="stat-card" style="padding: 10px; font-size: 0.9em;">
+                            <h3 style="font-size: 1.5em;">${result.stats.total_gas.toLocaleString()}</h3>
+                            <p>Total Gas</p>
+                        </div>
+                    </div>
+                    <div class="output-label">IR (V1)</div>
+                    <div class="output-box" style="margin-top: 10px; max-height: 300px;">
+                        ${escapeHtml(result.ir_v1_json || formatJson(result.ir_v1))}
+                    </div>
+                </div>
+            `;
+        }
+        return `
+            <div class="batch-item error">
+                <h3>交易 ${index + 1}</h3>
+                <div class="tx-hash">${result.simulation_url}</div>
+                <div style="color: #c53030; margin-top: 10px;">
+                    <strong>错误:</strong> ${result.error}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    irDiv.style.display = 'none';
+    outputDiv.style.display = 'grid';
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
@@ -320,12 +424,23 @@ function downloadResult(type) {
             output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
-        data = {
-            tx_hash: simulationResultData.tx_hash,
-            ir_v1: simulationResultData.ir_v1,
-            ir_v1_json: simulationResultData.ir_v1_json,
-            output_type: 'ir_v1'
-        };
+        if (simulationResultData.results) {
+            const allOutput = simulationResultData.results
+                .filter(r => r.success)
+                .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
+            data = {
+                tx_hash: 'simulation_batch',
+                ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
+                output_type: 'ir_v1'
+            };
+        } else {
+            data = {
+                tx_hash: simulationResultData.tx_hash,
+                ir_v1: simulationResultData.ir_v1,
+                ir_v1_json: simulationResultData.ir_v1_json,
+                output_type: 'ir_v1'
+            };
+        }
     } else if (type === 'batch' && batchResultData) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
@@ -342,6 +457,24 @@ function downloadResult(type) {
     }
     
     requestDownload(data);
+}
+
+function downloadSimulationBatchItem(index) {
+    if (!simulationResultData || !simulationResultData.results || !simulationResultData.results[index]) {
+        showError('没有可下载的结果');
+        return;
+    }
+    const result = simulationResultData.results[index];
+    if (!result.success) {
+        showError('该交易分析失败，无法下载');
+        return;
+    }
+    requestDownload({
+        tx_hash: result.tx_hash,
+        ir_v1: result.ir_v1,
+        ir_v1_json: result.ir_v1_json,
+        output_type: 'ir_v1'
+    });
 }
 
 function downloadBatchItem(index) {
@@ -453,7 +586,8 @@ document.getElementById('tx-hash').addEventListener('keypress', function(e) {
 });
 
 document.getElementById('simulation-url').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
         analyzeSimulation();
     }
 });
