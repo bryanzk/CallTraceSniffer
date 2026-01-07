@@ -3,7 +3,7 @@
 ## 功能特性
 
 - ✅ **单个交易分析**: 输入交易哈希，输出 IR V1 JSON
-- ✅ **单个TX模拟**: 输入BlockSec模拟交易URL，解析模拟call trace
+- ✅ **模拟TX**: 输入BlockSec模拟交易URL，解析模拟call trace
 - ✅ **批量分析**: 上传CSV文件，批量处理多个交易（最多10个）
 - ✅ **实时统计**: 基于 IR V1 的 swap/transfer 数量统计
 - ✅ **结果下载**: 支持下载 IR V1 JSON 文件
@@ -66,7 +66,7 @@ python app.py
 
 ### 单个TX模拟
 
-1. 在"单个TX 模拟"标签页中，输入BlockSec模拟交易URL（示例：
+1. 在"模拟TX"标签页中，输入BlockSec模拟交易URL（示例：
    `https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation&type=0`）
 2. 点击"分析"按钮
 3. 等待分析完成，查看结果

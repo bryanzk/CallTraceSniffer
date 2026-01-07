@@ -287,6 +287,80 @@ def register_routes(app, extracted_data_cache):
             })
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+
+    @app.route('/api/analyze-simulation-batch', methods=['POST'])
+    def analyze_simulation_batch():
+        """批量分析模拟交易"""
+        data = request.json or {}
+        sim_urls = data.get('simulation_urls', [])
+        if not isinstance(sim_urls, list):
+            return jsonify({'success': False, 'error': 'simulation_urls必须为列表'}), 400
+
+        sim_urls = [url.strip() for url in sim_urls if isinstance(url, str) and url.strip()]
+        if not sim_urls:
+            return jsonify({'success': False, 'error': '模拟URL不能为空'}), 400
+        if len(sim_urls) > 10:
+            return jsonify({'success': False, 'error': '最多支持10个交易'}), 400
+
+        results = []
+        extractor = BlockSecExtractor()
+        for sim_url in sim_urls:
+            try:
+                tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
+            except Exception as e:
+                results.append({
+                    'simulation_url': sim_url,
+                    'success': False,
+                    'error': str(e)
+                })
+                continue
+
+            try:
+                result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
+                if result and result.get('success'):
+                    trace_data = result.get('trace_data')
+                    if trace_data:
+                        analysis = process_tx_data(trace_data, tx_hash)
+                        if analysis:
+                            results.append({
+                                'simulation_url': sim_url,
+                                'tx_hash': tx_hash,
+                                'success': True,
+                                'ir_v1': analysis['ir_v1'],
+                                'ir_v1_json': analysis['ir_v1_json'],
+                                'stats': analysis['stats']
+                            })
+                        else:
+                            results.append({
+                                'simulation_url': sim_url,
+                                'tx_hash': tx_hash,
+                                'success': False,
+                                'error': '数据处理失败'
+                            })
+                    else:
+                        results.append({
+                            'simulation_url': sim_url,
+                            'tx_hash': tx_hash,
+                            'success': False,
+                            'error': '未找到simulation trace数据'
+                        })
+                else:
+                    error_msg = result.get('error', '无法提取模拟交易数据') if result else '无法提取模拟交易数据'
+                    results.append({
+                        'simulation_url': sim_url,
+                        'tx_hash': tx_hash,
+                        'success': False,
+                        'error': error_msg
+                    })
+            except Exception as e:
+                results.append({
+                    'simulation_url': sim_url,
+                    'tx_hash': tx_hash,
+                    'success': False,
+                    'error': str(e)
+                })
+
+        return jsonify({'success': True, 'results': results, 'total': len(results)})
     
     @app.route('/api/analyze-batch', methods=['POST'])
     def analyze_batch_tx():
