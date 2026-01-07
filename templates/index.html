@@ -15,6 +15,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('single')">单个交易</button>
+            <button class="tab-btn" onclick="switchTab('compare')">对比</button>
             <button class="tab-btn" onclick="switchTab('simulation')">模拟TX</button>
             <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
         </div>
@@ -27,7 +28,7 @@
                     <input type="text" id="tx-hash" placeholder="0x..." class="tx-input">
                     <button onclick="analyzeSingle()" class="btn btn-primary">分析</button>
                 </div>
-                <small class="hint">请输入完整的交易哈希（0x开头，66个字符）</small>
+                <small class="hint">支持交易哈希或BlockSec交易URL（0x开头，66个字符）</small>
             </div>
 
             <div id="single-result" class="result-section" style="display: none;">
@@ -39,8 +40,104 @@
                 <div class="output-label">IR (V1)</div>
                 <div id="single-ir" class="output-box"></div>
                 <div class="output-label">Mermaid DAG</div>
-                <button onclick="downloadMermaid('single')" class="btn btn-secondary btn-small">下载DAG</button>
+                <div class="dag-actions">
+                    <button onclick="downloadMermaidPngFrom('single-mermaid')" class="btn btn-secondary btn-small">下载PNG</button>
+                    <button onclick="downloadMermaidSvgFrom('single-mermaid')" class="btn btn-secondary btn-small">下载SVG</button>
+                    <button onclick="openDagViewer('single-mermaid')" class="btn btn-secondary btn-small">放大查看</button>
+                </div>
                 <div id="single-mermaid" class="mermaid-box"></div>
+            </div>
+        </div>
+
+        <!-- 对比模式 -->
+        <div id="compare-tab" class="tab-content">
+            <div class="input-section compare-input">
+                <div class="compare-grid">
+                    <div class="compare-col">
+                        <label for="compare-url-a">Tx A:</label>
+                        <div class="compare-mode">
+                            <label class="compare-toggle"><input type="radio" name="compare-mode-a" value="url" checked> URL/哈希</label>
+                            <label class="compare-toggle"><input type="radio" name="compare-mode-a" value="ir"> IR JSON</label>
+                        </div>
+                        <div id="compare-input-url-a" class="compare-input-block">
+                            <div class="input-group">
+                                <input type="text" id="compare-url-a" placeholder="0x... 或 BlockSec URL（含 simulation）" class="tx-input">
+                                <button onclick="analyzeCompare('A')" class="btn btn-primary">分析A</button>
+                            </div>
+                        </div>
+                        <div id="compare-input-ir-a" class="compare-input-block" style="display: none;">
+                            <textarea id="compare-ir-a-input" rows="6" placeholder="粘贴 IR JSON" class="tx-input"></textarea>
+                            <button onclick="analyzeCompare('A')" class="btn btn-primary">分析A</button>
+                        </div>
+                        <div id="compare-status-a" class="compare-status"></div>
+                    </div>
+                    <div class="compare-center">
+                        <button onclick="swapCompareInputs()" class="btn btn-secondary btn-small">A/B 交换</button>
+                    </div>
+                    <div class="compare-col">
+                        <label for="compare-url-b">Tx B:</label>
+                        <div class="compare-mode">
+                            <label class="compare-toggle"><input type="radio" name="compare-mode-b" value="url" checked> URL/哈希</label>
+                            <label class="compare-toggle"><input type="radio" name="compare-mode-b" value="ir"> IR JSON</label>
+                        </div>
+                        <div id="compare-input-url-b" class="compare-input-block">
+                            <div class="input-group">
+                                <input type="text" id="compare-url-b" placeholder="0x... 或 BlockSec URL（含 simulation）" class="tx-input">
+                                <button onclick="analyzeCompare('B')" class="btn btn-primary">分析B</button>
+                            </div>
+                        </div>
+                        <div id="compare-input-ir-b" class="compare-input-block" style="display: none;">
+                            <textarea id="compare-ir-b-input" rows="6" placeholder="粘贴 IR JSON" class="tx-input"></textarea>
+                            <button onclick="analyzeCompare('B')" class="btn btn-primary">分析B</button>
+                        </div>
+                        <div id="compare-status-b" class="compare-status"></div>
+                    </div>
+                </div>
+                <small class="hint">对比支持交易哈希、BlockSec URL（含模拟），或直接粘贴 IR JSON</small>
+            </div>
+
+            <div id="compare-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>对比结果</h2>
+                </div>
+                <div class="compare-toolbar">
+                    <label class="compare-toggle"><input type="checkbox" id="compare-sync-ir"> IR 同步滚动</label>
+                    <label class="compare-toggle"><input type="checkbox" id="compare-sync-dag"> DAG 同步滚动</label>
+                </div>
+                <div id="compare-summary" class="compare-summary"></div>
+
+                <div class="compare-section">
+                    <div class="compare-col">
+                        <div class="result-header">
+                            <h3>Tx A</h3>
+                            <div class="compare-actions">
+                                <button onclick="downloadCompareResult('A')" class="btn btn-secondary btn-small">下载IR</button>
+                                <button onclick="downloadMermaidPngFrom('compare-mermaid-a')" class="btn btn-secondary btn-small">PNG</button>
+                                <button onclick="downloadMermaidSvgFrom('compare-mermaid-a')" class="btn btn-secondary btn-small">SVG</button>
+                                <button onclick="openDagViewer('compare-mermaid-a')" class="btn btn-secondary btn-small">放大</button>
+                            </div>
+                        </div>
+                        <div class="output-label">IR (V1)</div>
+                        <div id="compare-ir-a" class="output-box compare-output"></div>
+                        <div class="output-label">Mermaid DAG</div>
+                        <div id="compare-mermaid-a" class="mermaid-box compare-output"></div>
+                    </div>
+                    <div class="compare-col">
+                        <div class="result-header">
+                            <h3>Tx B</h3>
+                            <div class="compare-actions">
+                                <button onclick="downloadCompareResult('B')" class="btn btn-secondary btn-small">下载IR</button>
+                                <button onclick="downloadMermaidPngFrom('compare-mermaid-b')" class="btn btn-secondary btn-small">PNG</button>
+                                <button onclick="downloadMermaidSvgFrom('compare-mermaid-b')" class="btn btn-secondary btn-small">SVG</button>
+                                <button onclick="openDagViewer('compare-mermaid-b')" class="btn btn-secondary btn-small">放大</button>
+                            </div>
+                        </div>
+                        <div class="output-label">IR (V1)</div>
+                        <div id="compare-ir-b" class="output-box compare-output"></div>
+                        <div class="output-label">Mermaid DAG</div>
+                        <div id="compare-mermaid-b" class="mermaid-box compare-output"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -99,6 +196,16 @@
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <div id="dag-viewer" class="dag-viewer" style="display: none;">
+        <div class="dag-viewer-content">
+            <div class="dag-viewer-header">
+                <h3>DAG 放大查看</h3>
+                <button onclick="closeDagViewer()" class="btn btn-secondary btn-small">关闭</button>
+            </div>
+            <div id="dag-viewer-body" class="dag-viewer-body"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
