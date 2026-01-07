@@ -54,6 +54,7 @@ def test_analyze_simulation_route_success(monkeypatch, sample_trace_data):
     assert data["success"] is True
     assert data["tx_hash"] == sample_trace_data["tx_hash"]
     assert "ir_v1_json" in data
+    assert "mermaid_dag" in data
 
 
 def test_analyze_simulation_route_invalid_url():

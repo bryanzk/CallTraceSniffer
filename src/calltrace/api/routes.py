@@ -286,11 +286,18 @@ def register_routes(app, extracted_data_cache):
                 'analysis': analysis
             }
 
+            mermaid_dag = None
+            try:
+                mermaid_dag = build_mermaid_dag(analysis['ir_v1'])
+            except Exception:
+                mermaid_dag = None
+
             return jsonify({
                 'success': True,
                 'tx_hash': tx_hash,
                 'ir_v1': analysis['ir_v1'],
                 'ir_v1_json': analysis['ir_v1_json'],
+                'mermaid_dag': mermaid_dag,
                 'stats': analysis['stats']
             })
         except Exception as e:
@@ -529,3 +536,26 @@ def register_routes(app, extracted_data_cache):
             return app.response_class(analysis['ir_v1_json'], mimetype='application/json')
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+
+    @app.route('/api/ir-to-mermaid', methods=['POST'])
+    def ir_to_mermaid():
+        """IR JSON -> Mermaid DAG"""
+        data = request.json or {}
+        ir_payload = data.get('ir_v1')
+        if ir_payload is None:
+            return jsonify({'success': False, 'error': 'ir_v1不能为空'}), 400
+
+        if isinstance(ir_payload, str):
+            try:
+                ir_payload = json.loads(ir_payload)
+            except Exception:
+                return jsonify({'success': False, 'error': 'ir_v1不是有效JSON'}), 400
+
+        if not isinstance(ir_payload, dict):
+            return jsonify({'success': False, 'error': 'ir_v1必须为JSON对象'}), 400
+
+        try:
+            mermaid_dag = build_mermaid_dag(ir_payload)
+            return jsonify({'success': True, 'mermaid_dag': mermaid_dag})
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'生成失败: {str(e)}'}), 400

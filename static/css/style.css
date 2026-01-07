@@ -255,12 +255,20 @@ header h1 {
     color: #4a5568;
 }
 
+.dag-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
 .mermaid-box {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 12px;
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 600px;
 }
 
 .batch-stats {
@@ -311,6 +319,159 @@ header h1 {
     gap: 15px;
 }
 
+.compare-input .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
+.compare-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.compare-mode {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    color: #4a5568;
+    font-size: 0.9em;
+}
+
+.compare-input-block textarea.tx-input {
+    resize: vertical;
+}
+
+.compare-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.compare-section {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.compare-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.compare-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.compare-toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+    color: #4a5568;
+}
+
+.compare-toggle input {
+    margin-right: 6px;
+}
+
+.compare-output {
+    max-height: 400px;
+}
+
+.compare-diff {
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+.diff-line {
+    display: block;
+    padding: 0 4px;
+}
+
+.diff-line.diff-changed {
+    background: #fff5f5;
+}
+
+.compare-status {
+    font-size: 0.9em;
+    color: #4a5568;
+    min-height: 20px;
+}
+
+.compare-status.error {
+    color: #c53030;
+}
+
+.compare-status.loading {
+    color: #2b6cb0;
+}
+
+.dag-viewer {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.dag-viewer-content {
+    background: #ffffff;
+    border-radius: 10px;
+    width: min(1200px, 95vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.dag-viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dag-viewer-body {
+    padding: 12px;
+    overflow: auto;
+}
+
+.compare-card {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.compare-card h4 {
+    margin-bottom: 4px;
+    color: #4a5568;
+    font-size: 0.95em;
+}
+
+.compare-values {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    color: #2d3748;
+    line-height: 1.25;
+    word-break: break-all;
+}
+
 .loading {
     text-align: center;
     padding: 40px;
@@ -354,6 +515,14 @@ header h1 {
     }
 
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .compare-input .compare-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .compare-section {
         grid-template-columns: 1fr;
     }
 }
