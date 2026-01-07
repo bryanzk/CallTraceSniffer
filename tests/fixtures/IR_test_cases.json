@@ -1,0 +1,351 @@
+[
+  {
+    "tx_hash": "0xe42c7f10664571e96b425333a7a06fae1de65dd30eb871d84ceb559cceed00a6",
+    "pattern": "",
+    "baseTokenAmountIn": null,
+    "baseTokenAmountOut": null,
+    "rootTrace": {
+            "type": "swap",
+            "swap": {
+              "swapIntent": {
+                "poolId": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
+                "protocolId": 3,
+                "tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "tokenInDecimals": 6,
+                "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                "tokenOutDecimals": 18,
+                "amountInBig": 49574973807,
+                "amountOutBig": 16597673438492450816
+              },
+              "executionArgs": {
+                "amount": null,
+                "isAmountIn": false,
+                "zeroForOne": false,
+                "recipientIsBot": false,
+                "recipient": "0xc2fe164d2cfcfeb6164242b807c57c691f7cfb37",
+                "recipientType": 2,
+                "tokenInIsWETH": false,
+                "tokenOutIsWETH": false
+              }
+            },
+            "transfer": null,
+            "wethWrapOrUnwarp": null,
+            "callback": [
+              {
+                "type": "swap",
+                "swap": {
+                  "swapIntent": {
+                    "poolId": "0x99ac8cA7087fA4A2A1FB6357269965A2014ABc35",
+                    "protocolId": 3,
+                    "tokenIn": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+                    "tokenInDecimals": 8,
+                    "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                    "tokenOutDecimals": 6,
+                    "amountInBig": 31676668,
+                    "amountOutBig": 27816088578
+                  },
+                  "executionArgs": {
+                    "amount": null,
+                    "isAmountIn": false,
+                    "zeroForOne": false,
+                    "recipientIsBot": false,
+                    "recipient": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                    "recipientType": 0,
+                    "tokenInIsWETH": false,
+                    "tokenOutIsWETH": false
+                  }
+                },
+                "transfer": null,
+                "wethWrapOrUnwarp": null,
+                "callback": [
+                  {
+                    "type": "swap",
+                    "swap": {
+                      "swapIntent": {
+                        "poolId": "0x4585FE77225b41b697C938B018E2Ac67Ac5a20c0",
+                        "protocolId": 3,
+                        "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                        "tokenInDecimals": 18,
+                        "tokenOut": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+                        "tokenOutDecimals": 8,
+                        "amountInBig": 6765818950971936768,
+                        "amountOutBig": 23031238
+                      },
+                      "executionArgs": {
+                        "amount": null,
+                        "isAmountIn": false,
+                        "zeroForOne": false,
+                        "recipientIsBot": false,
+                        "recipient": "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35",
+                        "recipientType": 0,
+                        "tokenInIsWETH": false,
+                        "tokenOutIsWETH": false
+                      }
+                    },
+                    "transfer": null,
+                    "wethWrapOrUnwarp": null,
+                    "callback": [
+                      {
+                        "type": "transfer",
+                        "swap": null,
+                        "transfer": {
+                          "tokenId": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                          "to": "0x4585fe77225b41b697c938b018e2ac67ac5a20c0",
+                          "amount": 6765818950971936768
+                        },
+                        "wethWrapOrUnwarp": null,
+                        "encoded": ""
+                      }
+                    ],
+                    "encoded": ""
+                  },
+                  {
+                    "type": "transfer",
+                    "swap": null,
+                    "transfer": {
+                      "tokenId": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                      "to": "0xceff51756c56ceffca006cd410b03ffc46dd3a58",
+                      "amount": 2542439968847773696
+                    },
+                    "wethWrapOrUnwarp": null,
+                    "encoded": ""
+                  },
+                  {
+                    "type": "swap",
+                    "swap": {
+                      "swapIntent": {
+                        "poolId": "0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58",
+                        "protocolId": 2,
+                        "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                        "tokenInDecimals": 18,
+                        "tokenOut": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+                        "tokenOutDecimals": 8,
+                        "amountInBig": 2542439968847773696,
+                        "amountOutBig": 8645430
+                      },
+                      "executionArgs": {
+                        "amount": null,
+                        "isAmountIn": false,
+                        "zeroForOne": false,
+                        "recipientIsBot": false,
+                        "recipient": "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35",
+                        "recipientType": 0,
+                        "tokenInIsWETH": false,
+                        "tokenOutIsWETH": false
+                      }
+                    },
+                    "transfer": null,
+                    "wethWrapOrUnwarp": null,
+                    "encoded": ""
+                  }
+                ],
+                "encoded": ""
+              },
+              {
+                "type": "swap",
+                "swap": {
+                  "swapIntent": {
+                    "poolId": "0xE0554a476A092703abdB3Ef35c80e0D76d32939F",
+                    "protocolId": 3,
+                    "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                    "tokenInDecimals": 18,
+                    "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                    "tokenOutDecimals": 6,
+                    "amountInBig": 2883414319494019584,
+                    "amountOutBig": 8618489795
+                  },
+                  "executionArgs": {
+                    "amount": null,
+                    "isAmountIn": false,
+                    "zeroForOne": false,
+                    "recipientIsBot": false,
+                    "recipient": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                    "recipientType": 0,
+                    "tokenInIsWETH": false,
+                    "tokenOutIsWETH": false
+                  }
+                },
+                "transfer": null,
+                "wethWrapOrUnwarp": null,
+                "callback": [
+                  {
+                    "type": "transfer",
+                    "swap": null,
+                    "transfer": {
+                      "tokenId": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                      "to": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+                      "amount": 2883414319494019584
+                    },
+                    "wethWrapOrUnwarp": null,
+                    "encoded": ""
+                  }
+                ],
+                "encoded": ""
+              },
+              {
+                "type": "swap",
+                "swap": {
+                  "swapIntent": {
+                    "poolId": "0x04c8577958CcC170EB3d2CCa76F9d51bc6E42D8f",
+                    "protocolId": 3,
+                    "tokenIn": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                    "tokenInDecimals": 6,
+                    "tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                    "tokenOutDecimals": 6,
+                    "amountInBig": 13144595713,
+                    "amountOutBig": 13140395434
+                  },
+                  "executionArgs": {
+                    "amount": null,
+                    "isAmountIn": false,
+                    "zeroForOne": false,
+                    "recipientIsBot": false,
+                    "recipient": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+                    "recipientType": 0,
+                    "tokenInIsWETH": false,
+                    "tokenOutIsWETH": false
+                  }
+                },
+                "transfer": null,
+                "wethWrapOrUnwarp": null,
+                "callback": [
+                  {
+                    "type": "swap",
+                    "swap": {
+                      "swapIntent": {
+                        "poolId": "0xc7bBeC68d12a0d1830360F8Ec58fA599bA1b0e9b",
+                        "protocolId": 3,
+                        "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                        "tokenInDecimals": 18,
+                        "tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                        "tokenOutDecimals": 6,
+                        "amountInBig": 4392925163785609728,
+                        "amountOutBig": 13144595713
+                      },
+                      "executionArgs": {
+                        "amount": null,
+                        "isAmountIn": false,
+                        "zeroForOne": false,
+                        "recipientIsBot": false,
+                        "recipient": "0x04c8577958ccc170eb3d2cca76f9d51bc6e42d8f",
+                        "recipientType": 0,
+                        "tokenInIsWETH": false,
+                        "tokenOutIsWETH": false
+                      }
+                    },
+                    "transfer": null,
+                    "wethWrapOrUnwarp": null,
+                    "callback": [
+                      {
+                        "type": "transfer",
+                        "swap": null,
+                        "transfer": {
+                          "tokenId": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                          "to": "0xc7bbec68d12a0d1830360f8ec58fa599ba1b0e9b",
+                          "amount": 4392925163785609728
+                        },
+                        "wethWrapOrUnwarp": null,
+                        "encoded": ""
+                      }
+                    ],
+                    "encoded": ""
+                  }
+                ],
+                "encoded": ""
+              }
+            ],
+            "encoded": ""
+          },
+    "children": []
+  },
+  {
+    "tx_hash": "0xe8e213f71cad840d681b6ae34870e7f75518c6d66ebdbc2500d0e49b9112a873",
+    "pattern": "",
+    "baseTokenAmountIn": null,
+    "baseTokenAmountOut": null,
+    "rootTrace": {
+      "type": "swap",
+      "swap": {
+        "swapIntent": {
+          "amountInBig": 0,
+          "amountOutBig": 0,
+          "poolId": "0x2b1a1262D8A9886F949787d85C41344476D2B00e",
+          "protocolId": 3,
+          "tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenOut": "0xc50673edb3a7b94e8cad8a7d4e0cd68864e33edf"
+        },
+        "executionArgs": {
+          "amount": null,
+          "isAmountIn": false,
+          "recipient": "0x60a8df372371124aeaf292b338fbbc7187c91bed",
+          "recipientIsBot": false,
+          "recipientType": 2,
+          "tokenInIsWETH": false,
+          "tokenOutIsWETH": false,
+          "zeroForOne": false
+        }
+      },
+      "callback": [
+        {
+          "type": "swap",
+          "swap": {
+            "swapIntent": {
+              "amountInBig": 0,
+              "amountOutBig": 0,
+              "poolId": "0x000000000004444c5dc75cB358380D2e3dE08A90|0x055179675f312bb5e32779c0557667e373ecd712ffcc868da148d22fa68ca661",
+              "protocolId": 4,
+              "tokenIn": "0xc50673edb3a7b94e8cad8a7d4e0cd68864e33edf",
+              "tokenOut": "0x473bcd6ee71d2ca1d18f8e74cdf75beb4999fa7e"
+            },
+            "executionArgs": {
+              "amount": null,
+              "isAmountIn": false,
+              "recipient": "0x225f5447ddd0db84d1b33336440719df0a7ca5e5",
+              "recipientIsBot": false,
+              "recipientType": 1,
+              "tokenInIsWETH": false,
+              "tokenOutIsWETH": false,
+              "zeroForOne": false
+            }
+          },
+          "transfer": null
+        },
+        {
+          "type": "swap",
+          "swap": {
+            "swapIntent": {
+              "amountInBig": 0,
+              "amountOutBig": 0,
+              "poolId": "0x225f5447DdD0DB84d1B33336440719df0a7CA5E5",
+              "protocolId": 2,
+              "tokenIn": "0x473bcd6ee71d2ca1d18f8e74cdf75beb4999fa7e",
+              "tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            },
+            "executionArgs": {
+              "amount": null,
+              "isAmountIn": false,
+              "recipient": "0x60a8df372371124aeaf292b338fbbc7187c91bed",
+              "recipientIsBot": false,
+              "recipientType": 2,
+              "tokenInIsWETH": false,
+              "tokenOutIsWETH": false,
+              "zeroForOne": false
+            }
+          },
+          "transfer": null
+        },
+        {
+          "type": "transfer",
+          "transfer": {
+            "amount": 0,
+            "to": "0x2b1a1262d8a9886f949787d85c41344476d2b00e",
+            "tokenId": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+          },
+          "swap": null
+        }
+      ],
+      "transfer": null
+    },
+    "children": []
+  }
+]
