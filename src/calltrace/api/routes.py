@@ -12,6 +12,7 @@ from ..config import config
 from datetime import datetime
 from ..services.extractor import BlockSecExtractor
 from ..services.ir_v1_blocksec import build_blocksec_ir
+from ..services.mermaid_dag import build_mermaid_dag
 
 
 def _order_ir_payload(payload, tx_hash):
@@ -232,11 +233,18 @@ def register_routes(app, extracted_data_cache):
                 'analysis': analysis
             }
             
+            mermaid_dag = None
+            try:
+                mermaid_dag = build_mermaid_dag(analysis['ir_v1'])
+            except Exception:
+                mermaid_dag = None
+
             return jsonify({
                 'success': True,
                 'tx_hash': tx_hash,
                 'ir_v1': analysis['ir_v1'],
                 'ir_v1_json': analysis['ir_v1_json'],
+                'mermaid_dag': mermaid_dag,
                 'stats': analysis['stats']
             })
             

@@ -2,6 +2,8 @@ let currentTab = 'single';
 let singleResultData = null;
 let batchResultData = null;
 let simulationResultData = null;
+let mermaidInitialized = false;
+let singleMermaidText = null;
 
 function switchTab(tab) {
     currentTab = tab;
@@ -100,7 +102,9 @@ function displaySingleResult(data) {
     `;
     
     irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
-    
+    singleMermaidText = data.mermaid_dag || null;
+    renderMermaid('single-mermaid', data.mermaid_dag);
+
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
@@ -215,6 +219,111 @@ function displaySimulationResult(data) {
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function renderMermaid(containerId, mermaidText) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+    if (!mermaidText) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    if (!window.mermaid) {
+        container.textContent = 'Mermaid 未加载';
+        return;
+    }
+
+    if (!mermaidInitialized) {
+        window.mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'loose'
+        });
+        mermaidInitialized = true;
+    }
+
+    try {
+        const renderId = `mermaid-${Date.now()}`;
+        const { svg } = await window.mermaid.render(renderId, mermaidText);
+        container.innerHTML = svg;
+        container.dataset.mermaidSvg = svg;
+    } catch (error) {
+        container.textContent = 'Mermaid 渲染失败: ' + error.message;
+    }
+}
+
+function downloadMermaid(type) {
+    const container = document.getElementById('single-mermaid');
+    if (!container) {
+        showError('未找到DAG容器');
+        return;
+    }
+    if (type !== 'single') {
+        showError('仅支持单个交易DAG下载');
+        return;
+    }
+
+    const svg = container.dataset.mermaidSvg;
+    if (svg) {
+        downloadMermaidPng(svg);
+        return;
+    }
+
+    if (singleMermaidText) {
+        const blob = new Blob([singleMermaidText], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tx_dag_${new Date().getTime()}.mmd`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        return;
+    }
+
+    showError('没有可下载的DAG');
+}
+
+function downloadMermaidPng(svgContent) {
+    const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = window.URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = function() {
+        const scale = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        window.URL.revokeObjectURL(url);
+
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                showError('PNG生成失败');
+                return;
+            }
+            const pngUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = pngUrl;
+            a.download = `tx_dag_${new Date().getTime()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(pngUrl);
+            document.body.removeChild(a);
+        }, 'image/png');
+    };
+    img.onerror = function() {
+        window.URL.revokeObjectURL(url);
+        showError('PNG生成失败');
+    };
+    img.src = url;
 }
 
 function displaySimulationBatchResult(data) {

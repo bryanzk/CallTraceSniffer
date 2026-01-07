@@ -255,6 +255,14 @@ header h1 {
     color: #4a5568;
 }
 
+.mermaid-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
 .batch-stats {
     margin-bottom: 20px;
 }

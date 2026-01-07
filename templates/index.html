@@ -38,6 +38,9 @@
                 <div id="single-stats" class="stats-grid"></div>
                 <div class="output-label">IR (V1)</div>
                 <div id="single-ir" class="output-box"></div>
+                <div class="output-label">Mermaid DAG</div>
+                <button onclick="downloadMermaid('single')" class="btn btn-secondary btn-small">下载DAG</button>
+                <div id="single-mermaid" class="mermaid-box"></div>
             </div>
         </div>
 
@@ -98,6 +101,7 @@
         <div id="error" class="error" style="display: none;"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
