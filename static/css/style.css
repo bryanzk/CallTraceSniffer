@@ -341,7 +341,9 @@ header h1 {
 }
 
 .compare-input-block textarea.tx-input {
-    resize: vertical;
+    resize: both;
+    min-width: 100%;
+    max-width: 100%;
 }
 
 .compare-center {
