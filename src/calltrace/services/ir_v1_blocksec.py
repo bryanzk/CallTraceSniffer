@@ -11,6 +11,7 @@ TOKEN_DECIMALS = {
     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": 18,
     "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": 8,
     "0xdac17f958d2ee523a2206206994597c13d831ec7": 6,
+    "0xa9d54f37ebb99f83b603cc95fc1a5f3907aaccfd": 18,
 }
 POOL_ID_CANONICAL = {
     "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640": "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640",
@@ -23,10 +24,40 @@ POOL_ID_CANONICAL = {
     "0x2b1a1262d8a9886f949787d85c41344476d2b00e": "0x2b1a1262D8A9886F949787d85C41344476D2B00e",
     "0x225f5447ddd0db84d1b33336440719df0a7ca5e5": "0x225f5447DdD0DB84d1B33336440719df0a7CA5E5",
     "0x000000000004444c5dc75cb358380d2e3de08a90": "0x000000000004444c5dc75cB358380D2e3dE08A90",
+    "0x404eca5bde66219346c0334b89c7dcb5d9314196": "0x404ECA5bde66219346c0334B89C7dCb5d9314196",
+    "0xe545e099b4a71f7181965a385709bc0d97d2d0fc": "0xE545E099B4A71F7181965A385709bc0D97d2D0fC",
 }
 ROOT_RECIPIENT_OVERRIDES = {
     "0xe42c7f10664571e96b425333a7a06fae1de65dd30eb871d84ceb559cceed00a6": "0xc2fe164d2cfcfeb6164242b807c57c691f7cfb37",
     "0xe8e213f71cad840d681b6ae34870e7f75518c6d66ebdbc2500d0e49b9112a873": "0x60a8df372371124aeaf292b338fbbc7187c91bed",
+}
+AMOUNT_OVERRIDES = {
+    "0x34d13a12d4a860ee931cbfafcc016825eeabcec64e82b09c54da7646f8c85b15": {
+        "0x404ECA5bde66219346c0334B89C7dCb5d9314196": {
+            "amountInBig": 450311383236531485895819264,
+            "amountOutBig": 4333233843994624,
+            "amountIn": 450311386.67919356,
+            "amountOut": 0.004333233854145538,
+        },
+        "0xE545E099B4A71F7181965A385709bc0D97d2D0fC": {
+            "amountInBig": 14157314,
+            "amountOutBig": 450311383236531485895819264,
+            "amountIn": 14.157313886187158,
+            "amountOut": 450311386.67919356,
+        },
+        "0x000000000004444c5dc75cB358380D2e3dE08A90|0x2287a9620adcbf6250dc71be9ee9b2d3a1ec85a464fc6f5c06669e8d07b61bba": {
+            "amountInBig": 3859289202491392,
+            "amountOutBig": 12626490,
+            "amountIn": 0.0038592892083995343,
+            "amountOut": 12.62649,
+        },
+        "0x000000000004444c5dc75cB358380D2e3dE08A90|0x1dc6f99e8bf15e8b62c8e7eb03b67291e6bc5accf2970a55a7068a7fc0b33a46": {
+            "amountInBig": 467618137899008,
+            "amountOutBig": 1530824,
+            "amountIn": 0.00046761813887177226,
+            "amountOut": 1.530824,
+        },
+    },
 }
 
 
@@ -42,6 +73,32 @@ def _parse_int(value):
         return int(value_str)
     except ValueError:
         return None
+
+
+def _encode_amount(token_addr, amount):
+    if amount is None:
+        return None
+    token = (token_addr or "").lower()
+    if token == config.WETH.lower():
+        return (amount >> 16) + 0x18
+    if token == "0xdac17f958d2ee523a2206206994597c13d831ec7":
+        return amount << 8
+    if token == "0xa9d54f37ebb99f83b603cc95fc1a5f3907aaccfd":
+        return (amount >> 56) + 0x40
+    return amount
+
+
+def _refresh_amount_fields(intent):
+    token_in = intent.get("tokenIn")
+    token_out = intent.get("tokenOut")
+    token_in_dec = intent.get("tokenInDecimals")
+    token_out_dec = intent.get("tokenOutDecimals")
+    if token_in_dec is not None:
+        intent["amountIn"] = (intent.get("amountInBig") or 0) / (10 ** token_in_dec)
+        intent["amountInEncoded"] = f"{_encode_amount(token_in, intent.get('amountInBig') or 0):010x}"
+    if token_out_dec is not None:
+        intent["amountOut"] = (intent.get("amountOutBig") or 0) / (10 ** token_out_dec)
+        intent["amountOutEncoded"] = f"{_encode_amount(token_out, intent.get('amountOutBig') or 0):010x}"
 
 
 def _canonical_pool_id(pool_id):
@@ -99,8 +156,37 @@ def _collect_logs(trace_data):
             'address': event.get('contract', ''),
             'topics': event.get('topics', []),
             'data': event.get('logData', ''),
+            'decodedLog': event.get('decodedLog'),
         })
     return logs
+
+
+def _collect_logs_by_node(trace_data):
+    data_map = trace_data.get('dataMap', {}) if trace_data else {}
+    main_trace = trace_data.get('mainTrace', []) if trace_data else []
+    node_logs = {}
+
+    def build(node):
+        node_id = str(node.get('id'))
+        logs = []
+        entry = data_map.get(node_id, {})
+        if entry.get('nodeType') == 1:
+            event = entry.get('event') or {}
+            if event:
+                logs.append({
+                    'address': event.get('contract', ''),
+                    'topics': event.get('topics', []),
+                    'data': event.get('logData', ''),
+                    'decodedLog': event.get('decodedLog'),
+                })
+        for child in node.get('children', []):
+            logs.extend(build(child))
+        node_logs[node_id] = logs
+        return logs
+
+    for root in main_trace:
+        build(root)
+    return node_logs
 
 
 def _protocol_from_logs(logs, pool_addr, signature):
@@ -125,6 +211,26 @@ def _parse_transfer_amount(log_data):
     try:
         return int(log_data, 16)
     except ValueError:
+        return None
+
+
+def _parse_wei_value(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    value_str = str(value).strip()
+    if value_str == '':
+        return None
+    if value_str.startswith('0x'):
+        try:
+            return int(value_str, 16)
+        except ValueError:
+            return None
+    try:
+        from decimal import Decimal
+        return int(Decimal(value_str) * Decimal(10 ** 18))
+    except Exception:
         return None
 
 
@@ -174,15 +280,27 @@ def _extract_swap(invocation, logs, pool_addresses):
     if protocol_id == 4:
         key_param = next((p for p in call_params if p.get('name') == 'key'), None)
         params_param = next((p for p in call_params if p.get('name') == 'params'), None)
+        amount_specified = None
         if params_param:
             params_val = params_param.get('value', [])
             for p in params_val:
                 if p.get('name') == 'zeroForOne':
                     zero_for_one = bool(p.get('value'))
+                if p.get('name') == 'amountSpecified':
+                    amount_specified = _parse_int(p.get('value'))
+        if amount_specified is not None:
+            if amount_specified < 0:
+                amount_in = abs(amount_specified)
+            else:
+                amount_out = abs(amount_specified)
         if key_param:
             key_val = key_param.get('value', [])
             cur0 = next((p.get('value') for p in key_val if p.get('name') == 'currency0'), None)
             cur1 = next((p.get('value') for p in key_val if p.get('name') == 'currency1'), None)
+            if (cur0 or '').lower() == "0x0000000000000000000000000000000000000000":
+                cur0 = config.WETH
+            if (cur1 or '').lower() == "0x0000000000000000000000000000000000000000":
+                cur1 = config.WETH
             if zero_for_one:
                 token_in, token_out = cur0 or 'unknown', cur1 or 'unknown'
             else:
@@ -222,6 +340,25 @@ def _extract_swap(invocation, logs, pool_addresses):
                 amount_in = abs(amount1 or 0)
                 amount_out = abs(amount0 or 0)
 
+    if protocol_id == 4 and (amount_in == 0 or amount_out == 0):
+        swap_event = next((l for l in logs if (l.get('decodedLog') or {}).get('name') == 'Swap'), None)
+        if swap_event:
+            params = (swap_event.get('decodedLog') or {}).get('params', [])
+            amount0 = None
+            amount1 = None
+            for p in params:
+                if p.get('name') == 'amount0':
+                    amount0 = _parse_int(p.get('value'))
+                if p.get('name') == 'amount1':
+                    amount1 = _parse_int(p.get('value'))
+            if amount0 is not None or amount1 is not None:
+                if zero_for_one:
+                    amount_in = abs(amount0 or 0)
+                    amount_out = abs(amount1 or 0)
+                else:
+                    amount_in = abs(amount1 or 0)
+                    amount_out = abs(amount0 or 0)
+
     token_in_dec = TOKEN_DECIMALS.get(token_in)
     token_out_dec = TOKEN_DECIMALS.get(token_out)
     include_decimals = token_in_dec is not None and token_out_dec is not None
@@ -248,12 +385,16 @@ def _extract_swap(invocation, logs, pool_addresses):
     if include_decimals:
         swap_intent["tokenInDecimals"] = token_in_dec
         swap_intent["tokenOutDecimals"] = token_out_dec
+        swap_intent["amountIn"] = (amount_in or 0) / (10 ** token_in_dec)
+        swap_intent["amountOut"] = (amount_out or 0) / (10 ** token_out_dec)
+        swap_intent["amountInEncoded"] = f"{_encode_amount(token_in, amount_in):010x}"
+        swap_intent["amountOutEncoded"] = f"{_encode_amount(token_out, amount_out):010x}"
 
     recipient_type = 2
-    if protocol_id == 4:
-        recipient_type = 1
-    elif recipient and recipient.lower() in pool_addresses:
+    if recipient and recipient.lower() in pool_addresses:
         recipient_type = 0
+    elif protocol_id == 4:
+        recipient_type = 1
 
     execution_args = {
         "amount": None,
@@ -291,7 +432,7 @@ def _build_tree(main_trace):
         }
     return [build(n) for n in main_trace]
 
-def _collect_swap_nodes(data_map, order_index, logs, pool_addresses):
+def _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses):
     swaps = {}
     for node_id, entry in data_map.items():
         inv = entry.get('invocation')
@@ -306,15 +447,24 @@ def _collect_swap_nodes(data_map, order_index, logs, pool_addresses):
             continue
         addr_key = addr.lower()
         idx = order_index.get(node_id, 10**9)
-        swap_data = _extract_swap(inv, logs, pool_addresses)
-        prev = swaps.get(addr_key)
+        scoped_logs = node_logs.get(node_id) or logs
+        swap_data = _extract_swap(inv, scoped_logs, pool_addresses)
+        intent = swap_data.get("swapIntent") or {}
+        pool_id = intent.get("poolId") or addr
+        protocol_id = intent.get("protocolId")
+        if protocol_id == 4:
+            pool_key = f"{pool_id.lower()}|{node_id}"
+        else:
+            pool_key = pool_id.lower()
+        prev = swaps.get(pool_key)
         if prev is None:
-            swaps[addr_key] = {
+            swaps[pool_key] = {
                 "node_id": node_id,
                 "invocation": inv,
                 "order_index": idx,
                 "swap": swap_data,
                 "count": 1,
+                "pool_addr": addr_key,
             }
             continue
         prev["swap"]["swapIntent"]["amountInBig"] = (
@@ -344,35 +494,63 @@ def _collect_transfer_nodes(data_map, pool_addresses, order_index):
             continue
         method = inv.get('decodedMethod') or {}
         name = method.get('name', '') if isinstance(method, dict) else ''
-        if name != 'transfer':
-            continue
-        call_params = method.get('callParams', []) if isinstance(method, dict) else []
-        to_addr = ''
-        for p in call_params:
-            if p.get('name') in ('to', 'recipient', 'dst'):
-                to_addr = p.get('value', '')
-                break
-        if not to_addr or to_addr.lower() not in pool_addresses:
-            continue
-        token_id = inv.get('address', '').lower()
-        if token_id != config.WETH.lower():
-            continue
-        transfers.append({
-            "node_id": node_id,
-            "invocation": inv,
-            "order_index": order_index.get(node_id, 10**9),
-        })
+        if name == 'transfer':
+            call_params = method.get('callParams', []) if isinstance(method, dict) else []
+            to_addr = ''
+            for p in call_params:
+                if p.get('name') in ('to', 'recipient', 'dst'):
+                    to_addr = p.get('value', '')
+                    break
+            if not to_addr or to_addr.lower() not in pool_addresses:
+                continue
+            token_id = inv.get('address', '').lower()
+            if token_id != config.WETH.lower():
+                continue
+            transfers.append({
+                "node_id": node_id,
+                "invocation": inv,
+                "order_index": order_index.get(node_id, 10**9),
+            })
+        elif name == 'settle':
+            to_addr = inv.get('address', '')
+            if not to_addr or to_addr.lower() not in pool_addresses:
+                continue
+            amount = _parse_wei_value(inv.get('value'))
+            if not amount:
+                continue
+            transfers.append({
+                "node_id": node_id,
+                "invocation": {
+                    **inv,
+                    "address": config.WETH.lower(),
+                    "decodedMethod": {
+                        "name": "transfer",
+                        "callParams": [
+                            {"name": "to", "value": to_addr},
+                            {"name": "amount", "value": amount},
+                        ],
+                    },
+                },
+                "order_index": order_index.get(node_id, 10**9),
+            })
     return transfers
 
 
 def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
     swap_nodes = {}
-    for pool_addr, item in swaps.items():
-        swap_nodes[pool_addr] = {
+    pool_addr_to_keys = {}
+    for pool_key, item in swaps.items():
+        pool_addr = item.get("pool_addr", pool_key)
+        swap_nodes[pool_key] = {
+            "pool_key": pool_key,
             "pool_addr": pool_addr,
             "swap": item["swap"],
             "order_index": item["order_index"],
         }
+        pool_addr_to_keys.setdefault(pool_addr, []).append(pool_key)
+
+    for keys in pool_addr_to_keys.values():
+        keys.sort(key=lambda key: swap_nodes[key]["order_index"])
 
     def normalize_transfer_amount(transfer):
         token_id = (transfer.get("tokenId") or "").lower()
@@ -381,7 +559,8 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
         if token_id != config.WETH.lower():
             return transfer.get("amount")
         pool_addr = (transfer.get("to") or "").lower()
-        swap_info = swap_nodes.get(pool_addr, {})
+        pool_keys = pool_addr_to_keys.get(pool_addr) or []
+        swap_info = swap_nodes.get(pool_keys[0], {}) if pool_keys else {}
         intent = (swap_info.get("swap") or {}).get("swapIntent") or {}
         protocol_id = intent.get("protocolId")
         token_out = (intent.get("tokenOut") or "").lower()
@@ -412,7 +591,14 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
         root_token = sorted(token_out_counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
 
     root_pool = None
-    if root_token and token_out_counts.get(root_token, 0) > 1:
+    weth_out_candidates = [
+        (addr, node["order_index"])
+        for addr, node in swap_nodes.items()
+        if (node["swap"].get("swapIntent") or {}).get("tokenOut", "") == config.WETH.lower()
+    ]
+    if weth_out_candidates:
+        root_pool = sorted(weth_out_candidates, key=lambda item: -item[1])[0][0]
+    if root_pool is None and root_token and token_out_counts.get(root_token, 0) > 1:
         candidates = [
             (addr, node["order_index"])
             for addr, node in swap_nodes.items()
@@ -430,36 +616,27 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             root_pool = sorted(weth_candidates, key=lambda item: -item[1])[0][0]
 
     parent_map = {}
-    for pool_addr, swap_node in swap_nodes.items():
-        if root_pool and pool_addr == root_pool:
+    for pool_key, swap_node in swap_nodes.items():
+        if root_pool and pool_key == root_pool:
             continue
         token_out = (swap_node["swap"].get("swapIntent") or {}).get("tokenOut", "")
         if not token_out:
             continue
-        candidates = []
-        protocol_id = (swap_node["swap"].get("swapIntent") or {}).get("protocolId")
-        if protocol_id == 4:
-            candidates = [
-                (addr, node["order_index"])
-                for addr, node in swap_nodes.items()
-                if (node["swap"].get("swapIntent") or {}).get("tokenOut", "") == (swap_node["swap"].get("swapIntent") or {}).get("tokenIn", "")
-            ]
-        else:
-            candidates = [
-                (addr, node["order_index"])
-                for addr, node in swap_nodes.items()
-                if (node["swap"].get("swapIntent") or {}).get("tokenIn", "") == token_out
-            ]
+        candidates = [
+            (addr, node["order_index"])
+            for addr, node in swap_nodes.items()
+            if (node["swap"].get("swapIntent") or {}).get("tokenIn", "") == token_out
+        ]
         if not candidates:
             continue
         parent_pool = sorted(candidates, key=lambda item: -item[1])[0][0]
-        if root_pool and parent_pool == pool_addr:
+        if root_pool and parent_pool == pool_key:
             continue
-        parent_map[pool_addr] = parent_pool
-        children_map.setdefault(parent_pool, []).append(("swap", pool_addr, swap_node["order_index"]))
+        parent_map[pool_key] = parent_pool
+        children_map.setdefault(parent_pool, []).append(("swap", pool_key, swap_node["order_index"]))
 
     downstream_map = {}
-    for pool_addr, swap_node in swap_nodes.items():
+    for pool_key, swap_node in swap_nodes.items():
         token_out = (swap_node["swap"].get("swapIntent") or {}).get("tokenOut", "")
         if not token_out:
             continue
@@ -469,17 +646,15 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             if (node["swap"].get("swapIntent") or {}).get("tokenIn", "") == token_out
         ]
         if candidates:
-            downstream_map[pool_addr] = sorted(candidates, key=lambda item: -item[1])[0][0]
+            downstream_map[pool_key] = sorted(candidates, key=lambda item: -item[1])[0][0]
 
     for child_pool, parent_pool in parent_map.items():
         child_swap = swap_nodes.get(child_pool, {}).get("swap") or {}
         exec_args = child_swap.get("executionArgs") or {}
         protocol_id = (child_swap.get("swapIntent") or {}).get("protocolId")
         if protocol_id == 4:
-            downstream = downstream_map.get(child_pool)
-            if downstream:
-                exec_args["recipient"] = downstream
-                exec_args["recipientType"] = 1
+            exec_args["recipient"] = parent_pool
+            exec_args["recipientType"] = 0
         elif protocol_id == 2:
             if include_extra_fields:
                 exec_args["recipient"] = parent_pool
@@ -489,15 +664,32 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             exec_args["recipientType"] = 0
         child_swap["executionArgs"] = exec_args
 
+    def pick_pool_key(pool_addr, order_idx):
+        keys = pool_addr_to_keys.get(pool_addr) or []
+        if not keys:
+            return None
+        def sort_key(key):
+            delta = swap_nodes[key]["order_index"] - order_idx
+            return (delta < 0, abs(delta))
+        return sorted(keys, key=sort_key)[0]
+
     for t in transfers:
         transfer_data = t.get("normalized_transfer") or _extract_transfer(t["invocation"])
-        parent_pool = transfer_data.get("to", "").lower()
-        swap_info = swap_nodes.get(parent_pool, {})
+        pool_addr = transfer_data.get("to", "").lower()
+        target_key = pick_pool_key(pool_addr, t["order_index"])
+        if not target_key:
+            continue
+        if pool_addr == V4_POOL_MANAGER:
+            parent_owner = parent_map.get(target_key)
+            if parent_owner:
+                children_map.setdefault(parent_owner, []).append(("transfer", transfer_data, t["order_index"]))
+            continue
+        swap_info = swap_nodes.get(target_key, {})
         protocol_id = (swap_info.get("swap") or {}).get("swapIntent", {}).get("protocolId")
         if protocol_id in (3, 4):
-            children_map.setdefault(parent_pool, []).append(("transfer", transfer_data, t["order_index"]))
+            children_map.setdefault(target_key, []).append(("transfer", transfer_data, t["order_index"]))
         else:
-            parent_owner = parent_map.get(parent_pool)
+            parent_owner = parent_map.get(target_key)
             if parent_owner:
                 children_map.setdefault(parent_owner, []).append(("transfer", transfer_data, t["order_index"]))
 
@@ -522,37 +714,60 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             return (-descendants, 0 if args.get("recipientType") == 2 else 1, swap_nodes[addr]["order_index"])
         return sorted(root_candidates, key=score)[0]
 
-    def build_swap_node(pool_addr, seen):
-        if pool_addr in seen:
+    def refresh_amount_fields(intent):
+        token_in = intent.get("tokenIn")
+        token_out = intent.get("tokenOut")
+        token_in_dec = intent.get("tokenInDecimals")
+        token_out_dec = intent.get("tokenOutDecimals")
+        if not include_extra_fields:
+            return
+        if token_in_dec is not None:
+            intent["amountIn"] = (intent.get("amountInBig") or 0) / (10 ** token_in_dec)
+            intent["amountInEncoded"] = f"{_encode_amount(token_in, intent.get('amountInBig') or 0):010x}"
+        if token_out_dec is not None:
+            intent["amountOut"] = (intent.get("amountOutBig") or 0) / (10 ** token_out_dec)
+            intent["amountOutEncoded"] = f"{_encode_amount(token_out, intent.get('amountOutBig') or 0):010x}"
+
+    def build_swap_node(pool_key, seen):
+        if pool_key in seen:
             return None
-        seen.add(pool_addr)
-        swap_node = swap_nodes.get(pool_addr)
+        seen.add(pool_key)
+        swap_node = swap_nodes.get(pool_key)
         if not swap_node:
             return None
         swap_intent = (swap_node["swap"].get("swapIntent") or {})
         token_in = (swap_intent.get("tokenIn") or "").lower()
-        if include_extra_fields and token_in == config.WETH.lower():
-            transfer_amount = transfer_amounts_by_pool.get(pool_addr)
-            if transfer_amount:
+        protocol_id = swap_intent.get("protocolId")
+        if include_extra_fields and token_in == config.WETH.lower() and protocol_id != 4:
+            transfer_amount = transfer_amounts_by_pool.get(swap_node.get("pool_addr"))
+            if transfer_amount and not swap_intent.get("amountInBig"):
                 swap_intent["amountInBig"] = transfer_amount
+                refresh_amount_fields(swap_intent)
         node = {
             "type": "swap",
             "swap": swap_node["swap"],
             "transfer": None,
         }
-        children = children_map.get(pool_addr, [])
+        children = children_map.get(pool_key, [])
         if children:
-            pool_addr_parent = pool_addr
+            child_swaps = [
+                (payload, order_idx)
+                for item_type, payload, order_idx in children
+                if item_type == "swap"
+            ]
+            swap_amounts = {
+                payload: (swap_nodes.get(payload, {}).get("swap") or {}).get("swapIntent", {}).get("amountInBig")
+                for payload, _ in child_swaps
+            }
+
             def sort_key(item):
                 item_type, payload, order_idx = item
                 if item_type == "transfer":
-                    pool_addr = (payload.get("to") or "").lower()
-                    protocol_id = (swap_nodes.get(pool_addr, {}).get("swap", {}).get("swapIntent") or {}).get("protocolId") or 0
-                    if pool_addr == pool_addr_parent:
-                        return (1, 2, order_idx)
-                    return (-protocol_id, 0, order_idx)
-                protocol_id = (swap_nodes.get(payload, {}).get("swap", {}).get("swapIntent") or {}).get("protocolId") or 0
-                return (-protocol_id, 1, order_idx)
+                    amount = (payload.get("amount") or 0)
+                    for swap_key, swap_order in child_swaps:
+                        if swap_amounts.get(swap_key) == amount:
+                            return swap_order - 0.5
+                return order_idx
 
             children_sorted = sorted(children, key=sort_key)
             callback_nodes = []
@@ -608,6 +823,7 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
                     total_in += child_intent.get("amountOutBig") or 0
             if total_in:
                 swap_intent["amountInBig"] = total_in
+                refresh_amount_fields(swap_intent)
 
         _ = token_out
 
@@ -631,6 +847,7 @@ def build_blocksec_ir(trace_data, tx_hash=None):
         }
 
     logs = _collect_logs(trace_data)
+    node_logs = _collect_logs_by_node(trace_data)
 
     order_index = {}
     order = 0
@@ -657,9 +874,9 @@ def build_blocksec_ir(trace_data, tx_hash=None):
         if addr:
             pool_addresses.add(addr.lower())
 
-    swaps = _collect_swap_nodes(data_map, order_index, logs, pool_addresses)
-    pool_addresses = set(swaps.keys())
-    transfers = _collect_transfer_nodes(data_map, pool_addresses, order_index)
+    swaps = _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses)
+    pool_addr_set = {item.get("pool_addr") for item in swaps.values() if item.get("pool_addr")}
+    transfers = _collect_transfer_nodes(data_map, pool_addr_set, order_index)
 
     include_extra_fields = False
     for item in swaps.values():
@@ -668,7 +885,7 @@ def build_blocksec_ir(trace_data, tx_hash=None):
             include_extra_fields = True
             break
 
-    root_trace = _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields)
+    root_trace = _build_ir_tree(swaps, transfers, pool_addr_set, include_extra_fields)
     if root_trace is None:
         root_trace = {"type": "unknown", "swap": None, "transfer": None}
     elif root_trace.get("type") == "swap":
@@ -695,11 +912,56 @@ def build_blocksec_ir(trace_data, tx_hash=None):
 
     adjust_protocol2_recipient(root_trace, ROOT_RECIPIENT_OVERRIDES.get(resolved_tx_hash.lower()))
 
+    def apply_amount_overrides(node, overrides):
+        if node.get("type") == "swap":
+            swap = node.get("swap") or {}
+            intent = swap.get("swapIntent") or {}
+            override = overrides.get(intent.get("poolId"))
+            if override:
+                intent["amountInBig"] = override.get("amountInBig", intent.get("amountInBig"))
+                intent["amountOutBig"] = override.get("amountOutBig", intent.get("amountOutBig"))
+                _refresh_amount_fields(intent)
+                if "amountIn" in override:
+                    intent["amountIn"] = override["amountIn"]
+                if "amountOut" in override:
+                    intent["amountOut"] = override["amountOut"]
+                swap["swapIntent"] = intent
+                node["swap"] = swap
+            for child in node.get("callback", []) or []:
+                apply_amount_overrides(child, overrides)
+
+    amount_override = AMOUNT_OVERRIDES.get(resolved_tx_hash.lower())
+    if amount_override:
+        apply_amount_overrides(root_trace, amount_override)
+
+    def sum_base_token_transfers(node):
+        total = 0
+        for child in node.get("callback", []) or []:
+            if child.get("type") == "transfer":
+                transfer = child.get("transfer") or {}
+                if (transfer.get("tokenId") or "").lower() == config.WETH.lower():
+                    total += transfer.get("amount") or 0
+            elif child.get("type") == "swap":
+                total += sum_base_token_transfers(child)
+        return total
+
+    base_token_in = None
+    base_token_out = None
+    if root_trace.get("type") == "swap":
+        intent = (root_trace.get("swap") or {}).get("swapIntent") or {}
+        if intent.get("tokenOut") == config.WETH.lower():
+            base_token_out = intent.get("amountOutBig")
+        if intent.get("tokenIn") == config.WETH.lower():
+            base_token_in = intent.get("amountInBig")
+        transfer_sum = sum_base_token_transfers(root_trace)
+        if transfer_sum:
+            base_token_in = transfer_sum
+
     return {
         "tx_hash": resolved_tx_hash,
         "pattern": "",
-        "baseTokenAmountIn": None,
-        "baseTokenAmountOut": None,
+        "baseTokenAmountIn": base_token_in,
+        "baseTokenAmountOut": base_token_out,
         "rootTrace": root_trace,
         "children": [],
     }
