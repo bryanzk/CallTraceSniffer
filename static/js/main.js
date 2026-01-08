@@ -56,22 +56,51 @@ function switchTab(tab) {
 
 // 单个交易分析
 async function analyzeSingle() {
-    const rawInput = document.getElementById('tx-hash').value.trim();
+    const mode = getSingleMode();
+    const rawInput = getSingleInputValue(mode).trim();
+
+    if (!rawInput) {
+        showError(mode === 'ir' ? '请输入IR JSON' : '请输入交易哈希');
+        return;
+    }
+
+    if (mode === 'ir') {
+        let parsedObj;
+        try {
+            parsedObj = JSON.parse(rawInput);
+        } catch (error) {
+            showError('IR JSON解析失败');
+            return;
+        }
+        const normalized = normalizeIrInput(parsedObj);
+        if (!normalized) {
+            showError('无法识别IR结构');
+            return;
+        }
+        showLoading();
+        hideError();
+        const built = await buildCompareResultFromIr('S', normalized);
+        hideLoading();
+        if (!built.success) {
+            showError(built.error || 'IR解析失败');
+            return;
+        }
+        singleResultData = built;
+        displaySingleResult(built);
+        return;
+    }
+
     const txHash = normalizeTxInput(rawInput);
     const parsed = parseBlocksecInput(rawInput);
 
-    if (!rawInput) {
-        showError('请输入交易哈希');
-        return;
-    }
     if (!txHash) {
         showError('无效的交易哈希或URL');
         return;
     }
-    
+
     showLoading();
     hideError();
-    
+
     try {
         const response = await fetch('/api/analyze', {
             method: 'POST',
@@ -80,11 +109,11 @@ async function analyzeSingle() {
             },
             body: JSON.stringify({ tx_hash: txHash })
         });
-        
+
         const data = await response.json();
-        
+
         hideLoading();
-        
+
         if (data.success) {
             data.source_url = parsed.simulationUrl || buildBlocksecTxUrl(txHash);
             singleResultData = data;
@@ -111,13 +140,19 @@ async function analyzeCompare(side) {
 
     try {
         if (mode === 'ir') {
-            let irObj;
+            let parsedObj;
             try {
-                irObj = JSON.parse(rawInput);
+                parsedObj = JSON.parse(rawInput);
             } catch (error) {
                 showCompareStatus(side, 'IR JSON解析失败', 'error');
                 return;
             }
+            const normalized = normalizeIrInput(parsedObj);
+            if (!normalized) {
+                showCompareStatus(side, '无法识别IR结构', 'error');
+                return;
+            }
+            const irObj = normalized;
             const built = await buildCompareResultFromIr(side, irObj);
             if (!built.success) {
                 showCompareStatus(side, built.error || 'IR解析失败', 'error');
@@ -190,6 +225,37 @@ async function analyzeCompare(side) {
     }
 }
 
+function normalizeIrInput(input) {
+    if (!input || typeof input !== 'object') {
+        return null;
+    }
+    if (input.raw_ir && typeof input.raw_ir === 'object') {
+        const raw = input.raw_ir;
+        if (input.tx_hash && !raw.tx_hash) {
+            raw.tx_hash = input.tx_hash;
+        }
+        return raw;
+    }
+    if (input.ir_v1 && typeof input.ir_v1 === 'object') {
+        return input.ir_v1;
+    }
+    if (input.rootTrace) {
+        return input;
+    }
+    const keys = Object.keys(input);
+    if (keys.length === 1) {
+        const key = keys[0];
+        if (key.startsWith('0x') && key.length === 66 && typeof input[key] === 'object') {
+            const wrapped = input[key];
+            if (!wrapped.tx_hash) {
+                wrapped.tx_hash = key;
+            }
+            return wrapped;
+        }
+    }
+    return null;
+}
+
 function swapCompareInputs() {
     const urlA = document.getElementById('compare-url-a');
     const urlB = document.getElementById('compare-url-b');
@@ -209,6 +275,20 @@ function swapCompareInputs() {
         irA.value = irB.value;
         irB.value = tmpIr;
     }
+}
+
+function getSingleMode() {
+    const selected = document.querySelector('input[name="single-mode"]:checked');
+    return selected ? selected.value : 'url';
+}
+
+function getSingleInputValue(mode) {
+    if (mode === 'ir') {
+        const el = document.getElementById('single-ir-input');
+        return el ? el.value : '';
+    }
+    const el = document.getElementById('tx-hash');
+    return el ? el.value : '';
 }
 
 function showCompareStatus(side, message, type) {
@@ -401,7 +481,8 @@ function displaySingleResult(data) {
         </div>
     `;
     
-    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
+    const displayIr = stripTxHash(data.ir_v1);
+    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
     singleMermaidText = data.mermaid_dag || null;
     renderMermaid('single-mermaid', data.mermaid_dag);
     renderSourceLink('single-source-url', 'BlockSec URL:', data.source_url);
@@ -720,7 +801,8 @@ function displaySimulationResult(data) {
     `;
 
     outputDiv.style.display = 'none';
-    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
+    const displayIr = stripTxHash(data.ir_v1);
+    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
     irDiv.style.display = 'block';
     renderSourceLink('simulation-source-url', 'BlockSec URL:', data.simulation_url || data.source_url);
 
@@ -1122,10 +1204,11 @@ function downloadResult(type) {
     let data;
     
     if (type === 'single' && singleResultData) {
+        const stripped = stripTxHash(singleResultData.ir_v1);
         data = {
             tx_hash: singleResultData.tx_hash,
-            ir_v1: singleResultData.ir_v1,
-            ir_v1_json: singleResultData.ir_v1_json,
+            ir_v1: stripped,
+            ir_v1_json: singleResultData.ir_v1_json ? stripTxHashJson(singleResultData.ir_v1_json) : JSON.stringify(stripped, null, 2),
             output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
@@ -1261,6 +1344,26 @@ function formatJson(data) {
     }
 }
 
+function stripTxHash(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return data;
+    }
+    if (!Object.prototype.hasOwnProperty.call(data, 'tx_hash')) {
+        return data;
+    }
+    const { tx_hash, ...rest } = data;
+    return rest;
+}
+
+function stripTxHashJson(text) {
+    try {
+        const parsed = JSON.parse(text);
+        return formatJson(stripTxHash(parsed));
+    } catch (error) {
+        return text;
+    }
+}
+
 function prioritizeTxHash(data) {
     if (!data) {
         return data;
@@ -1284,11 +1387,23 @@ function prioritizeTxHash(data) {
 }
 
 // 支持回车键提交
-document.getElementById('tx-hash').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        analyzeSingle();
-    }
-});
+const singleUrl = document.getElementById('tx-hash');
+const singleIr = document.getElementById('single-ir-input');
+if (singleUrl) {
+    singleUrl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            analyzeSingle();
+        }
+    });
+}
+if (singleIr) {
+    singleIr.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            analyzeSingle();
+        }
+    });
+}
 
 document.getElementById('simulation-url').addEventListener('keypress', function(e) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -1337,6 +1452,19 @@ document.querySelectorAll('input[name="compare-mode-a"]').forEach((radio) => {
 });
 document.querySelectorAll('input[name="compare-mode-b"]').forEach((radio) => {
     radio.addEventListener('change', () => toggleCompareMode('B'));
+});
+
+document.querySelectorAll('input[name="single-mode"]').forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+        const mode = event.target.value;
+        const urlBlock = document.getElementById('single-input-url');
+        const irBlock = document.getElementById('single-input-ir');
+        if (!urlBlock || !irBlock) {
+            return;
+        }
+        urlBlock.style.display = mode === 'url' ? 'flex' : 'none';
+        irBlock.style.display = mode === 'ir' ? 'block' : 'none';
+    });
 });
 
 toggleCompareMode('A');

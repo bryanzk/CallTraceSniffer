@@ -24,11 +24,19 @@
         <div id="single-tab" class="tab-content active">
             <div class="input-section">
                 <label for="tx-hash">交易哈希 (Tx Hash):</label>
-                <div class="input-group">
-                    <input type="text" id="tx-hash" placeholder="0x..." class="tx-input">
+                <div class="compare-mode" style="margin-top: 8px;">
+                    <label class="compare-toggle"><input type="radio" name="single-mode" value="url" checked> URL/哈希</label>
+                    <label class="compare-toggle"><input type="radio" name="single-mode" value="ir"> IR JSON</label>
+                </div>
+                <div id="single-input-url" class="input-group">
+                    <input type="text" id="tx-hash" placeholder="0x... 或 BlockSec URL（含 simulation）" class="tx-input">
                     <button onclick="analyzeSingle()" class="btn btn-primary">分析</button>
                 </div>
-                <small class="hint">支持交易哈希或BlockSec交易URL（0x开头，66个字符）</small>
+                <div id="single-input-ir" class="compare-input-block" style="display: none;">
+                    <textarea id="single-ir-input" rows="6" placeholder="粘贴 IR JSON 或 raw_ir" class="tx-input"></textarea>
+                    <button onclick="analyzeSingle()" class="btn btn-primary">分析</button>
+                </div>
+                <small class="hint">支持交易哈希、BlockSec交易URL（含模拟），或直接粘贴 IR JSON / raw_ir</small>
             </div>
 
             <div id="single-result" class="result-section" style="display: none;">
@@ -67,7 +75,7 @@
                             </div>
                         </div>
                         <div id="compare-input-ir-a" class="compare-input-block" style="display: none;">
-                            <textarea id="compare-ir-a-input" rows="6" placeholder="粘贴 IR JSON" class="tx-input"></textarea>
+                            <textarea id="compare-ir-a-input" rows="6" placeholder="粘贴 IR JSON 或 raw_ir" class="tx-input"></textarea>
                             <button onclick="analyzeCompare('A')" class="btn btn-primary">分析A</button>
                         </div>
                         <div id="compare-status-a" class="compare-status"></div>
@@ -88,13 +96,13 @@
                             </div>
                         </div>
                         <div id="compare-input-ir-b" class="compare-input-block" style="display: none;">
-                            <textarea id="compare-ir-b-input" rows="6" placeholder="粘贴 IR JSON" class="tx-input"></textarea>
+                            <textarea id="compare-ir-b-input" rows="6" placeholder="粘贴 IR JSON 或 raw_ir" class="tx-input"></textarea>
                             <button onclick="analyzeCompare('B')" class="btn btn-primary">分析B</button>
                         </div>
                         <div id="compare-status-b" class="compare-status"></div>
                     </div>
                 </div>
-                <small class="hint">对比支持交易哈希、BlockSec URL（含模拟），或直接粘贴 IR JSON</small>
+                <small class="hint">对比支持交易哈希、BlockSec URL（含模拟），或直接粘贴 IR JSON / raw_ir</small>
             </div>
 
             <div id="compare-result" class="result-section" style="display: none;">
