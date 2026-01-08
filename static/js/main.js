@@ -51,15 +51,7 @@ async function analyzeSingle() {
     hideError();
     
     try {
-        const response = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ tx_hash: txHash })
-        });
-        
-        const data = await response.json();
+        const data = await fetchAnalyzeWithRetry('/api/analyze', { tx_hash: txHash }, 'single');
         
         hideLoading();
         
@@ -112,14 +104,11 @@ async function analyzeCompare(side) {
 
         const parsed = parseBlocksecInput(rawInput);
         if (parsed.isSimulation) {
-            const response = await fetch('/api/analyze-simulation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ simulation_url: parsed.simulationUrl })
-            });
-            const data = await response.json();
+            const data = await fetchAnalyzeWithRetry(
+                '/api/analyze-simulation',
+                { simulation_url: parsed.simulationUrl },
+                side
+            );
             if (data.success) {
                 if (side === 'A') {
                     compareResultA = data;
@@ -139,15 +128,11 @@ async function analyzeCompare(side) {
             return;
         }
 
-        const response = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ tx_hash: parsed.txHash })
-        });
-
-        const data = await response.json();
+        const data = await fetchAnalyzeWithRetry(
+            '/api/analyze',
+            { tx_hash: parsed.txHash },
+            side
+        );
 
         if (data.success) {
             if (side === 'A') {
@@ -275,6 +260,51 @@ function parseBlocksecInput(input) {
         }
     }
     return result;
+}
+
+function isRetryableTraceError(errorText) {
+    if (!errorText) {
+        return false;
+    }
+    return errorText.includes('未找到trace数据') || errorText.includes('未找到simulation trace数据');
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function jitterDelay(baseMs, jitterMs = 400) {
+    return baseMs + Math.floor(Math.random() * (jitterMs + 1));
+}
+
+async function fetchAnalyzeWithRetry(url, payload, side, maxRetries = 3) {
+    const request = async () => {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        return response.json();
+    };
+
+    let data = await request();
+    let attempt = 0;
+    while (!data.success && isRetryableTraceError(data.error) && attempt < maxRetries) {
+        attempt += 1;
+        if (side === 'single') {
+            showError(`未找到trace数据，自动重试 (${attempt}/${maxRetries})...`);
+        } else {
+            showCompareStatus(side, `未找到trace数据，自动重试 (${attempt}/${maxRetries})...`, 'loading');
+        }
+        await sleep(jitterDelay(800, 400));
+        data = await request();
+    }
+    if (!data.success && isRetryableTraceError(data.error) && attempt > 0) {
+        data.error = `${data.error}（已重试${attempt}次）`;
+    }
+    return data;
 }
 
 function countIrNodes(node) {
