@@ -519,8 +519,12 @@ function displayCompareResult() {
     const irA = document.getElementById('compare-ir-a');
     const irB = document.getElementById('compare-ir-b');
     if (hasA && hasB) {
-        const irTextA = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
-        const irTextB = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
+        const irTextA = compareResultA.ir_v1_json
+            ? stripTxHashJson(compareResultA.ir_v1_json)
+            : formatJson(stripTxHash(compareResultA.ir_v1));
+        const irTextB = compareResultB.ir_v1_json
+            ? stripTxHashJson(compareResultB.ir_v1_json)
+            : formatJson(stripTxHash(compareResultB.ir_v1));
         const diffHtml = buildDiffHtml(irTextA, irTextB);
         irA.innerHTML = diffHtml.left;
         irB.innerHTML = diffHtml.right;
@@ -530,7 +534,9 @@ function displayCompareResult() {
         renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
     } else {
         if (hasA) {
-            irA.textContent = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
+            irA.textContent = compareResultA.ir_v1_json
+                ? stripTxHashJson(compareResultA.ir_v1_json)
+                : formatJson(stripTxHash(compareResultA.ir_v1));
             setComparePlaceholder('compare-mermaid-a', compareResultA.mermaid_dag, '等待 DAG A');
             renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
         } else {
@@ -539,7 +545,9 @@ function displayCompareResult() {
             renderSourceLink('compare-source-a', '', '');
         }
         if (hasB) {
-            irB.textContent = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
+            irB.textContent = compareResultB.ir_v1_json
+                ? stripTxHashJson(compareResultB.ir_v1_json)
+                : formatJson(stripTxHash(compareResultB.ir_v1));
             setComparePlaceholder('compare-mermaid-b', compareResultB.mermaid_dag, '等待 DAG B');
             renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
         } else {
@@ -852,10 +860,11 @@ function downloadCompareResult(side) {
         showError(`没有可下载的结果 (${side})`);
         return;
     }
+    const stripped = stripTxHash(data.ir_v1);
     requestDownload({
         tx_hash: data.tx_hash,
-        ir_v1: data.ir_v1,
-        ir_v1_json: data.ir_v1_json,
+        ir_v1: stripped,
+        ir_v1_json: data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : JSON.stringify(stripped, null, 2),
         output_type: 'ir_v1'
     });
 }
