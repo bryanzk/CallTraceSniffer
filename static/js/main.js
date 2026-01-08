@@ -872,6 +872,17 @@ function closeDagViewer() {
     }
 }
 
+function downloadIrJsonExample() {
+    const url = '/static/examples/ir_example.json';
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ir_example.json';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
 function displaySimulationBatchResult(data) {
     const resultSection = document.getElementById('simulation-result');
     const statsDiv = document.getElementById('simulation-stats');
