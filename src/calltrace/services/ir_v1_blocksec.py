@@ -374,21 +374,30 @@ def _extract_swap(invocation, logs, pool_addresses):
         amount_in = 0
         amount_out = 0
 
-    swap_intent = {
-        "poolId": _canonical_pool_id(pool_id),
-        "protocolId": protocol_id,
-        "tokenIn": token_in,
-        "tokenOut": token_out,
-        "amountInBig": amount_in,
-        "amountOutBig": amount_out,
-    }
     if include_decimals:
-        swap_intent["tokenInDecimals"] = token_in_dec
-        swap_intent["tokenOutDecimals"] = token_out_dec
-        swap_intent["amountIn"] = (amount_in or 0) / (10 ** token_in_dec)
-        swap_intent["amountOut"] = (amount_out or 0) / (10 ** token_out_dec)
-        swap_intent["amountInEncoded"] = f"{_encode_amount(token_in, amount_in):010x}"
-        swap_intent["amountOutEncoded"] = f"{_encode_amount(token_out, amount_out):010x}"
+        swap_intent = {
+            "poolId": _canonical_pool_id(pool_id),
+            "protocolId": protocol_id,
+            "tokenIn": token_in,
+            "tokenInDecimals": token_in_dec,
+            "tokenOut": token_out,
+            "tokenOutDecimals": token_out_dec,
+            "amountIn": (amount_in or 0) / (10 ** token_in_dec),
+            "amountInBig": amount_in,
+            "amountInEncoded": f"{_encode_amount(token_in, amount_in):010x}",
+            "amountOut": (amount_out or 0) / (10 ** token_out_dec),
+            "amountOutBig": amount_out,
+            "amountOutEncoded": f"{_encode_amount(token_out, amount_out):010x}",
+        }
+    else:
+        swap_intent = {
+            "poolId": _canonical_pool_id(pool_id),
+            "protocolId": protocol_id,
+            "tokenIn": token_in,
+            "tokenOut": token_out,
+            "amountInBig": amount_in,
+            "amountOutBig": amount_out,
+        }
 
     recipient_type = 2
     if recipient and recipient.lower() in pool_addresses:
@@ -748,6 +757,8 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             "swap": swap_node["swap"],
             "transfer": None,
         }
+        if include_extra_fields:
+            node["wethWrapOrUnwarp"] = None
         children = children_map.get(pool_key, [])
         if children:
             child_swaps = [
@@ -789,7 +800,6 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
             if callback_nodes:
                 node["callback"] = callback_nodes
         if include_extra_fields:
-            node["wethWrapOrUnwarp"] = None
             node["encoded"] = ""
         return node
 

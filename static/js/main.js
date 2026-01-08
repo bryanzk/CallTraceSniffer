@@ -8,6 +8,27 @@ let mermaidInitialized = false;
 let singleMermaidText = null;
 let isSyncingScroll = false;
 
+function buildBlocksecTxUrl(txHash) {
+    if (!txHash) {
+        return '';
+    }
+    return `https://app.blocksec.com/explorer/tx/eth/${txHash}`;
+}
+
+function renderSourceLink(containerId, label, url) {
+    const el = document.getElementById(containerId);
+    if (!el) {
+        return;
+    }
+    if (!url) {
+        el.textContent = '';
+        return;
+    }
+    const safeUrl = escapeHtml(url);
+    const safeLabel = escapeHtml(label);
+    el.innerHTML = `${safeLabel} <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
+}
+
 function switchTab(tab) {
     currentTab = tab;
     
@@ -37,6 +58,7 @@ function switchTab(tab) {
 async function analyzeSingle() {
     const rawInput = document.getElementById('tx-hash').value.trim();
     const txHash = normalizeTxInput(rawInput);
+    const parsed = parseBlocksecInput(rawInput);
 
     if (!rawInput) {
         showError('请输入交易哈希');
@@ -64,6 +86,7 @@ async function analyzeSingle() {
         hideLoading();
         
         if (data.success) {
+            data.source_url = parsed.simulationUrl || buildBlocksecTxUrl(txHash);
             singleResultData = data;
             displaySingleResult(data);
         } else {
@@ -121,6 +144,7 @@ async function analyzeCompare(side) {
             });
             const data = await response.json();
             if (data.success) {
+                data.source_url = parsed.simulationUrl;
                 if (side === 'A') {
                     compareResultA = data;
                 } else {
@@ -150,6 +174,7 @@ async function analyzeCompare(side) {
         const data = await response.json();
 
         if (data.success) {
+            data.source_url = buildBlocksecTxUrl(parsed.txHash);
             if (side === 'A') {
                 compareResultA = data;
             } else {
@@ -379,6 +404,7 @@ function displaySingleResult(data) {
     irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
     singleMermaidText = data.mermaid_dag || null;
     renderMermaid('single-mermaid', data.mermaid_dag);
+    renderSourceLink('single-source-url', 'BlockSec URL:', data.source_url);
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -386,28 +412,80 @@ function displaySingleResult(data) {
 
 function displayCompareResult() {
     const resultSection = document.getElementById('compare-result');
-    if (!resultSection || !compareResultA || !compareResultB) {
+    if (!resultSection) {
+        return;
+    }
+    const hasA = !!compareResultA;
+    const hasB = !!compareResultB;
+    if (!hasA && !hasB) {
         return;
     }
 
     const summary = document.getElementById('compare-summary');
-    summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+    if (hasA && hasB) {
+        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+    } else {
+        const done = hasA ? 'A' : 'B';
+        const pending = hasA ? 'B' : 'A';
+        summary.innerHTML = `
+            <div class="compare-card">
+                <h4>对比准备</h4>
+                <div class="compare-values">已完成 ${done}，请继续分析 ${pending} 以生成差异对比。</div>
+            </div>
+        `;
+    }
 
     const irA = document.getElementById('compare-ir-a');
     const irB = document.getElementById('compare-ir-b');
-    const irTextA = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
-    const irTextB = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
-    const diffHtml = buildDiffHtml(irTextA, irTextB);
-    irA.innerHTML = diffHtml.left;
-    irB.innerHTML = diffHtml.right;
-
-    renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
-    renderMermaid('compare-mermaid-b', compareResultB.mermaid_dag);
+    if (hasA && hasB) {
+        const irTextA = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
+        const irTextB = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
+        const diffHtml = buildDiffHtml(irTextA, irTextB);
+        irA.innerHTML = diffHtml.left;
+        irB.innerHTML = diffHtml.right;
+        renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
+        renderMermaid('compare-mermaid-b', compareResultB.mermaid_dag);
+        renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
+        renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
+    } else {
+        if (hasA) {
+            irA.textContent = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
+            setComparePlaceholder('compare-mermaid-a', compareResultA.mermaid_dag, '等待 DAG A');
+            renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
+        } else {
+            irA.textContent = '等待 Tx A';
+            setComparePlaceholder('compare-mermaid-a', null, '等待 Tx A');
+            renderSourceLink('compare-source-a', '', '');
+        }
+        if (hasB) {
+            irB.textContent = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
+            setComparePlaceholder('compare-mermaid-b', compareResultB.mermaid_dag, '等待 DAG B');
+            renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
+        } else {
+            irB.textContent = '等待 Tx B';
+            setComparePlaceholder('compare-mermaid-b', null, '等待 Tx B');
+            renderSourceLink('compare-source-b', '', '');
+        }
+    }
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 
     setupCompareSync();
+}
+
+function setComparePlaceholder(containerId, mermaidText, message) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+    if (!mermaidText) {
+        container.textContent = message;
+        container.style.display = 'block';
+        container.dataset.mermaidSvg = '';
+        return;
+    }
+    renderMermaid(containerId, mermaidText);
 }
 
 function buildCompareSummary(a, b) {
@@ -573,6 +651,7 @@ async function analyzeSimulation() {
             hideLoading();
 
             if (data.success) {
+                data.source_url = simUrl;
                 simulationResultData = data;
                 displaySimulationResult(data);
             } else {
@@ -643,6 +722,7 @@ function displaySimulationResult(data) {
     outputDiv.style.display = 'none';
     irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
     irDiv.style.display = 'block';
+    renderSourceLink('simulation-source-url', 'BlockSec URL:', data.simulation_url || data.source_url);
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
