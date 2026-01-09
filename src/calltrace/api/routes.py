@@ -95,15 +95,22 @@ def _order_ir_dict(data):
 
 def _order_ir_payload(payload, tx_hash):
     if isinstance(payload, dict):
-        if payload.get('tx_hash') is None:
-            payload['tx_hash'] = tx_hash
-        return _order_ir_dict(payload)
+        payload_data = payload
+        if payload.get('tx_hash') is None and tx_hash:
+            payload_data = dict(payload)
+            payload_data['tx_hash'] = tx_hash
+        return _order_ir_dict(payload_data)
     if isinstance(payload, list):
         return [_order_ir_payload(item, tx_hash) if isinstance(item, dict) else item for item in payload]
     return payload
 
 
 def _serialize_ir_payload(payload, tx_hash):
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            return payload
     ordered = _order_ir_payload(payload, tx_hash)
     return json.dumps(ordered, ensure_ascii=True, indent=2)
 
@@ -228,12 +235,12 @@ def _compute_flow_counts(trace_data):
     return total, router_count, direct_count, virtual_count
 
 
-def process_tx_data(trace_data, tx_hash=None):
+def process_tx_data(trace_data, tx_hash=None, extra=None):
     """处理交易数据并生成分析结果"""
     if not trace_data:
         return None
     
-    ir_v1 = build_blocksec_ir(trace_data, tx_hash)
+    ir_v1 = build_blocksec_ir(trace_data, tx_hash, extra)
     ir_v1_ordered = _order_ir_payload(ir_v1, tx_hash)
     ir_v1_json = _serialize_ir_payload(ir_v1_ordered, tx_hash)
     swaps_count, _ = _count_ir_nodes(ir_v1_ordered.get('rootTrace'))
@@ -283,7 +290,7 @@ def register_routes(app, extracted_data_cache):
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
             
             # 处理数据
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
@@ -338,7 +345,7 @@ def register_routes(app, extracted_data_cache):
             if not trace_data:
                 return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
 
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
 
@@ -396,7 +403,7 @@ def register_routes(app, extracted_data_cache):
                 if result and result.get('success'):
                     trace_data = result.get('trace_data')
                     if trace_data:
-                        analysis = process_tx_data(trace_data, tx_hash)
+                        analysis = process_tx_data(trace_data, tx_hash, result)
                         if analysis:
                             results.append({
                                 'simulation_url': sim_url,
@@ -474,7 +481,7 @@ def register_routes(app, extracted_data_cache):
                     if result and result.get('success'):
                         trace_data = result.get('trace_data')
                         if trace_data:
-                            analysis = process_tx_data(trace_data, tx_hash)
+                            analysis = process_tx_data(trace_data, tx_hash, result)
                             if analysis:
                                 results.append({
                                     'tx_hash': tx_hash,
@@ -537,10 +544,7 @@ def register_routes(app, extracted_data_cache):
         if output is None:
             return jsonify({'success': False, 'error': '未找到分析结果'}), 404
         
-        if isinstance(output, str):
-            output_bytes = output.encode('utf-8')
-        else:
-            output_bytes = _serialize_ir_payload(output, tx_hash).encode('utf-8')
+        output_bytes = _serialize_ir_payload(output, tx_hash).encode('utf-8')
         filename = f"analysis_{tx_hash[:10]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         mimetype = 'application/json'
         output_file = io.BytesIO(output_bytes)
@@ -567,7 +571,7 @@ def register_routes(app, extracted_data_cache):
             analysis = extracted_data_cache[tx_hash]['analysis']
             ir_json = analysis.get('ir_v1_json')
             if ir_json:
-                return app.response_class(ir_json, mimetype='application/json')
+                return app.response_class(_serialize_ir_payload(ir_json, tx_hash), mimetype='application/json')
             ir_obj = analysis.get('ir_v1')
             return app.response_class(_serialize_ir_payload(ir_obj, tx_hash), mimetype='application/json')
 
@@ -583,7 +587,7 @@ def register_routes(app, extracted_data_cache):
             if not trace_data:
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
 
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
 

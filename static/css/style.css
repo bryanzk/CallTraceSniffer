@@ -399,7 +399,21 @@ header h1 {
 }
 
 .diff-line.diff-changed {
-    background: #fff5f5;
+    background: #eef3f7;
+    border-left: 3px solid #6b88a3;
+    color: #2f3a45;
+}
+
+.diff-line.diff-added {
+    background: #e8f3ee;
+    border-left: 3px solid #4d7c5f;
+    color: #2f3a45;
+}
+
+.diff-line.diff-removed {
+    background: #f6f1e8;
+    border-left: 3px solid #9a7b4f;
+    color: #2f3a45;
 }
 
 .compare-status {

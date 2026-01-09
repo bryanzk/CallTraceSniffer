@@ -77,6 +77,41 @@ def test_serialize_ir_payload_orders_tx_hash_first():
     assert parsed["tx_hash"] == "0xabc"
 
 
+def test_serialize_ir_payload_orders_root_trace_keys():
+    payload = {
+        "children": [],
+        "rootTrace": {
+            "callback": [],
+            "transfer": None,
+            "swap": {},
+            "encoded": "0x",
+            "wethWrapOrUnwarp": None,
+            "type": "swap",
+        },
+        "baseTokenAmountOut": 1,
+        "pattern": "",
+        "baseTokenAmountIn": 2,
+    }
+    output = routes._serialize_ir_payload(payload, "0xabc")
+    parsed = json.loads(output)
+    assert list(parsed.keys()) == [
+        "tx_hash",
+        "pattern",
+        "baseTokenAmountIn",
+        "baseTokenAmountOut",
+        "rootTrace",
+        "children",
+    ]
+    assert list(parsed["rootTrace"].keys()) == [
+        "type",
+        "swap",
+        "transfer",
+        "wethWrapOrUnwarp",
+        "callback",
+        "encoded",
+    ]
+
+
 def test_count_ir_nodes_nested():
     root = {
         "type": "swap",

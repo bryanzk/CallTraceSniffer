@@ -100,3 +100,36 @@ class TestIntegration:
         result = process_tx_data(sample_trace_data)
         output = result['ir_v1_json']
         assert "\"tx_hash\"" in output
+
+    def test_complete_flow_with_extra_payloads(self):
+        """测试额外payload可被处理"""
+        pool = "0x1111111111111111111111111111111111111111"
+        token_in = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        token_out = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        trace_data = {
+            "tx_hash": "0xabc",
+            "dataMap": {
+                "1": {
+                    "invocation": {
+                        "address": pool,
+                        "decodedMethod": {"name": "swap", "callParams": []},
+                    }
+                }
+            },
+            "mainTrace": [{"id": 1, "children": []}],
+        }
+        extra = {
+            "token_info": [
+                {"address": token_in, "decimals": 6},
+                {"address": token_out, "decimals": 18},
+            ],
+            "fundflow": [
+                {"to": pool, "token": token_in, "amount": "1000"},
+                {"from": pool, "token": token_out, "amount": "0.5"},
+            ],
+            "basic_info": {"callData": "0xdeadbeef"},
+        }
+
+        result = process_tx_data(trace_data, trace_data["tx_hash"], extra)
+        assert result is not None
+        assert result["ir_v1"]["rootTrace"]["encoded"] == "0xdeadbeef"

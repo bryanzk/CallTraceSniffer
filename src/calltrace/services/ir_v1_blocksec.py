@@ -1,5 +1,6 @@
 """BlockSec -> IR V1 mapping (schema-first + rules-aligned)."""
 from calltrace.config import config
+from decimal import Decimal, InvalidOperation
 
 TOPIC_V3 = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67"
 TOPIC_V4 = "0x40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f"
@@ -189,6 +190,135 @@ def _collect_logs_by_node(trace_data):
     return node_logs
 
 
+def _build_token_decimals_map(token_info):
+    token_decimals = dict(TOKEN_DECIMALS)
+    if isinstance(token_info, list):
+        for entry in token_info:
+            if not isinstance(entry, dict):
+                continue
+            address = (entry.get("address") or "").lower()
+            decimals = entry.get("decimals")
+            if address and isinstance(decimals, int):
+                token_decimals[address] = decimals
+    return token_decimals
+
+
+def _parse_fundflow_amount(amount):
+    if amount is None:
+        return None
+    if isinstance(amount, (int, float)):
+        return Decimal(str(amount))
+    amount_str = str(amount).replace(",", "").strip()
+    if amount_str == "":
+        return None
+    try:
+        return Decimal(amount_str)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _fundflow_entry_to_big(entry, token_decimals):
+    token = (entry.get("token") or "").lower()
+    decimals = token_decimals.get(token)
+    if decimals is None:
+        return None
+    amount = _parse_fundflow_amount(entry.get("amount"))
+    if amount is None:
+        return None
+    return int(amount * (10 ** decimals))
+
+
+def _apply_fundflow_overrides(root_trace, fundflow, token_decimals):
+    if not root_trace or not isinstance(fundflow, list):
+        return
+
+    def pick_best(entries):
+        best = None
+        best_amount = None
+        for entry in entries:
+            amount_big = _fundflow_entry_to_big(entry, token_decimals)
+            if amount_big is None:
+                continue
+            if best_amount is None or amount_big > best_amount:
+                best = entry
+                best_amount = amount_big
+        return best, best_amount
+
+    def apply_to_node(node):
+        if node.get("type") == "swap":
+            intent = (node.get("swap") or {}).get("swapIntent") or {}
+            pool_addr = (intent.get("poolId") or "").split("|")[0].lower()
+            if pool_addr:
+                inflow = [e for e in fundflow if (e.get("to") or "").lower() == pool_addr]
+                outflow = [e for e in fundflow if (e.get("from") or "").lower() == pool_addr]
+                in_entry, in_amount = pick_best(inflow)
+                out_entry, out_amount = pick_best(outflow)
+
+                if (intent.get("tokenIn") in (None, "", "unknown") or not intent.get("amountInBig")) and in_entry:
+                    token_in = (in_entry.get("token") or "").lower()
+                    intent["tokenIn"] = token_in or intent.get("tokenIn")
+                    if in_amount is not None:
+                        intent["amountInBig"] = in_amount
+                if (intent.get("tokenOut") in (None, "", "unknown") or not intent.get("amountOutBig")) and out_entry:
+                    token_out = (out_entry.get("token") or "").lower()
+                    intent["tokenOut"] = token_out or intent.get("tokenOut")
+                    if out_amount is not None:
+                        intent["amountOutBig"] = out_amount
+
+                token_in = (intent.get("tokenIn") or "").lower()
+                token_out = (intent.get("tokenOut") or "").lower()
+                if "tokenInDecimals" not in intent and token_in in token_decimals:
+                    intent["tokenInDecimals"] = token_decimals[token_in]
+                if "tokenOutDecimals" not in intent and token_out in token_decimals:
+                    intent["tokenOutDecimals"] = token_decimals[token_out]
+
+                if intent.get("tokenInDecimals") is not None and intent.get("tokenOutDecimals") is not None:
+                    _refresh_amount_fields(intent)
+
+        for child in node.get("callback") or []:
+            apply_to_node(child)
+
+    apply_to_node(root_trace)
+
+
+def _apply_address_label_overrides(root_trace, address_label):
+    if not root_trace or not isinstance(address_label, list):
+        return
+    label_map = {
+        (entry.get("address") or "").lower(): (entry.get("label") or "")
+        for entry in address_label
+        if isinstance(entry, dict)
+    }
+
+    def protocol_from_label(label):
+        if "uni-v2" in label.lower():
+            return 2
+        if "uniswap v3" in label.lower():
+            return 3
+        return None
+
+    def apply_to_node(node):
+        if node.get("type") == "swap":
+            intent = (node.get("swap") or {}).get("swapIntent") or {}
+            pool_addr = (intent.get("poolId") or "").split("|")[0].lower()
+            label = label_map.get(pool_addr, "")
+            inferred = protocol_from_label(label)
+            if inferred and intent.get("protocolId") not in (2, 3, 4):
+                intent["protocolId"] = inferred
+        for child in node.get("callback") or []:
+            apply_to_node(child)
+
+    apply_to_node(root_trace)
+
+
+def _apply_basic_info(root_trace, basic_info):
+    if not root_trace or not isinstance(basic_info, dict):
+        return
+    call_data = basic_info.get("callData")
+    if call_data and root_trace.get("encoded") in (None, ""):
+        root_trace["encoded"] = call_data
+
+
 def _protocol_from_logs(logs, pool_addr, signature):
     safe_pool = (pool_addr or '').lower()
     relevant = [l for l in logs if l.get('address', '').lower() == safe_pool]
@@ -260,7 +390,7 @@ def _infer_tokens_from_transfers(logs, pool_addr):
     return token_in.lower(), token_out.lower(), amount_in, amount_out, recipient
 
 
-def _extract_swap(invocation, logs, pool_addresses):
+def _extract_swap(invocation, logs, pool_addresses, token_decimals):
     method = invocation.get('decodedMethod') or {}
     call_params = method.get('callParams', []) if isinstance(method, dict) else []
     return_params = method.get('returnParams', []) if isinstance(method, dict) else []
@@ -359,8 +489,8 @@ def _extract_swap(invocation, logs, pool_addresses):
                     amount_in = abs(amount1 or 0)
                     amount_out = abs(amount0 or 0)
 
-    token_in_dec = TOKEN_DECIMALS.get(token_in)
-    token_out_dec = TOKEN_DECIMALS.get(token_out)
+    token_in_dec = token_decimals.get(token_in)
+    token_out_dec = token_decimals.get(token_out)
     include_decimals = token_in_dec is not None and token_out_dec is not None
 
     if token_out == config.WETH.lower():
@@ -441,7 +571,7 @@ def _build_tree(main_trace):
         }
     return [build(n) for n in main_trace]
 
-def _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses):
+def _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses, token_decimals):
     swaps = {}
     for node_id, entry in data_map.items():
         inv = entry.get('invocation')
@@ -457,7 +587,7 @@ def _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses):
         addr_key = addr.lower()
         idx = order_index.get(node_id, 10**9)
         scoped_logs = node_logs.get(node_id) or logs
-        swap_data = _extract_swap(inv, scoped_logs, pool_addresses)
+        swap_data = _extract_swap(inv, scoped_logs, pool_addresses, token_decimals)
         intent = swap_data.get("swapIntent") or {}
         pool_id = intent.get("poolId") or addr
         protocol_id = intent.get("protocolId")
@@ -841,8 +971,9 @@ def _build_ir_tree(swaps, transfers, pool_addresses, include_extra_fields):
     return root_node
 
 
-def build_blocksec_ir(trace_data, tx_hash=None):
+def build_blocksec_ir(trace_data, tx_hash=None, extra=None):
     """Entry for BlockSec trace data to IR V1 structure."""
+    extra = extra or {}
     data_map = trace_data.get('dataMap', {}) if trace_data else {}
     main_trace = trace_data.get('mainTrace', []) if trace_data else []
     resolved_tx_hash = tx_hash or (trace_data.get("tx_hash") if trace_data else "")
@@ -856,6 +987,7 @@ def build_blocksec_ir(trace_data, tx_hash=None):
             "rootTrace": {"type": "unknown", "swap": None, "transfer": None},
         }
 
+    token_decimals = _build_token_decimals_map(extra.get("token_info"))
     logs = _collect_logs(trace_data)
     node_logs = _collect_logs_by_node(trace_data)
 
@@ -884,7 +1016,7 @@ def build_blocksec_ir(trace_data, tx_hash=None):
         if addr:
             pool_addresses.add(addr.lower())
 
-    swaps = _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses)
+    swaps = _collect_swap_nodes(data_map, order_index, logs, node_logs, pool_addresses, token_decimals)
     pool_addr_set = {item.get("pool_addr") for item in swaps.values() if item.get("pool_addr")}
     transfers = _collect_transfer_nodes(data_map, pool_addr_set, order_index)
 
@@ -943,6 +1075,10 @@ def build_blocksec_ir(trace_data, tx_hash=None):
     amount_override = AMOUNT_OVERRIDES.get(resolved_tx_hash.lower())
     if amount_override:
         apply_amount_overrides(root_trace, amount_override)
+
+    _apply_fundflow_overrides(root_trace, extra.get("fundflow"), token_decimals)
+    _apply_address_label_overrides(root_trace, extra.get("address_label"))
+    _apply_basic_info(root_trace, extra.get("basic_info"))
 
     def sum_base_token_transfers(node):
         total = 0

@@ -423,7 +423,7 @@ async function buildCompareResultFromIr(side, irObj) {
         success: true,
         tx_hash: txHash,
         ir_v1: irObj,
-        ir_v1_json: JSON.stringify(irObj, null, 2),
+        ir_v1_json: formatJson(irObj),
         mermaid_dag: mermaidDag,
         stats: {
             swaps_count: counts.swaps,
@@ -616,6 +616,25 @@ function buildCompareSummary(a, b) {
 }
 
 function buildDiffHtml(textA, textB) {
+    const parsedA = parseJsonMaybe(textA);
+    const parsedB = parseJsonMaybe(textB);
+    if (!parsedA || !parsedB) {
+        return buildLineDiffHtml(textA, textB);
+    }
+
+    const orderedA = orderIrForOutput(parsedA);
+    const orderedB = orderIrForOutput(parsedB);
+    const diffMap = buildPathDiffMap(orderedA, orderedB);
+    const left = renderJsonLines(orderedA, diffMap, 'left');
+    const right = renderJsonLines(orderedB, diffMap, 'right');
+
+    return {
+        left: `<div class="compare-diff">${left.join('')}</div>`,
+        right: `<div class="compare-diff">${right.join('')}</div>`
+    };
+}
+
+function buildLineDiffHtml(textA, textB) {
     const linesA = (textA || '').split('\n');
     const linesB = (textB || '').split('\n');
     const maxLines = Math.max(linesA.length, linesB.length);
@@ -636,6 +655,155 @@ function buildDiffHtml(textA, textB) {
         left: `<div class="compare-diff">${left.join('')}</div>`,
         right: `<div class="compare-diff">${right.join('')}</div>`
     };
+}
+
+function parseJsonMaybe(input) {
+    if (!input) {
+        return null;
+    }
+    if (typeof input === 'object') {
+        return input;
+    }
+    if (typeof input !== 'string') {
+        return null;
+    }
+    try {
+        return JSON.parse(input);
+    } catch (error) {
+        return null;
+    }
+}
+
+function buildPathDiffMap(leftObj, rightObj) {
+    const leftNodes = {};
+    const rightNodes = {};
+    const leftValues = {};
+    const rightValues = {};
+    collectPathInfo(leftObj, '', leftNodes, leftValues);
+    collectPathInfo(rightObj, '', rightNodes, rightValues);
+
+    const diffMap = {};
+    const allPaths = new Set([...Object.keys(leftNodes), ...Object.keys(rightNodes)]);
+    allPaths.forEach((path) => {
+        if (!path) {
+            return;
+        }
+        if (!leftNodes[path]) {
+            diffMap[path] = 'added';
+            return;
+        }
+        if (!rightNodes[path]) {
+            diffMap[path] = 'removed';
+            return;
+        }
+        if (leftNodes[path] !== rightNodes[path]) {
+            diffMap[path] = 'changed';
+            return;
+        }
+        if (leftNodes[path] === 'primitive' && leftValues[path] !== rightValues[path]) {
+            diffMap[path] = 'changed';
+        }
+    });
+    return diffMap;
+}
+
+function collectPathInfo(value, path, nodeMap, valueMap) {
+    const type = detectNodeType(value);
+    nodeMap[path] = type;
+    if (type === 'primitive') {
+        valueMap[path] = JSON.stringify(value);
+        return;
+    }
+    if (type === 'array') {
+        value.forEach((item, index) => {
+            collectPathInfo(item, `${path}[${index}]`, nodeMap, valueMap);
+        });
+        return;
+    }
+    if (type === 'object') {
+        Object.keys(value).forEach((key) => {
+            const nextPath = path ? `${path}.${key}` : key;
+            collectPathInfo(value[key], nextPath, nodeMap, valueMap);
+        });
+    }
+}
+
+function detectNodeType(value) {
+    if (value === null || value === undefined) {
+        return 'primitive';
+    }
+    if (Array.isArray(value)) {
+        return 'array';
+    }
+    if (typeof value === 'object') {
+        return 'object';
+    }
+    return 'primitive';
+}
+
+function renderJsonLines(value, diffMap, side) {
+    const lines = [];
+    renderJsonValue(value, null, '', true, diffMap, side, lines);
+    return lines;
+}
+
+function renderJsonValue(value, keyLabel, indent, isLast, diffMap, side, lines, path = '') {
+    const type = detectNodeType(value);
+    const prefix = keyLabel !== null ? `${indent}"${keyLabel}": ` : indent;
+    if (type === 'object') {
+        lines.push(buildDiffLine(`${prefix}{`, path, diffMap, side));
+        const keys = Object.keys(value);
+        keys.forEach((key, index) => {
+            const nextPath = path ? `${path}.${key}` : key;
+            renderJsonValue(
+                value[key],
+                key,
+                indent + '  ',
+                index === keys.length - 1,
+                diffMap,
+                side,
+                lines,
+                nextPath
+            );
+        });
+        lines.push(buildDiffLine(`${indent}}${isLast ? '' : ','}`, '', diffMap, side));
+        return;
+    }
+    if (type === 'array') {
+        lines.push(buildDiffLine(`${prefix}[`, path, diffMap, side));
+        value.forEach((item, index) => {
+            const nextPath = `${path}[${index}]`;
+            renderJsonValue(
+                item,
+                null,
+                indent + '  ',
+                index === value.length - 1,
+                diffMap,
+                side,
+                lines,
+                nextPath
+            );
+        });
+        lines.push(buildDiffLine(`${indent}]${isLast ? '' : ','}`, '', diffMap, side));
+        return;
+    }
+    const literal = JSON.stringify(value);
+    lines.push(buildDiffLine(`${prefix}${literal}${isLast ? '' : ','}`, path, diffMap, side));
+}
+
+function buildDiffLine(text, path, diffMap, side) {
+    let className = 'diff-line';
+    if (path && diffMap[path]) {
+        const status = diffMap[path];
+        if (status === 'changed') {
+            className = 'diff-line diff-changed';
+        } else if (status === 'added' && side === 'right') {
+            className = 'diff-line diff-added';
+        } else if (status === 'removed' && side === 'left') {
+            className = 'diff-line diff-removed';
+        }
+    }
+    return `<span class="${className}">${escapeHtml(text)}</span>`;
 }
 
 function setupCompareSync() {
@@ -864,7 +1032,7 @@ function downloadCompareResult(side) {
     requestDownload({
         tx_hash: data.tx_hash,
         ir_v1: stripped,
-        ir_v1_json: data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : JSON.stringify(stripped, null, 2),
+        ir_v1_json: data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(stripped),
         output_type: 'ir_v1'
     });
 }
@@ -1217,14 +1385,14 @@ function downloadResult(type) {
         data = {
             tx_hash: singleResultData.tx_hash,
             ir_v1: stripped,
-            ir_v1_json: singleResultData.ir_v1_json ? stripTxHashJson(singleResultData.ir_v1_json) : JSON.stringify(stripped, null, 2),
+            ir_v1_json: singleResultData.ir_v1_json ? stripTxHashJson(singleResultData.ir_v1_json) : formatJson(stripped),
             output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
         if (simulationResultData.results) {
             const allOutput = simulationResultData.results
                 .filter(r => r.success)
-                .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
+                .map(r => r.ir_v1_json || formatJson(r.ir_v1));
             data = {
                 tx_hash: 'simulation_batch',
                 ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1242,7 +1410,7 @@ function downloadResult(type) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
             .filter(r => r.success)
-            .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
+            .map(r => r.ir_v1_json || formatJson(r.ir_v1));
         data = {
             tx_hash: 'batch',
             ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1342,12 +1510,128 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+const IR_TOP_LEVEL_ORDER = ["pattern", "baseTokenAmountIn", "baseTokenAmountOut", "rootTrace", "children"];
+const IR_ROOT_TRACE_ORDER = ["type", "swap", "transfer", "wethWrapOrUnwarp", "callback", "encoded"];
+const IR_SWAP_ORDER = ["swapIntent", "executionArgs"];
+const IR_SWAP_INTENT_ORDER = [
+    "poolId",
+    "protocolId",
+    "tokenIn",
+    "tokenInDecimals",
+    "tokenOut",
+    "tokenOutDecimals",
+    "amountIn",
+    "amountInBig",
+    "amountInEncoded",
+    "amountOut",
+    "amountOutBig",
+    "amountOutEncoded"
+];
+const IR_EXEC_ARGS_ORDER = [
+    "amount",
+    "isAmountIn",
+    "zeroForOne",
+    "recipientIsBot",
+    "recipient",
+    "recipientType",
+    "tokenInIsWETH",
+    "tokenOutIsWETH"
+];
+const IR_TRANSFER_ORDER = ["tokenId", "to", "amount"];
+
+function orderedByKeys(data, keyOrder) {
+    const ordered = {};
+    keyOrder.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            ordered[key] = data[key];
+        }
+    });
+    Object.keys(data).forEach(key => {
+        if (!Object.prototype.hasOwnProperty.call(ordered, key)) {
+            ordered[key] = data[key];
+        }
+    });
+    return ordered;
+}
+
+function orderIrValue(value) {
+    if (Array.isArray(value)) {
+        return value.map(item => orderIrValue(item));
+    }
+    if (value && typeof value === 'object') {
+        return orderIrDict(value);
+    }
+    return value;
+}
+
+function orderIrDict(data) {
+    const processed = {};
+    Object.keys(data).forEach(key => {
+        processed[key] = orderIrValue(data[key]);
+    });
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'rootTrace')
+        && Object.prototype.hasOwnProperty.call(processed, 'children')) {
+        const order = (Object.prototype.hasOwnProperty.call(processed, 'tx_hash')
+            ? ['tx_hash'] : []).concat(IR_TOP_LEVEL_ORDER);
+        return orderedByKeys(processed, order);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'swapIntent')
+        || Object.prototype.hasOwnProperty.call(processed, 'executionArgs')) {
+        const ordered = orderedByKeys(processed, IR_SWAP_ORDER);
+        if (ordered.swapIntent && typeof ordered.swapIntent === 'object') {
+            ordered.swapIntent = orderedByKeys(ordered.swapIntent, IR_SWAP_INTENT_ORDER);
+        }
+        if (ordered.executionArgs && typeof ordered.executionArgs === 'object') {
+            ordered.executionArgs = orderedByKeys(ordered.executionArgs, IR_EXEC_ARGS_ORDER);
+        }
+        return ordered;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'poolId')
+        && Object.prototype.hasOwnProperty.call(processed, 'protocolId')
+        && (Object.prototype.hasOwnProperty.call(processed, 'tokenIn')
+            || Object.prototype.hasOwnProperty.call(processed, 'tokenOut'))) {
+        return orderedByKeys(processed, IR_SWAP_INTENT_ORDER);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'type')
+        && (Object.prototype.hasOwnProperty.call(processed, 'swap')
+            || Object.prototype.hasOwnProperty.call(processed, 'transfer'))) {
+        return orderedByKeys(processed, IR_ROOT_TRACE_ORDER);
+    }
+
+    if (IR_TRANSFER_ORDER.every(key => Object.prototype.hasOwnProperty.call(processed, key))) {
+        return orderedByKeys(processed, IR_TRANSFER_ORDER);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'tx_hash')) {
+        return orderedByKeys(processed, ['tx_hash']);
+    }
+
+    return processed;
+}
+
+function orderIrForOutput(data) {
+    if (!data) {
+        return data;
+    }
+    if (Array.isArray(data)) {
+        return data.map(item => orderIrForOutput(item));
+    }
+    if (typeof data !== 'object') {
+        return data;
+    }
+    return orderIrDict(data);
+}
+
 function formatJson(data) {
     if (!data) {
         return 'N/A';
     }
     try {
-        return JSON.stringify(prioritizeTxHash(data), null, 2);
+        return JSON.stringify(orderIrForOutput(data), null, 2);
     } catch (error) {
         return 'Invalid JSON';
     }
@@ -1374,25 +1658,7 @@ function stripTxHashJson(text) {
 }
 
 function prioritizeTxHash(data) {
-    if (!data) {
-        return data;
-    }
-    if (Array.isArray(data)) {
-        return data.map(item => prioritizeTxHash(item));
-    }
-    if (typeof data !== 'object') {
-        return data;
-    }
-    if (!Object.prototype.hasOwnProperty.call(data, 'tx_hash')) {
-        return data;
-    }
-    const reordered = { tx_hash: data.tx_hash };
-    Object.keys(data).forEach(key => {
-        if (key !== 'tx_hash') {
-            reordered[key] = data[key];
-        }
-    });
-    return reordered;
+    return orderIrForOutput(data);
 }
 
 // 支持回车键提交
