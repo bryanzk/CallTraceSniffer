@@ -76,7 +76,10 @@
                         </div>
                         <div id="compare-input-ir-a" class="compare-input-block" style="display: none;">
                             <textarea id="compare-ir-a-input" rows="6" placeholder="粘贴 IR JSON 或 raw_ir" class="tx-input"></textarea>
-                            <button onclick="analyzeCompare('A')" class="btn btn-primary">分析A</button>
+                            <div class="compare-actions">
+                                <button onclick="analyzeCompare('A')" class="btn btn-primary">分析A</button>
+                                <button onclick="downloadIrJsonExample()" class="btn btn-secondary btn-small">下载IR示例</button>
+                            </div>
                         </div>
                         <div id="compare-status-a" class="compare-status"></div>
                     </div>
@@ -97,7 +100,10 @@
                         </div>
                         <div id="compare-input-ir-b" class="compare-input-block" style="display: none;">
                             <textarea id="compare-ir-b-input" rows="6" placeholder="粘贴 IR JSON 或 raw_ir" class="tx-input"></textarea>
-                            <button onclick="analyzeCompare('B')" class="btn btn-primary">分析B</button>
+                            <div class="compare-actions">
+                                <button onclick="analyzeCompare('B')" class="btn btn-primary">分析B</button>
+                                <button onclick="downloadIrJsonExample()" class="btn btn-secondary btn-small">下载IR示例</button>
+                            </div>
                         </div>
                         <div id="compare-status-b" class="compare-status"></div>
                     </div>
