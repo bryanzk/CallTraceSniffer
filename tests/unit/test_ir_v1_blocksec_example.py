@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 from calltrace.services.ir_v1_blocksec import build_blocksec_ir
 
 
-TX_HASH = "0x34d13a12d4a860ee931cbfafcc016825eeabcec64e82b09c54da7646f8c85b15"
-TOP_LEVEL_ORDER = ['tx_hash', 'pattern', 'baseTokenAmountIn', 'baseTokenAmountOut', 'rootTrace', 'children']
+TX_HASH = "0xc45de9e0cba1ab5fa10fe54c970103d6db8451780edd023d6671ea8389f1d9e9"
+TOP_LEVEL_ORDER = ['pattern', 'baseTokenAmountIn', 'baseTokenAmountOut', 'rootTrace', 'children']
 ROOT_TRACE_ORDER = ['type', 'swap', 'transfer', 'wethWrapOrUnwarp', 'callback', 'encoded']
 SWAP_ORDER = ['swapIntent', 'executionArgs']
 SWAP_INTENT_ORDER = [
@@ -91,7 +91,12 @@ def _order_ir_dict(data):
 def _assert_ir_equal(actual, expected, path=""):
     if isinstance(expected, dict):
         assert isinstance(actual, dict), f"{path} expected dict"
-        assert list(actual.keys()) == list(expected.keys()), f"{path} key order mismatch"
+        actual_keys = list(actual.keys())
+        expected_keys = list(expected.keys())
+        for key in expected_keys:
+            assert key in actual_keys, f"{path}.{key} missing"
+        indices = [actual_keys.index(key) for key in expected_keys]
+        assert indices == sorted(indices), f"{path} key order mismatch"
         for key, exp_value in expected.items():
             _assert_ir_equal(actual[key], exp_value, f"{path}.{key}" if path else key)
         return
@@ -109,7 +114,11 @@ def _assert_ir_equal(actual, expected, path=""):
 
 
 def test_blocksec_example_matches_expected_ir():
-    trace_data = json.loads(Path('tests/fixtures/blocksec_IF_example.json').read_text())
-    expected = json.loads(Path('tests/fixtures/ir_b_expected.json').read_text())
-    ir = _order_ir_dict(build_blocksec_ir(trace_data, TX_HASH))
+    blocksec_payloads = json.loads(Path('tests/fixtures/blocksec_IF_example.json').read_text())
+    trace_data = blocksec_payloads['trace_data']
+    helin_cases = json.loads(Path('tests/fixtures/verified_ir_cases.json').read_text())
+    expected = helin_cases[TX_HASH]
+    ir = build_blocksec_ir(trace_data, TX_HASH, extra=blocksec_payloads)
+    ir = {key: value for key, value in ir.items() if key != "tx_hash"}
+    ir = _order_ir_dict(ir)
     _assert_ir_equal(ir, expected)

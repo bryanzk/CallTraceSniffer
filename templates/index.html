@@ -46,7 +46,10 @@
                 </div>
                 <div id="single-source-url" class="source-link"></div>
                 <div id="single-stats" class="stats-grid"></div>
-                <div class="output-label">IR (V1)</div>
+                <div class="output-header">
+                    <div class="output-label">IR (V1)</div>
+                    <button id="copy-single-ir" onclick="copySingleIr(this)" class="btn btn-secondary btn-small">复制</button>
+                </div>
                 <div id="single-ir" class="output-box"></div>
                 <div class="output-label">Mermaid DAG</div>
                 <div class="dag-actions">
@@ -127,6 +130,7 @@
                             <h3>Tx A</h3>
                             <div class="compare-actions">
                                 <button onclick="downloadCompareResult('A')" class="btn btn-secondary btn-small">下载IR</button>
+                                <button onclick="copyCompareIr('A', this)" class="btn btn-secondary btn-small">复制</button>
                                 <button onclick="downloadMermaidPngFrom('compare-mermaid-a')" class="btn btn-secondary btn-small">PNG</button>
                                 <button onclick="downloadMermaidSvgFrom('compare-mermaid-a')" class="btn btn-secondary btn-small">SVG</button>
                                 <button onclick="openDagViewer('compare-mermaid-a')" class="btn btn-secondary btn-small">放大</button>
@@ -143,6 +147,7 @@
                             <h3>Tx B</h3>
                             <div class="compare-actions">
                                 <button onclick="downloadCompareResult('B')" class="btn btn-secondary btn-small">下载IR</button>
+                                <button onclick="copyCompareIr('B', this)" class="btn btn-secondary btn-small">复制</button>
                                 <button onclick="downloadMermaidPngFrom('compare-mermaid-b')" class="btn btn-secondary btn-small">PNG</button>
                                 <button onclick="downloadMermaidSvgFrom('compare-mermaid-b')" class="btn btn-secondary btn-small">SVG</button>
                                 <button onclick="openDagViewer('compare-mermaid-b')" class="btn btn-secondary btn-small">放大</button>
@@ -176,7 +181,10 @@
                 </div>
                 <div id="simulation-source-url" class="source-link"></div>
                 <div id="simulation-stats" class="stats-grid"></div>
-                <div class="output-label">IR (V1)</div>
+                <div class="output-header">
+                    <div class="output-label">IR (V1)</div>
+                    <button id="copy-simulation-ir" onclick="copySimulationIr(this)" class="btn btn-secondary btn-small">复制</button>
+                </div>
                 <div id="simulation-ir" class="output-box"></div>
                 <div id="simulation-output" class="batch-output" style="display: none;"></div>
             </div>

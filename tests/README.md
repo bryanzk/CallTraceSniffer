@@ -79,7 +79,7 @@ pytest -m integration
 - ✅ `is_router_address()` - Router地址识别（7个测试用例）
 
 ### 数据提取/转换
-- ✅ IR V1 解析与结构对齐（IR_test_cases.json 对齐）
+- ✅ IR V1 解析与结构对齐（verified_ir_cases.json 对齐）
 - ✅ IR V1 skeleton 输出顺序与字段规则
 
 ### 集成测试
@@ -113,4 +113,3 @@ pytest -m integration
 ## CI/CD
 
 GitHub Actions配置在`.github/workflows/tests.yml`中，会在每次push和PR时自动运行测试。
-

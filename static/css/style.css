@@ -255,6 +255,17 @@ header h1 {
     color: #4a5568;
 }
 
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0 8px;
+}
+
+.output-header .output-label {
+    margin: 0;
+}
+
 .dag-actions {
     display: flex;
     gap: 8px;

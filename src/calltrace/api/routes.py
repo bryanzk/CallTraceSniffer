@@ -6,113 +6,20 @@ import asyncio
 import csv
 import io
 import json
-from collections import OrderedDict
 from ..services.ir_v1_blocksec import _parse_int
 from ..config import config
 from datetime import datetime
 from ..services.extractor import BlockSecExtractor
 from ..services.ir_v1_blocksec import build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
-
-
-TOP_LEVEL_ORDER = ['pattern', 'baseTokenAmountIn', 'baseTokenAmountOut', 'rootTrace', 'children']
-ROOT_TRACE_ORDER = ['type', 'swap', 'transfer', 'wethWrapOrUnwarp', 'callback', 'encoded']
-SWAP_ORDER = ['swapIntent', 'executionArgs']
-SWAP_INTENT_ORDER = [
-    'poolId',
-    'protocolId',
-    'tokenIn',
-    'tokenInDecimals',
-    'tokenOut',
-    'tokenOutDecimals',
-    'amountIn',
-    'amountInBig',
-    'amountInEncoded',
-    'amountOut',
-    'amountOutBig',
-    'amountOutEncoded',
-]
-EXEC_ARGS_ORDER = [
-    'amount',
-    'isAmountIn',
-    'zeroForOne',
-    'recipientIsBot',
-    'recipient',
-    'recipientType',
-    'tokenInIsWETH',
-    'tokenOutIsWETH',
-]
-TRANSFER_ORDER = ['tokenId', 'to', 'amount']
-
-
-def _ordered_by_keys(data, key_order):
-    ordered = OrderedDict()
-    for key in key_order:
-        if key in data:
-            ordered[key] = data[key]
-    for key in data:
-        if key not in ordered:
-            ordered[key] = data[key]
-    return ordered
-
-
-def _order_ir_value(value):
-    if isinstance(value, dict):
-        return _order_ir_dict(value)
-    if isinstance(value, list):
-        return [_order_ir_value(item) for item in value]
-    return value
-
-
-def _order_ir_dict(data):
-    processed = OrderedDict((key, _order_ir_value(value)) for key, value in data.items())
-
-    if 'rootTrace' in processed and 'children' in processed:
-        return _ordered_by_keys(processed, (['tx_hash'] if 'tx_hash' in processed else []) + TOP_LEVEL_ORDER)
-
-    if 'swapIntent' in processed or 'executionArgs' in processed:
-        ordered = _ordered_by_keys(processed, SWAP_ORDER)
-        if 'swapIntent' in ordered and isinstance(ordered.get('swapIntent'), dict):
-            ordered['swapIntent'] = _ordered_by_keys(ordered['swapIntent'], SWAP_INTENT_ORDER)
-        if 'executionArgs' in ordered and isinstance(ordered.get('executionArgs'), dict):
-            ordered['executionArgs'] = _ordered_by_keys(ordered['executionArgs'], EXEC_ARGS_ORDER)
-        return ordered
-
-    if 'poolId' in processed and 'protocolId' in processed and ('tokenIn' in processed or 'tokenOut' in processed):
-        return _ordered_by_keys(processed, SWAP_INTENT_ORDER)
-
-    if 'type' in processed and ('swap' in processed or 'transfer' in processed):
-        return _ordered_by_keys(processed, ROOT_TRACE_ORDER)
-
-    if set(TRANSFER_ORDER).issubset(processed.keys()):
-        return _ordered_by_keys(processed, TRANSFER_ORDER)
-
-    if 'tx_hash' in processed:
-        return _ordered_by_keys(processed, ['tx_hash'])
-
-    return processed
-
+from ..utils.ir_format import order_ir_payload, serialize_ir_payload
 
 def _order_ir_payload(payload, tx_hash):
-    if isinstance(payload, dict):
-        payload_data = payload
-        if payload.get('tx_hash') is None and tx_hash:
-            payload_data = dict(payload)
-            payload_data['tx_hash'] = tx_hash
-        return _order_ir_dict(payload_data)
-    if isinstance(payload, list):
-        return [_order_ir_payload(item, tx_hash) if isinstance(item, dict) else item for item in payload]
-    return payload
+    return order_ir_payload(payload, tx_hash)
 
 
 def _serialize_ir_payload(payload, tx_hash):
-    if isinstance(payload, str):
-        try:
-            payload = json.loads(payload)
-        except Exception:
-            return payload
-    ordered = _order_ir_payload(payload, tx_hash)
-    return json.dumps(ordered, ensure_ascii=True, indent=2)
+    return serialize_ir_payload(payload, tx_hash)
 
 
 def _count_ir_nodes(node):
@@ -241,14 +148,13 @@ def process_tx_data(trace_data, tx_hash=None, extra=None):
         return None
     
     ir_v1 = build_blocksec_ir(trace_data, tx_hash, extra)
-    ir_v1_ordered = _order_ir_payload(ir_v1, tx_hash)
-    ir_v1_json = _serialize_ir_payload(ir_v1_ordered, tx_hash)
-    swaps_count, _ = _count_ir_nodes(ir_v1_ordered.get('rootTrace'))
+    ir_v1_json = _serialize_ir_payload(ir_v1, tx_hash)
+    swaps_count, _ = _count_ir_nodes(ir_v1.get('rootTrace'))
     transfers_count, router_count, direct_count, virtual_count = _compute_flow_counts(trace_data)
     total_gas = _extract_total_gas(trace_data)
     
     return {
-        'ir_v1': ir_v1_ordered,
+        'ir_v1': ir_v1,
         'ir_v1_json': ir_v1_json,
         'stats': {
             'swaps_count': swaps_count,

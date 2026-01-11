@@ -452,7 +452,7 @@ async function buildCompareResultFromIr(side, irObj) {
         success: true,
         tx_hash: txHash,
         ir_v1: irObj,
-        ir_v1_json: formatJson(irObj),
+        ir_v1_json: formatIrPayload(irObj),
         mermaid_dag: mermaidDag,
         stats: {
             swaps_count: counts.swaps,
@@ -511,7 +511,7 @@ function displaySingleResult(data) {
     `;
     
     const displayIr = stripTxHash(data.ir_v1);
-    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
+    irDiv.textContent = formatIrPayload(data.ir_v1_json || displayIr, { stripTxHash: true });
     singleMermaidText = data.mermaid_dag || null;
     renderMermaid('single-mermaid', data.mermaid_dag);
     renderSourceLink('single-source-url', 'BlockSec URL:', data.source_url);
@@ -548,12 +548,8 @@ function displayCompareResult() {
     const irA = document.getElementById('compare-ir-a');
     const irB = document.getElementById('compare-ir-b');
     if (hasA && hasB) {
-        const irTextA = compareResultA.ir_v1_json
-            ? stripTxHashJson(compareResultA.ir_v1_json)
-            : formatJson(stripTxHash(compareResultA.ir_v1));
-        const irTextB = compareResultB.ir_v1_json
-            ? stripTxHashJson(compareResultB.ir_v1_json)
-            : formatJson(stripTxHash(compareResultB.ir_v1));
+        const irTextA = formatIrPayload(compareResultA.ir_v1_json || compareResultA.ir_v1, { stripTxHash: true });
+        const irTextB = formatIrPayload(compareResultB.ir_v1_json || compareResultB.ir_v1, { stripTxHash: true });
         const diffHtml = buildDiffHtml(irTextA, irTextB);
         irA.innerHTML = diffHtml.left;
         irB.innerHTML = diffHtml.right;
@@ -563,9 +559,7 @@ function displayCompareResult() {
         renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
     } else {
         if (hasA) {
-            irA.textContent = compareResultA.ir_v1_json
-                ? stripTxHashJson(compareResultA.ir_v1_json)
-                : formatJson(stripTxHash(compareResultA.ir_v1));
+            irA.textContent = formatIrPayload(compareResultA.ir_v1_json || compareResultA.ir_v1, { stripTxHash: true });
             setComparePlaceholder('compare-mermaid-a', compareResultA.mermaid_dag, '等待 DAG A');
             renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
         } else {
@@ -574,9 +568,7 @@ function displayCompareResult() {
             renderSourceLink('compare-source-a', '', '');
         }
         if (hasB) {
-            irB.textContent = compareResultB.ir_v1_json
-                ? stripTxHashJson(compareResultB.ir_v1_json)
-                : formatJson(stripTxHash(compareResultB.ir_v1));
+            irB.textContent = formatIrPayload(compareResultB.ir_v1_json || compareResultB.ir_v1, { stripTxHash: true });
             setComparePlaceholder('compare-mermaid-b', compareResultB.mermaid_dag, '等待 DAG B');
             renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
         } else {
@@ -977,6 +969,7 @@ function displaySimulationResult(data) {
     const statsDiv = document.getElementById('simulation-stats');
     const irDiv = document.getElementById('simulation-ir');
     const outputDiv = document.getElementById('simulation-output');
+    const copyButton = document.getElementById('copy-simulation-ir');
 
     statsDiv.innerHTML = `
         <div class="stat-card">
@@ -1007,8 +1000,11 @@ function displaySimulationResult(data) {
 
     outputDiv.style.display = 'none';
     const displayIr = stripTxHash(data.ir_v1);
-    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
+    irDiv.textContent = formatIrPayload(data.ir_v1_json || displayIr, { stripTxHash: true });
     irDiv.style.display = 'block';
+    if (copyButton) {
+        copyButton.style.display = 'inline-flex';
+    }
     renderSourceLink('simulation-source-url', 'BlockSec URL:', data.simulation_url || data.source_url);
 
     resultSection.style.display = 'block';
@@ -1061,7 +1057,7 @@ function downloadCompareResult(side) {
     requestDownload({
         tx_hash: data.tx_hash,
         ir_v1: stripped,
-        ir_v1_json: data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(stripped),
+        ir_v1_json: formatIrPayload(data.ir_v1_json || stripped, { stripTxHash: true }),
         output_type: 'ir_v1'
     });
 }
@@ -1221,11 +1217,105 @@ function downloadIrJsonExample() {
     document.body.removeChild(a);
 }
 
+function copyTextToClipboard(text, button) {
+    if (!text) {
+        showError('没有可复制的内容');
+        return;
+    }
+    const flashButton = () => {
+        if (!button) {
+            return;
+        }
+        const original = button.textContent;
+        button.textContent = '已复制';
+        button.disabled = true;
+        setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+        }, 1200);
+    };
+    const fallbackCopy = () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        flashButton();
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(flashButton).catch(fallbackCopy);
+    } else {
+        fallbackCopy();
+    }
+}
+
+function copySingleIr(button) {
+    if (!singleResultData) {
+        showError('没有可复制的IR结果');
+        return;
+    }
+    const stripped = stripTxHash(singleResultData.ir_v1);
+    const text = formatIrPayload(singleResultData.ir_v1_json || stripped, { stripTxHash: true });
+    copyTextToClipboard(text, button);
+}
+
+function copyCompareIr(side, button) {
+    const result = side === 'A' ? compareResultA : compareResultB;
+    if (!result) {
+        showCompareStatus(side, '没有可复制的IR结果', 'error');
+        return;
+    }
+    const text = formatIrPayload(result.ir_v1_json || result.ir_v1, { stripTxHash: true });
+    copyTextToClipboard(text, button);
+}
+
+function copySimulationIr(button) {
+    if (!simulationResultData || simulationResultData.results) {
+        showError('没有可复制的IR结果');
+        return;
+    }
+    const text = formatIrPayload(simulationResultData.ir_v1_json || simulationResultData.ir_v1, { stripTxHash: true });
+    copyTextToClipboard(text, button);
+}
+
+function copySimulationBatchItemIr(index, button) {
+    if (!simulationResultData || !simulationResultData.results || !simulationResultData.results[index]) {
+        showError('没有可复制的IR结果');
+        return;
+    }
+    const result = simulationResultData.results[index];
+    if (!result.success) {
+        showError('该交易分析失败，无法复制');
+        return;
+    }
+    const text = formatIrPayload(result.ir_v1_json || result.ir_v1);
+    copyTextToClipboard(text, button);
+}
+
+function copyBatchItemIr(index, button) {
+    if (!batchResultData || !batchResultData.results || !batchResultData.results[index]) {
+        showError('没有可复制的IR结果');
+        return;
+    }
+    const result = batchResultData.results[index];
+    if (!result.success) {
+        showError('该交易分析失败，无法复制');
+        return;
+    }
+    const text = formatIrPayload(result.ir_v1_json || result.ir_v1);
+    copyTextToClipboard(text, button);
+}
+
 function displaySimulationBatchResult(data) {
     const resultSection = document.getElementById('simulation-result');
     const statsDiv = document.getElementById('simulation-stats');
     const irDiv = document.getElementById('simulation-ir');
     const outputDiv = document.getElementById('simulation-output');
+    const copyButton = document.getElementById('copy-simulation-ir');
 
     const successCount = data.results.filter(r => r.success).length;
     const failCount = data.results.length - successCount;
@@ -1251,7 +1341,10 @@ function displaySimulationBatchResult(data) {
                 <div class="batch-item success">
                     <div class="batch-item-header">
                         <h3>交易 ${index + 1}: ${result.tx_hash.substring(0, 20)}...</h3>
-                        <button onclick="downloadSimulationBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                        <div class="compare-actions">
+                            <button onclick="downloadSimulationBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                            <button onclick="copySimulationBatchItemIr(${index}, this)" class="btn btn-secondary btn-small">复制IR</button>
+                        </div>
                     </div>
                     <div class="tx-hash">${result.tx_hash}</div>
                     <div class="tx-hash">${result.simulation_url}</div>
@@ -1271,7 +1364,7 @@ function displaySimulationBatchResult(data) {
                     </div>
                     <div class="output-label">IR (V1)</div>
                     <div class="output-box" style="margin-top: 10px; max-height: 300px;">
-                        ${escapeHtml(result.ir_v1_json || formatJson(result.ir_v1))}
+                        ${escapeHtml(formatIrPayload(result.ir_v1_json || result.ir_v1))}
                     </div>
                 </div>
             `;
@@ -1289,6 +1382,9 @@ function displaySimulationBatchResult(data) {
 
     irDiv.style.display = 'none';
     outputDiv.style.display = 'grid';
+    if (copyButton) {
+        copyButton.style.display = 'none';
+    }
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
@@ -1377,7 +1473,10 @@ function displayBatchResult(data) {
                 <div class="batch-item success">
                     <div class="batch-item-header">
                         <h3>交易 ${index + 1}: ${result.tx_hash.substring(0, 20)}...</h3>
-                        <button onclick="downloadBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                        <div class="compare-actions">
+                            <button onclick="downloadBatchItem(${index})" class="btn btn-secondary btn-small">下载结果</button>
+                            <button onclick="copyBatchItemIr(${index}, this)" class="btn btn-secondary btn-small">复制IR</button>
+                        </div>
                     </div>
                     <div class="tx-hash">${result.tx_hash}</div>
                     <div class="stats-grid" style="margin-top: 15px;">
@@ -1396,7 +1495,7 @@ function displayBatchResult(data) {
                     </div>
                     <div class="output-label">IR (V1)</div>
                     <div class="output-box" style="margin-top: 10px; max-height: 300px;">
-                        ${escapeHtml(result.ir_v1_json || formatJson(result.ir_v1))}
+                        ${escapeHtml(formatIrPayload(result.ir_v1_json || result.ir_v1))}
                     </div>
                 </div>
             `;
@@ -1425,14 +1524,14 @@ function downloadResult(type) {
         data = {
             tx_hash: singleResultData.tx_hash,
             ir_v1: stripped,
-            ir_v1_json: singleResultData.ir_v1_json ? stripTxHashJson(singleResultData.ir_v1_json) : formatJson(stripped),
+            ir_v1_json: formatIrPayload(singleResultData.ir_v1_json || stripped, { stripTxHash: true }),
             output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
         if (simulationResultData.results) {
             const allOutput = simulationResultData.results
                 .filter(r => r.success)
-                .map(r => r.ir_v1_json || formatJson(r.ir_v1));
+                .map(r => formatIrPayload(r.ir_v1_json || r.ir_v1));
             data = {
                 tx_hash: 'simulation_batch',
                 ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1450,7 +1549,7 @@ function downloadResult(type) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
             .filter(r => r.success)
-            .map(r => r.ir_v1_json || formatJson(r.ir_v1));
+            .map(r => formatIrPayload(r.ir_v1_json || r.ir_v1));
         data = {
             tx_hash: 'batch',
             ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1477,7 +1576,7 @@ function downloadSimulationBatchItem(index) {
     requestDownload({
         tx_hash: result.tx_hash,
         ir_v1: result.ir_v1,
-        ir_v1_json: result.ir_v1_json,
+        ir_v1_json: formatIrPayload(result.ir_v1_json || result.ir_v1),
         output_type: 'ir_v1'
     });
 }
@@ -1495,7 +1594,7 @@ function downloadBatchItem(index) {
     requestDownload({
         tx_hash: result.tx_hash,
         ir_v1: result.ir_v1,
-        ir_v1_json: result.ir_v1_json,
+        ir_v1_json: formatIrPayload(result.ir_v1_json || result.ir_v1),
         output_type: 'ir_v1'
     });
 }
@@ -1677,6 +1776,24 @@ function formatJson(data) {
     }
 }
 
+function formatIrPayload(payload, options = {}) {
+    if (!payload) {
+        return 'N/A';
+    }
+    let data = payload;
+    if (typeof data === 'string') {
+        try {
+            data = JSON.parse(data);
+        } catch (error) {
+            return payload;
+        }
+    }
+    if (options.stripTxHash) {
+        data = stripTxHash(data);
+    }
+    return formatJson(data);
+}
+
 function stripTxHash(data) {
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
         return data;
@@ -1689,12 +1806,7 @@ function stripTxHash(data) {
 }
 
 function stripTxHashJson(text) {
-    try {
-        const parsed = JSON.parse(text);
-        return formatJson(stripTxHash(parsed));
-    } catch (error) {
-        return text;
-    }
+    return formatIrPayload(text, { stripTxHash: true });
 }
 
 function prioritizeTxHash(data) {

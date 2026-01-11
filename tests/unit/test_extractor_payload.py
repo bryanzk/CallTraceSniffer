@@ -84,6 +84,27 @@ def test_update_payloads_from_response_collects_blocksec_payloads():
     )
     assert collected["gas_flame"] == [{"name": "Total Gas"}]
 
+    BlockSecExtractor._update_payloads_from_response(
+        "https://app.blocksec.com/api/v1/onchain/tx/attack-event",
+        {"data": [{"level": "high"}]},
+        collected,
+    )
+    assert collected["attack_event"] == [{"level": "high"}]
+
+    BlockSecExtractor._update_payloads_from_response(
+        "https://app.blocksec.com/api/v1/onchain/tx/top-profit-loss",
+        {"result": [{"token": "0x1"}]},
+        collected,
+    )
+    assert collected["top_profit_loss"] == [{"token": "0x1"}]
+
+    BlockSecExtractor._update_payloads_from_response(
+        "https://app.blocksec.com/api/v1/onchain/tx/state-change",
+        [{"contract": "0x2"}],
+        collected,
+    )
+    assert collected["state_change"] == [{"contract": "0x2"}]
+
 
 def test_extract_blocksec_data_success(monkeypatch):
     extractor = BlockSecExtractor()

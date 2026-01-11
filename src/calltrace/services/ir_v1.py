@@ -1,9 +1,9 @@
 """
 Minimal BlockSec -> IR V1 skeleton.
 """
-import json
 from pathlib import Path
 from collections import OrderedDict
+from ..utils.ir_format import serialize_ir_payload
 
 
 def _ordered_swap_node(swap_data, callbacks=None):
@@ -93,5 +93,6 @@ def write_ir_json(ir_data, output_path):
     """Write IR JSON to a file path."""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(ir_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tx_hash = ir_data.get("tx_hash") if isinstance(ir_data, dict) else None
+    path.write_text(serialize_ir_payload(ir_data, tx_hash), encoding="utf-8")
     return str(path)
