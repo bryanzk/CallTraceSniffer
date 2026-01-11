@@ -192,3 +192,93 @@ def test_build_blocksec_ir_applies_extra_payloads():
     assert intent["amountIn"] == 1000
     assert intent["amountOut"] == 0.5
     assert ir["rootTrace"]["encoded"] == "0xdeadbeef"
+
+
+def test_apply_address_label_overrides_sets_protocol_id():
+    pool_v3 = "0x1111111111111111111111111111111111111111"
+    pool_v2 = "0x2222222222222222222222222222222222222222"
+    root_trace = {
+        "type": "swap",
+        "swap": {"swapIntent": {"poolId": pool_v3, "protocolId": 0}},
+        "callback": [
+            {
+                "type": "swap",
+                "swap": {"swapIntent": {"poolId": pool_v2, "protocolId": 0}},
+                "callback": [],
+            }
+        ],
+    }
+    labels = [
+        {"address": pool_v3, "label": "Uniswap V3: pool"},
+        {"address": pool_v2, "label": "0x2222_UNI-V2"},
+    ]
+
+    v1._apply_address_label_overrides(root_trace, labels)
+    assert root_trace["swap"]["swapIntent"]["protocolId"] == 3
+    assert root_trace["callback"][0]["swap"]["swapIntent"]["protocolId"] == 2
+
+
+def test_apply_address_label_overrides_does_not_override_known():
+    pool = "0x3333333333333333333333333333333333333333"
+    root_trace = {
+        "type": "swap",
+        "swap": {"swapIntent": {"poolId": pool, "protocolId": 2}},
+        "callback": [],
+    }
+    labels = [{"address": pool, "label": "Uniswap V3: pool"}]
+    v1._apply_address_label_overrides(root_trace, labels)
+    assert root_trace["swap"]["swapIntent"]["protocolId"] == 2
+
+
+def test_apply_fundflow_overrides_prefers_largest_and_sets_decimals():
+    pool = "0x4444444444444444444444444444444444444444"
+    token_in = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    token_out = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    root_trace = {
+        "type": "swap",
+        "swap": {
+            "swapIntent": {
+                "poolId": pool,
+                "protocolId": 3,
+                "tokenIn": "unknown",
+                "tokenOut": "",
+                "amountInBig": 0,
+                "amountOutBig": 0,
+            }
+        },
+        "callback": [],
+    }
+    fundflow = [
+        {"to": pool, "token": token_in, "amount": "1.23E3"},
+        {"to": pool, "token": token_in, "amount": "1,234.5"},
+        {"from": pool, "token": token_out, "amount": "2.5"},
+    ]
+    token_decimals = v1._build_token_decimals_map(
+        [{"address": token_in, "decimals": 6}, {"address": token_out, "decimals": 18}]
+    )
+
+    v1._apply_fundflow_overrides(root_trace, fundflow, token_decimals)
+    intent = root_trace["swap"]["swapIntent"]
+    assert intent["tokenIn"] == token_in.lower()
+    assert intent["tokenOut"] == token_out.lower()
+    assert intent["tokenInDecimals"] == 6
+    assert intent["tokenOutDecimals"] == 18
+    assert intent["amountInBig"] == 1234500000
+    assert intent["amountOutBig"] == 2500000000000000000
+
+
+def test_apply_fundflow_overrides_skips_unknown_decimals():
+    pool = "0x5555555555555555555555555555555555555555"
+    token_in = "0xcccccccccccccccccccccccccccccccccccccccc"
+    root_trace = {
+        "type": "swap",
+        "swap": {"swapIntent": {"poolId": pool, "protocolId": 3, "tokenIn": "unknown", "amountInBig": 0}},
+        "callback": [],
+    }
+    fundflow = [{"to": pool, "token": token_in, "amount": "100"}]
+    token_decimals = v1._build_token_decimals_map([])
+
+    v1._apply_fundflow_overrides(root_trace, fundflow, token_decimals)
+    intent = root_trace["swap"]["swapIntent"]
+    assert intent["tokenIn"] == "unknown"
+    assert intent["amountInBig"] == 0

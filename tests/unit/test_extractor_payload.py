@@ -3,6 +3,7 @@ Unit tests for BlockSecExtractor payload parsing helpers.
 """
 import sys
 import os
+import asyncio
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'src'))
 
@@ -82,3 +83,59 @@ def test_update_payloads_from_response_collects_blocksec_payloads():
         collected,
     )
     assert collected["gas_flame"] == [{"name": "Total Gas"}]
+
+
+def test_extract_blocksec_data_success(monkeypatch):
+    extractor = BlockSecExtractor()
+    payloads = {
+        "trace_data": {"dataMap": {}, "mainTrace": []},
+        "fundflow": [{"id": 1}],
+    }
+
+    async def fake_extract(self, url):
+        return payloads
+
+    monkeypatch.setattr(BlockSecExtractor, "_extract_trace_from_page", fake_extract)
+    result = asyncio.run(extractor.extract_blocksec_data("0x" + "1" * 64))
+    assert result["success"] is True
+    assert result["trace_data"] == payloads["trace_data"]
+    assert result["fundflow"] == [{"id": 1}]
+
+
+def test_extract_blocksec_data_missing_trace(monkeypatch):
+    extractor = BlockSecExtractor()
+
+    async def fake_extract(self, url):
+        return {"fundflow": [{"id": 1}]}
+
+    monkeypatch.setattr(BlockSecExtractor, "_extract_trace_from_page", fake_extract)
+    result = asyncio.run(extractor.extract_blocksec_data("0x" + "2" * 64))
+    assert result["success"] is False
+    assert result["error"] == "未找到trace数据"
+
+
+def test_extract_blocksec_simulation_data_success(monkeypatch):
+    extractor = BlockSecExtractor()
+    payloads = {"trace_data": {"dataMap": {}, "mainTrace": []}}
+
+    async def fake_extract(self, url):
+        return payloads
+
+    monkeypatch.setattr(BlockSecExtractor, "_extract_trace_from_page", fake_extract)
+    sim_url = "https://app.blocksec.com/explorer/tx/eth/0x" + ("3" * 64) + "?event=simulation&type=0"
+    result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
+    assert result["success"] is True
+    assert result["trace_data"] == payloads["trace_data"]
+
+
+def test_extract_blocksec_simulation_data_missing_trace(monkeypatch):
+    extractor = BlockSecExtractor()
+
+    async def fake_extract(self, url):
+        return {}
+
+    monkeypatch.setattr(BlockSecExtractor, "_extract_trace_from_page", fake_extract)
+    sim_url = "https://app.blocksec.com/explorer/tx/eth/0x" + ("4" * 64) + "?event=simulation&type=0"
+    result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
+    assert result["success"] is False
+    assert result["error"] == "未找到simulation trace数据"
