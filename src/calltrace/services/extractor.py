@@ -3,7 +3,7 @@ BlockSec数据提取服务
 """
 import json
 import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import async_playwright
 from ..config import config
@@ -11,6 +11,14 @@ from ..config import config
 
 class BlockSecExtractor:
     """BlockSec数据提取器"""
+    _ENDPOINT_PAYLOAD_KEYS = {
+        "fundflow": "fundflow",
+        "balance-change": "balance_change",
+        "token-info": "token_info",
+        "address-label": "address_label",
+        "basic-info": "basic_info",
+        "gas-flame": "gas_flame",
+    }
 
     @staticmethod
     def parse_simulation_url(sim_url: str) -> Tuple[str, str]:
@@ -41,8 +49,27 @@ class BlockSecExtractor:
                     return sub
         return None
 
+    @staticmethod
+    def _unwrap_payload(payload: object) -> object:
+        if isinstance(payload, dict):
+            for key in ("data", "result"):
+                if key in payload:
+                    return payload[key]
+        return payload
+
+    @classmethod
+    def _update_payloads_from_response(cls, url: str, payload: object, collected: Dict[str, Any]) -> None:
+        trace = cls._find_trace_payload(payload)
+        if trace:
+            collected["trace_data"] = trace
+            return
+        for marker, key in cls._ENDPOINT_PAYLOAD_KEYS.items():
+            if marker in url:
+                collected[key] = cls._unwrap_payload(payload)
+                return
+
     async def _extract_trace_from_page(self, url: str) -> Optional[Dict]:
-        trace_data = None
+        collected: Dict[str, Any] = {}
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
@@ -52,16 +79,14 @@ class BlockSecExtractor:
             page = await context.new_page()
 
             async def handle_response(response):
-                nonlocal trace_data
+                nonlocal collected
                 if "/api/" not in response.url:
                     return
                 try:
                     payload = await response.json()
                 except Exception:
                     return
-                trace = self._find_trace_payload(payload)
-                if trace:
-                    trace_data = trace
+                self._update_payloads_from_response(response.url, payload, collected)
 
             page.on('response', handle_response)
 
@@ -71,17 +96,18 @@ class BlockSecExtractor:
             finally:
                 await browser.close()
 
-        return trace_data
+        return collected if collected else None
     
     async def extract_blocksec_data(self, tx_hash: str) -> Optional[Dict]:
         """提取BlockSec数据"""
         url = f"https://app.blocksec.com/explorer/tx/eth/{tx_hash}/"
-        trace_data = await self._extract_trace_from_page(url)
+        payloads = await self._extract_trace_from_page(url) or {}
+        trace_data = payloads.get("trace_data")
         if trace_data:
             return {
                 'success': True,
                 'tx_hash': tx_hash,
-                'trace_data': trace_data
+                **payloads
             }
         return {
             'success': False,
@@ -92,12 +118,13 @@ class BlockSecExtractor:
     async def extract_blocksec_simulation_data(self, sim_url: str) -> Optional[Dict]:
         """提取BlockSec模拟交易数据"""
         tx_hash, normalized_url = self.parse_simulation_url(sim_url)
-        trace_data = await self._extract_trace_from_page(normalized_url)
+        payloads = await self._extract_trace_from_page(normalized_url) or {}
+        trace_data = payloads.get("trace_data")
         if trace_data:
             return {
                 'success': True,
                 'tx_hash': tx_hash,
-                'trace_data': trace_data
+                **payloads
             }
         return {
             'success': False,

@@ -15,35 +15,102 @@ from ..services.ir_v1_blocksec import build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
 
 
+TOP_LEVEL_ORDER = ['pattern', 'baseTokenAmountIn', 'baseTokenAmountOut', 'rootTrace', 'children']
+ROOT_TRACE_ORDER = ['type', 'swap', 'transfer', 'wethWrapOrUnwarp', 'callback', 'encoded']
+SWAP_ORDER = ['swapIntent', 'executionArgs']
+SWAP_INTENT_ORDER = [
+    'poolId',
+    'protocolId',
+    'tokenIn',
+    'tokenInDecimals',
+    'tokenOut',
+    'tokenOutDecimals',
+    'amountIn',
+    'amountInBig',
+    'amountInEncoded',
+    'amountOut',
+    'amountOutBig',
+    'amountOutEncoded',
+]
+EXEC_ARGS_ORDER = [
+    'amount',
+    'isAmountIn',
+    'zeroForOne',
+    'recipientIsBot',
+    'recipient',
+    'recipientType',
+    'tokenInIsWETH',
+    'tokenOutIsWETH',
+]
+TRANSFER_ORDER = ['tokenId', 'to', 'amount']
+
+
+def _ordered_by_keys(data, key_order):
+    ordered = OrderedDict()
+    for key in key_order:
+        if key in data:
+            ordered[key] = data[key]
+    for key in data:
+        if key not in ordered:
+            ordered[key] = data[key]
+    return ordered
+
+
+def _order_ir_value(value):
+    if isinstance(value, dict):
+        return _order_ir_dict(value)
+    if isinstance(value, list):
+        return [_order_ir_value(item) for item in value]
+    return value
+
+
+def _order_ir_dict(data):
+    processed = OrderedDict((key, _order_ir_value(value)) for key, value in data.items())
+
+    if 'rootTrace' in processed and 'children' in processed:
+        return _ordered_by_keys(processed, (['tx_hash'] if 'tx_hash' in processed else []) + TOP_LEVEL_ORDER)
+
+    if 'swapIntent' in processed or 'executionArgs' in processed:
+        ordered = _ordered_by_keys(processed, SWAP_ORDER)
+        if 'swapIntent' in ordered and isinstance(ordered.get('swapIntent'), dict):
+            ordered['swapIntent'] = _ordered_by_keys(ordered['swapIntent'], SWAP_INTENT_ORDER)
+        if 'executionArgs' in ordered and isinstance(ordered.get('executionArgs'), dict):
+            ordered['executionArgs'] = _ordered_by_keys(ordered['executionArgs'], EXEC_ARGS_ORDER)
+        return ordered
+
+    if 'poolId' in processed and 'protocolId' in processed and ('tokenIn' in processed or 'tokenOut' in processed):
+        return _ordered_by_keys(processed, SWAP_INTENT_ORDER)
+
+    if 'type' in processed and ('swap' in processed or 'transfer' in processed):
+        return _ordered_by_keys(processed, ROOT_TRACE_ORDER)
+
+    if set(TRANSFER_ORDER).issubset(processed.keys()):
+        return _ordered_by_keys(processed, TRANSFER_ORDER)
+
+    if 'tx_hash' in processed:
+        return _ordered_by_keys(processed, ['tx_hash'])
+
+    return processed
+
+
 def _order_ir_payload(payload, tx_hash):
     if isinstance(payload, dict):
-        if payload.get('tx_hash') is None:
-            payload['tx_hash'] = tx_hash
-        ordered = OrderedDict()
-        if 'tx_hash' in payload:
-            ordered['tx_hash'] = payload['tx_hash']
-        for key, value in payload.items():
-            if key != 'tx_hash':
-                ordered[key] = value
-        return ordered
+        payload_data = payload
+        if payload.get('tx_hash') is None and tx_hash:
+            payload_data = dict(payload)
+            payload_data['tx_hash'] = tx_hash
+        return _order_ir_dict(payload_data)
     if isinstance(payload, list):
-        ordered_list = []
-        for item in payload:
-            if not isinstance(item, dict):
-                ordered_list.append(item)
-                continue
-            ordered_item = OrderedDict()
-            if 'tx_hash' in item:
-                ordered_item['tx_hash'] = item['tx_hash']
-            for key, value in item.items():
-                if key != 'tx_hash':
-                    ordered_item[key] = value
-            ordered_list.append(ordered_item)
-        return ordered_list
+        return [_order_ir_payload(item, tx_hash) if isinstance(item, dict) else item for item in payload]
     return payload
 
 
 def _serialize_ir_payload(payload, tx_hash):
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            return payload
     ordered = _order_ir_payload(payload, tx_hash)
     return json.dumps(ordered, ensure_ascii=True, indent=2)
 
@@ -168,19 +235,20 @@ def _compute_flow_counts(trace_data):
     return total, router_count, direct_count, virtual_count
 
 
-def process_tx_data(trace_data, tx_hash=None):
+def process_tx_data(trace_data, tx_hash=None, extra=None):
     """处理交易数据并生成分析结果"""
     if not trace_data:
         return None
     
-    ir_v1 = build_blocksec_ir(trace_data, tx_hash)
-    ir_v1_json = _serialize_ir_payload(ir_v1, tx_hash)
-    swaps_count, _ = _count_ir_nodes(ir_v1.get('rootTrace'))
+    ir_v1 = build_blocksec_ir(trace_data, tx_hash, extra)
+    ir_v1_ordered = _order_ir_payload(ir_v1, tx_hash)
+    ir_v1_json = _serialize_ir_payload(ir_v1_ordered, tx_hash)
+    swaps_count, _ = _count_ir_nodes(ir_v1_ordered.get('rootTrace'))
     transfers_count, router_count, direct_count, virtual_count = _compute_flow_counts(trace_data)
     total_gas = _extract_total_gas(trace_data)
     
     return {
-        'ir_v1': ir_v1,
+        'ir_v1': ir_v1_ordered,
         'ir_v1_json': ir_v1_json,
         'stats': {
             'swaps_count': swaps_count,
@@ -222,7 +290,7 @@ def register_routes(app, extracted_data_cache):
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
             
             # 处理数据
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
@@ -277,7 +345,7 @@ def register_routes(app, extracted_data_cache):
             if not trace_data:
                 return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
 
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
 
@@ -335,7 +403,7 @@ def register_routes(app, extracted_data_cache):
                 if result and result.get('success'):
                     trace_data = result.get('trace_data')
                     if trace_data:
-                        analysis = process_tx_data(trace_data, tx_hash)
+                        analysis = process_tx_data(trace_data, tx_hash, result)
                         if analysis:
                             results.append({
                                 'simulation_url': sim_url,
@@ -413,7 +481,7 @@ def register_routes(app, extracted_data_cache):
                     if result and result.get('success'):
                         trace_data = result.get('trace_data')
                         if trace_data:
-                            analysis = process_tx_data(trace_data, tx_hash)
+                            analysis = process_tx_data(trace_data, tx_hash, result)
                             if analysis:
                                 results.append({
                                     'tx_hash': tx_hash,
@@ -476,10 +544,7 @@ def register_routes(app, extracted_data_cache):
         if output is None:
             return jsonify({'success': False, 'error': '未找到分析结果'}), 404
         
-        if isinstance(output, str):
-            output_bytes = output.encode('utf-8')
-        else:
-            output_bytes = _serialize_ir_payload(output, tx_hash).encode('utf-8')
+        output_bytes = _serialize_ir_payload(output, tx_hash).encode('utf-8')
         filename = f"analysis_{tx_hash[:10]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         mimetype = 'application/json'
         output_file = io.BytesIO(output_bytes)
@@ -506,7 +571,7 @@ def register_routes(app, extracted_data_cache):
             analysis = extracted_data_cache[tx_hash]['analysis']
             ir_json = analysis.get('ir_v1_json')
             if ir_json:
-                return app.response_class(ir_json, mimetype='application/json')
+                return app.response_class(_serialize_ir_payload(ir_json, tx_hash), mimetype='application/json')
             ir_obj = analysis.get('ir_v1')
             return app.response_class(_serialize_ir_payload(ir_obj, tx_hash), mimetype='application/json')
 
@@ -522,7 +587,7 @@ def register_routes(app, extracted_data_cache):
             if not trace_data:
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
 
-            analysis = process_tx_data(trace_data, tx_hash)
+            analysis = process_tx_data(trace_data, tx_hash, result)
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
 

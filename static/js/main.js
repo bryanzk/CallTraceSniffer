@@ -8,6 +8,27 @@ let mermaidInitialized = false;
 let singleMermaidText = null;
 let isSyncingScroll = false;
 
+function buildBlocksecTxUrl(txHash) {
+    if (!txHash) {
+        return '';
+    }
+    return `https://app.blocksec.com/explorer/tx/eth/${txHash}`;
+}
+
+function renderSourceLink(containerId, label, url) {
+    const el = document.getElementById(containerId);
+    if (!el) {
+        return;
+    }
+    if (!url) {
+        el.textContent = '';
+        return;
+    }
+    const safeUrl = escapeHtml(url);
+    const safeLabel = escapeHtml(label);
+    el.innerHTML = `${safeLabel} <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a>`;
+}
+
 function switchTab(tab) {
     currentTab = tab;
     
@@ -35,27 +56,57 @@ function switchTab(tab) {
 
 // 单个交易分析
 async function analyzeSingle() {
-    const rawInput = document.getElementById('tx-hash').value.trim();
-    const txHash = normalizeTxInput(rawInput);
+    const mode = getSingleMode();
+    const rawInput = getSingleInputValue(mode).trim();
 
     if (!rawInput) {
-        showError('请输入交易哈希');
+        showError(mode === 'ir' ? '请输入IR JSON' : '请输入交易哈希');
         return;
     }
+
+    if (mode === 'ir') {
+        let parsedObj;
+        try {
+            parsedObj = JSON.parse(rawInput);
+        } catch (error) {
+            showError('IR JSON解析失败');
+            return;
+        }
+        const normalized = normalizeIrInput(parsedObj);
+        if (!normalized) {
+            showError('无法识别IR结构');
+            return;
+        }
+        showLoading();
+        hideError();
+        const built = await buildCompareResultFromIr('S', normalized);
+        hideLoading();
+        if (!built.success) {
+            showError(built.error || 'IR解析失败');
+            return;
+        }
+        singleResultData = built;
+        displaySingleResult(built);
+        return;
+    }
+
+    const txHash = normalizeTxInput(rawInput);
+    const parsed = parseBlocksecInput(rawInput);
+
     if (!txHash) {
         showError('无效的交易哈希或URL');
         return;
     }
-    
+
     showLoading();
     hideError();
-    
+
     try {
         const data = await fetchAnalyzeWithRetry('/api/analyze', { tx_hash: txHash }, 'single');
-        
         hideLoading();
-        
+
         if (data.success) {
+            data.source_url = parsed.simulationUrl || buildBlocksecTxUrl(txHash);
             singleResultData = data;
             displaySingleResult(data);
         } else {
@@ -80,13 +131,19 @@ async function analyzeCompare(side) {
 
     try {
         if (mode === 'ir') {
-            let irObj;
+            let parsedObj;
             try {
-                irObj = JSON.parse(rawInput);
+                parsedObj = JSON.parse(rawInput);
             } catch (error) {
                 showCompareStatus(side, 'IR JSON解析失败', 'error');
                 return;
             }
+            const normalized = normalizeIrInput(parsedObj);
+            if (!normalized) {
+                showCompareStatus(side, '无法识别IR结构', 'error');
+                return;
+            }
+            const irObj = normalized;
             const built = await buildCompareResultFromIr(side, irObj);
             if (!built.success) {
                 showCompareStatus(side, built.error || 'IR解析失败', 'error');
@@ -110,6 +167,7 @@ async function analyzeCompare(side) {
                 side
             );
             if (data.success) {
+                data.source_url = parsed.simulationUrl;
                 if (side === 'A') {
                     compareResultA = data;
                 } else {
@@ -135,6 +193,7 @@ async function analyzeCompare(side) {
         );
 
         if (data.success) {
+            data.source_url = buildBlocksecTxUrl(parsed.txHash);
             if (side === 'A') {
                 compareResultA = data;
             } else {
@@ -148,6 +207,37 @@ async function analyzeCompare(side) {
     } catch (error) {
         showCompareStatus(side, '请求失败: ' + error.message, 'error');
     }
+}
+
+function normalizeIrInput(input) {
+    if (!input || typeof input !== 'object') {
+        return null;
+    }
+    if (input.raw_ir && typeof input.raw_ir === 'object') {
+        const raw = input.raw_ir;
+        if (input.tx_hash && !raw.tx_hash) {
+            raw.tx_hash = input.tx_hash;
+        }
+        return raw;
+    }
+    if (input.ir_v1 && typeof input.ir_v1 === 'object') {
+        return input.ir_v1;
+    }
+    if (input.rootTrace) {
+        return input;
+    }
+    const keys = Object.keys(input);
+    if (keys.length === 1) {
+        const key = keys[0];
+        if (key.startsWith('0x') && key.length === 66 && typeof input[key] === 'object') {
+            const wrapped = input[key];
+            if (!wrapped.tx_hash) {
+                wrapped.tx_hash = key;
+            }
+            return wrapped;
+        }
+    }
+    return null;
 }
 
 function swapCompareInputs() {
@@ -169,6 +259,20 @@ function swapCompareInputs() {
         irA.value = irB.value;
         irB.value = tmpIr;
     }
+}
+
+function getSingleMode() {
+    const selected = document.querySelector('input[name="single-mode"]:checked');
+    return selected ? selected.value : 'url';
+}
+
+function getSingleInputValue(mode) {
+    if (mode === 'ir') {
+        const el = document.getElementById('single-ir-input');
+        return el ? el.value : '';
+    }
+    const el = document.getElementById('tx-hash');
+    return el ? el.value : '';
 }
 
 function showCompareStatus(side, message, type) {
@@ -348,7 +452,7 @@ async function buildCompareResultFromIr(side, irObj) {
         success: true,
         tx_hash: txHash,
         ir_v1: irObj,
-        ir_v1_json: JSON.stringify(irObj, null, 2),
+        ir_v1_json: formatJson(irObj),
         mermaid_dag: mermaidDag,
         stats: {
             swaps_count: counts.swaps,
@@ -406,9 +510,11 @@ function displaySingleResult(data) {
         </div>
     `;
     
-    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
+    const displayIr = stripTxHash(data.ir_v1);
+    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
     singleMermaidText = data.mermaid_dag || null;
     renderMermaid('single-mermaid', data.mermaid_dag);
+    renderSourceLink('single-source-url', 'BlockSec URL:', data.source_url);
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -416,28 +522,88 @@ function displaySingleResult(data) {
 
 function displayCompareResult() {
     const resultSection = document.getElementById('compare-result');
-    if (!resultSection || !compareResultA || !compareResultB) {
+    if (!resultSection) {
+        return;
+    }
+    const hasA = !!compareResultA;
+    const hasB = !!compareResultB;
+    if (!hasA && !hasB) {
         return;
     }
 
     const summary = document.getElementById('compare-summary');
-    summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+    if (hasA && hasB) {
+        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+    } else {
+        const done = hasA ? 'A' : 'B';
+        const pending = hasA ? 'B' : 'A';
+        summary.innerHTML = `
+            <div class="compare-card">
+                <h4>对比准备</h4>
+                <div class="compare-values">已完成 ${done}，请继续分析 ${pending} 以生成差异对比。</div>
+            </div>
+        `;
+    }
 
     const irA = document.getElementById('compare-ir-a');
     const irB = document.getElementById('compare-ir-b');
-    const irTextA = compareResultA.ir_v1_json || formatJson(compareResultA.ir_v1);
-    const irTextB = compareResultB.ir_v1_json || formatJson(compareResultB.ir_v1);
-    const diffHtml = buildDiffHtml(irTextA, irTextB);
-    irA.innerHTML = diffHtml.left;
-    irB.innerHTML = diffHtml.right;
-
-    renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
-    renderMermaid('compare-mermaid-b', compareResultB.mermaid_dag);
+    if (hasA && hasB) {
+        const irTextA = compareResultA.ir_v1_json
+            ? stripTxHashJson(compareResultA.ir_v1_json)
+            : formatJson(stripTxHash(compareResultA.ir_v1));
+        const irTextB = compareResultB.ir_v1_json
+            ? stripTxHashJson(compareResultB.ir_v1_json)
+            : formatJson(stripTxHash(compareResultB.ir_v1));
+        const diffHtml = buildDiffHtml(irTextA, irTextB);
+        irA.innerHTML = diffHtml.left;
+        irB.innerHTML = diffHtml.right;
+        renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
+        renderMermaid('compare-mermaid-b', compareResultB.mermaid_dag);
+        renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
+        renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
+    } else {
+        if (hasA) {
+            irA.textContent = compareResultA.ir_v1_json
+                ? stripTxHashJson(compareResultA.ir_v1_json)
+                : formatJson(stripTxHash(compareResultA.ir_v1));
+            setComparePlaceholder('compare-mermaid-a', compareResultA.mermaid_dag, '等待 DAG A');
+            renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
+        } else {
+            irA.textContent = '等待 Tx A';
+            setComparePlaceholder('compare-mermaid-a', null, '等待 Tx A');
+            renderSourceLink('compare-source-a', '', '');
+        }
+        if (hasB) {
+            irB.textContent = compareResultB.ir_v1_json
+                ? stripTxHashJson(compareResultB.ir_v1_json)
+                : formatJson(stripTxHash(compareResultB.ir_v1));
+            setComparePlaceholder('compare-mermaid-b', compareResultB.mermaid_dag, '等待 DAG B');
+            renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
+        } else {
+            irB.textContent = '等待 Tx B';
+            setComparePlaceholder('compare-mermaid-b', null, '等待 Tx B');
+            renderSourceLink('compare-source-b', '', '');
+        }
+    }
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 
     setupCompareSync();
+}
+
+function setComparePlaceholder(containerId, mermaidText, message) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+    if (!mermaidText) {
+        container.textContent = message;
+        container.style.display = 'block';
+        container.dataset.mermaidSvg = '';
+        return;
+    }
+    renderMermaid(containerId, mermaidText);
 }
 
 function buildCompareSummary(a, b) {
@@ -479,6 +645,25 @@ function buildCompareSummary(a, b) {
 }
 
 function buildDiffHtml(textA, textB) {
+    const parsedA = parseJsonMaybe(textA);
+    const parsedB = parseJsonMaybe(textB);
+    if (!parsedA || !parsedB) {
+        return buildLineDiffHtml(textA, textB);
+    }
+
+    const orderedA = orderIrForOutput(parsedA);
+    const orderedB = orderIrForOutput(parsedB);
+    const diffMap = buildPathDiffMap(orderedA, orderedB);
+    const left = renderJsonLines(orderedA, diffMap, 'left');
+    const right = renderJsonLines(orderedB, diffMap, 'right');
+
+    return {
+        left: `<div class="compare-diff">${left.join('')}</div>`,
+        right: `<div class="compare-diff">${right.join('')}</div>`
+    };
+}
+
+function buildLineDiffHtml(textA, textB) {
     const linesA = (textA || '').split('\n');
     const linesB = (textB || '').split('\n');
     const maxLines = Math.max(linesA.length, linesB.length);
@@ -499,6 +684,155 @@ function buildDiffHtml(textA, textB) {
         left: `<div class="compare-diff">${left.join('')}</div>`,
         right: `<div class="compare-diff">${right.join('')}</div>`
     };
+}
+
+function parseJsonMaybe(input) {
+    if (!input) {
+        return null;
+    }
+    if (typeof input === 'object') {
+        return input;
+    }
+    if (typeof input !== 'string') {
+        return null;
+    }
+    try {
+        return JSON.parse(input);
+    } catch (error) {
+        return null;
+    }
+}
+
+function buildPathDiffMap(leftObj, rightObj) {
+    const leftNodes = {};
+    const rightNodes = {};
+    const leftValues = {};
+    const rightValues = {};
+    collectPathInfo(leftObj, '', leftNodes, leftValues);
+    collectPathInfo(rightObj, '', rightNodes, rightValues);
+
+    const diffMap = {};
+    const allPaths = new Set([...Object.keys(leftNodes), ...Object.keys(rightNodes)]);
+    allPaths.forEach((path) => {
+        if (!path) {
+            return;
+        }
+        if (!leftNodes[path]) {
+            diffMap[path] = 'added';
+            return;
+        }
+        if (!rightNodes[path]) {
+            diffMap[path] = 'removed';
+            return;
+        }
+        if (leftNodes[path] !== rightNodes[path]) {
+            diffMap[path] = 'changed';
+            return;
+        }
+        if (leftNodes[path] === 'primitive' && leftValues[path] !== rightValues[path]) {
+            diffMap[path] = 'changed';
+        }
+    });
+    return diffMap;
+}
+
+function collectPathInfo(value, path, nodeMap, valueMap) {
+    const type = detectNodeType(value);
+    nodeMap[path] = type;
+    if (type === 'primitive') {
+        valueMap[path] = JSON.stringify(value);
+        return;
+    }
+    if (type === 'array') {
+        value.forEach((item, index) => {
+            collectPathInfo(item, `${path}[${index}]`, nodeMap, valueMap);
+        });
+        return;
+    }
+    if (type === 'object') {
+        Object.keys(value).forEach((key) => {
+            const nextPath = path ? `${path}.${key}` : key;
+            collectPathInfo(value[key], nextPath, nodeMap, valueMap);
+        });
+    }
+}
+
+function detectNodeType(value) {
+    if (value === null || value === undefined) {
+        return 'primitive';
+    }
+    if (Array.isArray(value)) {
+        return 'array';
+    }
+    if (typeof value === 'object') {
+        return 'object';
+    }
+    return 'primitive';
+}
+
+function renderJsonLines(value, diffMap, side) {
+    const lines = [];
+    renderJsonValue(value, null, '', true, diffMap, side, lines);
+    return lines;
+}
+
+function renderJsonValue(value, keyLabel, indent, isLast, diffMap, side, lines, path = '') {
+    const type = detectNodeType(value);
+    const prefix = keyLabel !== null ? `${indent}"${keyLabel}": ` : indent;
+    if (type === 'object') {
+        lines.push(buildDiffLine(`${prefix}{`, path, diffMap, side));
+        const keys = Object.keys(value);
+        keys.forEach((key, index) => {
+            const nextPath = path ? `${path}.${key}` : key;
+            renderJsonValue(
+                value[key],
+                key,
+                indent + '  ',
+                index === keys.length - 1,
+                diffMap,
+                side,
+                lines,
+                nextPath
+            );
+        });
+        lines.push(buildDiffLine(`${indent}}${isLast ? '' : ','}`, '', diffMap, side));
+        return;
+    }
+    if (type === 'array') {
+        lines.push(buildDiffLine(`${prefix}[`, path, diffMap, side));
+        value.forEach((item, index) => {
+            const nextPath = `${path}[${index}]`;
+            renderJsonValue(
+                item,
+                null,
+                indent + '  ',
+                index === value.length - 1,
+                diffMap,
+                side,
+                lines,
+                nextPath
+            );
+        });
+        lines.push(buildDiffLine(`${indent}]${isLast ? '' : ','}`, '', diffMap, side));
+        return;
+    }
+    const literal = JSON.stringify(value);
+    lines.push(buildDiffLine(`${prefix}${literal}${isLast ? '' : ','}`, path, diffMap, side));
+}
+
+function buildDiffLine(text, path, diffMap, side) {
+    let className = 'diff-line';
+    if (path && diffMap[path]) {
+        const status = diffMap[path];
+        if (status === 'changed') {
+            className = 'diff-line diff-changed';
+        } else if (status === 'added' && side === 'right') {
+            className = 'diff-line diff-added';
+        } else if (status === 'removed' && side === 'left') {
+            className = 'diff-line diff-removed';
+        }
+    }
+    return `<span class="${className}">${escapeHtml(text)}</span>`;
 }
 
 function setupCompareSync() {
@@ -603,6 +937,7 @@ async function analyzeSimulation() {
             hideLoading();
 
             if (data.success) {
+                data.source_url = simUrl;
                 simulationResultData = data;
                 displaySimulationResult(data);
             } else {
@@ -671,8 +1006,10 @@ function displaySimulationResult(data) {
     `;
 
     outputDiv.style.display = 'none';
-    irDiv.textContent = data.ir_v1_json || formatJson(data.ir_v1);
+    const displayIr = stripTxHash(data.ir_v1);
+    irDiv.textContent = data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(displayIr);
     irDiv.style.display = 'block';
+    renderSourceLink('simulation-source-url', 'BlockSec URL:', data.simulation_url || data.source_url);
 
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
@@ -720,10 +1057,11 @@ function downloadCompareResult(side) {
         showError(`没有可下载的结果 (${side})`);
         return;
     }
+    const stripped = stripTxHash(data.ir_v1);
     requestDownload({
         tx_hash: data.tx_hash,
-        ir_v1: data.ir_v1,
-        ir_v1_json: data.ir_v1_json,
+        ir_v1: stripped,
+        ir_v1_json: data.ir_v1_json ? stripTxHashJson(data.ir_v1_json) : formatJson(stripped),
         output_type: 'ir_v1'
     });
 }
@@ -1083,17 +1421,18 @@ function downloadResult(type) {
     let data;
     
     if (type === 'single' && singleResultData) {
+        const stripped = stripTxHash(singleResultData.ir_v1);
         data = {
             tx_hash: singleResultData.tx_hash,
-            ir_v1: singleResultData.ir_v1,
-            ir_v1_json: singleResultData.ir_v1_json,
+            ir_v1: stripped,
+            ir_v1_json: singleResultData.ir_v1_json ? stripTxHashJson(singleResultData.ir_v1_json) : formatJson(stripped),
             output_type: 'ir_v1'
         };
     } else if (type === 'simulation' && simulationResultData) {
         if (simulationResultData.results) {
             const allOutput = simulationResultData.results
                 .filter(r => r.success)
-                .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
+                .map(r => r.ir_v1_json || formatJson(r.ir_v1));
             data = {
                 tx_hash: 'simulation_batch',
                 ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1111,7 +1450,7 @@ function downloadResult(type) {
         // 批量下载所有结果
         const allOutput = batchResultData.results
             .filter(r => r.success)
-            .map(r => r.ir_v1_json || JSON.stringify(r.ir_v1, null, 2));
+            .map(r => r.ir_v1_json || formatJson(r.ir_v1));
         data = {
             tx_hash: 'batch',
             ir_v1_json: `[\n${allOutput.join(',\n')}\n]`,
@@ -1211,45 +1550,175 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+const IR_TOP_LEVEL_ORDER = ["pattern", "baseTokenAmountIn", "baseTokenAmountOut", "rootTrace", "children"];
+const IR_ROOT_TRACE_ORDER = ["type", "swap", "transfer", "wethWrapOrUnwarp", "callback", "encoded"];
+const IR_SWAP_ORDER = ["swapIntent", "executionArgs"];
+const IR_SWAP_INTENT_ORDER = [
+    "poolId",
+    "protocolId",
+    "tokenIn",
+    "tokenInDecimals",
+    "tokenOut",
+    "tokenOutDecimals",
+    "amountIn",
+    "amountInBig",
+    "amountInEncoded",
+    "amountOut",
+    "amountOutBig",
+    "amountOutEncoded"
+];
+const IR_EXEC_ARGS_ORDER = [
+    "amount",
+    "isAmountIn",
+    "zeroForOne",
+    "recipientIsBot",
+    "recipient",
+    "recipientType",
+    "tokenInIsWETH",
+    "tokenOutIsWETH"
+];
+const IR_TRANSFER_ORDER = ["tokenId", "to", "amount"];
+
+function orderedByKeys(data, keyOrder) {
+    const ordered = {};
+    keyOrder.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            ordered[key] = data[key];
+        }
+    });
+    Object.keys(data).forEach(key => {
+        if (!Object.prototype.hasOwnProperty.call(ordered, key)) {
+            ordered[key] = data[key];
+        }
+    });
+    return ordered;
+}
+
+function orderIrValue(value) {
+    if (Array.isArray(value)) {
+        return value.map(item => orderIrValue(item));
+    }
+    if (value && typeof value === 'object') {
+        return orderIrDict(value);
+    }
+    return value;
+}
+
+function orderIrDict(data) {
+    const processed = {};
+    Object.keys(data).forEach(key => {
+        processed[key] = orderIrValue(data[key]);
+    });
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'rootTrace')
+        && Object.prototype.hasOwnProperty.call(processed, 'children')) {
+        const order = (Object.prototype.hasOwnProperty.call(processed, 'tx_hash')
+            ? ['tx_hash'] : []).concat(IR_TOP_LEVEL_ORDER);
+        return orderedByKeys(processed, order);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'swapIntent')
+        || Object.prototype.hasOwnProperty.call(processed, 'executionArgs')) {
+        const ordered = orderedByKeys(processed, IR_SWAP_ORDER);
+        if (ordered.swapIntent && typeof ordered.swapIntent === 'object') {
+            ordered.swapIntent = orderedByKeys(ordered.swapIntent, IR_SWAP_INTENT_ORDER);
+        }
+        if (ordered.executionArgs && typeof ordered.executionArgs === 'object') {
+            ordered.executionArgs = orderedByKeys(ordered.executionArgs, IR_EXEC_ARGS_ORDER);
+        }
+        return ordered;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'poolId')
+        && Object.prototype.hasOwnProperty.call(processed, 'protocolId')
+        && (Object.prototype.hasOwnProperty.call(processed, 'tokenIn')
+            || Object.prototype.hasOwnProperty.call(processed, 'tokenOut'))) {
+        return orderedByKeys(processed, IR_SWAP_INTENT_ORDER);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'type')
+        && (Object.prototype.hasOwnProperty.call(processed, 'swap')
+            || Object.prototype.hasOwnProperty.call(processed, 'transfer'))) {
+        return orderedByKeys(processed, IR_ROOT_TRACE_ORDER);
+    }
+
+    if (IR_TRANSFER_ORDER.every(key => Object.prototype.hasOwnProperty.call(processed, key))) {
+        return orderedByKeys(processed, IR_TRANSFER_ORDER);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(processed, 'tx_hash')) {
+        return orderedByKeys(processed, ['tx_hash']);
+    }
+
+    return processed;
+}
+
+function orderIrForOutput(data) {
+    if (!data) {
+        return data;
+    }
+    if (Array.isArray(data)) {
+        return data.map(item => orderIrForOutput(item));
+    }
+    if (typeof data !== 'object') {
+        return data;
+    }
+    return orderIrDict(data);
+}
+
 function formatJson(data) {
     if (!data) {
         return 'N/A';
     }
     try {
-        return JSON.stringify(prioritizeTxHash(data), null, 2);
+        return JSON.stringify(orderIrForOutput(data), null, 2);
     } catch (error) {
         return 'Invalid JSON';
     }
 }
 
-function prioritizeTxHash(data) {
-    if (!data) {
-        return data;
-    }
-    if (Array.isArray(data)) {
-        return data.map(item => prioritizeTxHash(item));
-    }
-    if (typeof data !== 'object') {
+function stripTxHash(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
         return data;
     }
     if (!Object.prototype.hasOwnProperty.call(data, 'tx_hash')) {
         return data;
     }
-    const reordered = { tx_hash: data.tx_hash };
-    Object.keys(data).forEach(key => {
-        if (key !== 'tx_hash') {
-            reordered[key] = data[key];
-        }
-    });
-    return reordered;
+    const { tx_hash, ...rest } = data;
+    return rest;
+}
+
+function stripTxHashJson(text) {
+    try {
+        const parsed = JSON.parse(text);
+        return formatJson(stripTxHash(parsed));
+    } catch (error) {
+        return text;
+    }
+}
+
+function prioritizeTxHash(data) {
+    return orderIrForOutput(data);
 }
 
 // 支持回车键提交
-document.getElementById('tx-hash').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        analyzeSingle();
-    }
-});
+const singleUrl = document.getElementById('tx-hash');
+const singleIr = document.getElementById('single-ir-input');
+if (singleUrl) {
+    singleUrl.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            analyzeSingle();
+        }
+    });
+}
+if (singleIr) {
+    singleIr.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            analyzeSingle();
+        }
+    });
+}
 
 document.getElementById('simulation-url').addEventListener('keypress', function(e) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -1298,6 +1767,19 @@ document.querySelectorAll('input[name="compare-mode-a"]').forEach((radio) => {
 });
 document.querySelectorAll('input[name="compare-mode-b"]').forEach((radio) => {
     radio.addEventListener('change', () => toggleCompareMode('B'));
+});
+
+document.querySelectorAll('input[name="single-mode"]').forEach((radio) => {
+    radio.addEventListener('change', (event) => {
+        const mode = event.target.value;
+        const urlBlock = document.getElementById('single-input-url');
+        const irBlock = document.getElementById('single-input-ir');
+        if (!urlBlock || !irBlock) {
+            return;
+        }
+        urlBlock.style.display = mode === 'url' ? 'flex' : 'none';
+        irBlock.style.display = mode === 'ir' ? 'block' : 'none';
+    });
 });
 
 toggleCompareMode('A');
