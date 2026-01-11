@@ -30,6 +30,7 @@ ENV/
 !requirements.txt
 !example_tx_hashes.csv
 !test_cases.yaml
+!tests/fixtures/*.json
 
 # Logs
 *.log
