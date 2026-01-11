@@ -31,6 +31,9 @@ ENV/
 !example_tx_hashes.csv
 !test_cases.yaml
 !tests/fixtures/*.json
+tests/fixtures/sample_data_map.json
+tests/fixtures/sample_main_trace.json
+tests/fixtures/tx_analysis_0xc45.json
 
 # Logs
 *.log
