@@ -533,6 +533,7 @@ function displayCompareResult() {
     }
 
     const summary = document.getElementById('compare-summary');
+    const identicalNotice = document.getElementById('compare-identical');
     if (hasA && hasB) {
         summary.innerHTML = '';
     } else {
@@ -552,7 +553,10 @@ function displayCompareResult() {
         const irTextA = formatIrPayload(compareResultA.ir_v1_json || compareResultA.ir_v1, { stripTxHash: true });
         const irTextB = formatIrPayload(compareResultB.ir_v1_json || compareResultB.ir_v1, { stripTxHash: true });
         const diffHtml = buildDiffHtml(irTextA, irTextB);
-        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB, !diffHtml.hasDiff);
+        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+        if (identicalNotice) {
+            identicalNotice.style.display = diffHtml.hasDiff ? 'none' : 'flex';
+        }
         irA.innerHTML = diffHtml.left;
         irB.innerHTML = diffHtml.right;
         renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
@@ -560,6 +564,9 @@ function displayCompareResult() {
         renderSourceLink('compare-source-a', 'BlockSec URL:', compareResultA.source_url);
         renderSourceLink('compare-source-b', 'BlockSec URL:', compareResultB.source_url);
     } else {
+        if (identicalNotice) {
+            identicalNotice.style.display = 'none';
+        }
         if (hasA) {
             irA.textContent = formatIrPayload(compareResultA.ir_v1_json || compareResultA.ir_v1, { stripTxHash: true });
             setComparePlaceholder('compare-mermaid-a', compareResultA.mermaid_dag, '等待 DAG A');
@@ -600,19 +607,13 @@ function setComparePlaceholder(containerId, mermaidText, message) {
     renderMermaid(containerId, mermaidText);
 }
 
-function buildCompareSummary(a, b, isIdentical = false) {
+function buildCompareSummary(a, b) {
     const aStats = a.stats || {};
     const bStats = b.stats || {};
     const aPath = getRootPath(a.ir_v1);
     const bPath = getRootPath(b.ir_v1);
 
     return `
-        ${isIdentical ? `
-        <div class="compare-card">
-            <h4>一致性</h4>
-            <div class="compare-values">两侧 IR 结果完全相同。</div>
-        </div>
-        ` : ''}
         <div class="compare-card">
             <h4>Swaps</h4>
             <div class="compare-values">
