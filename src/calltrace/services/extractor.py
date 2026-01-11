@@ -18,6 +18,9 @@ class BlockSecExtractor:
         "address-label": "address_label",
         "basic-info": "basic_info",
         "gas-flame": "gas_flame",
+        "attack-event": "attack_event",
+        "top-profit-loss": "top_profit_loss",
+        "state-change": "state_change",
     }
 
     @staticmethod

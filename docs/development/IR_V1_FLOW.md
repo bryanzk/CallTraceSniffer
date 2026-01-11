@@ -10,11 +10,11 @@ This document explains the **standard IR generation flow** for BlockSec calltrac
 
 **EN**
 - Input is a BlockSec `trace_data` object with `dataMap` + `mainTrace`.
-- The IR output must follow the exact schema in `local/new-ir-from-yixin/IR_test_cases.json`.
+- The IR output must follow the exact schema in `tests/fixtures/verified_ir_cases.json`.
 
 **中文**
 - 输入为 BlockSec 的 `trace_data`（包含 `dataMap` 与 `mainTrace`）。
-- 输出 IR 必须严格符合 `local/new-ir-from-yixin/IR_test_cases.json` 中的结构规范。
+- 输出 IR 必须严格符合 `tests/fixtures/verified_ir_cases.json` 中的结构规范。
 
 ---
 
@@ -163,13 +163,13 @@ For WETH transfers:
 ## 10. Deterministic Compatibility / 与测试用例一致性
 
 **EN**
-- The output is deterministic and matches the JSON shape of `IR_test_cases.json`.
+- The output is deterministic and matches the JSON shape of `verified_ir_cases.json`.
 - Exact alignment is validated for:
   - `0xe42c...` case1
   - `0xe8e213...` case2
 
 **中文**
-- 输出稳定且与 `IR_test_cases.json` 结构一致。
+- 输出稳定且与 `verified_ir_cases.json` 结构一致。
 - 已对齐验证：
   - `0xe42c...` case1
   - `0xe8e213...` case2

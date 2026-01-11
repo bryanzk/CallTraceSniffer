@@ -65,7 +65,7 @@ def _assert_trace_node(node, path):
 
 
 def test_helin_ir_cases_smoke():
-    data = json.loads(Path("tests/fixtures/from helin ir cases.json").read_text())
+    data = json.loads(Path("tests/fixtures/verified_ir_cases.json").read_text())
     assert len(data) == 2
     for tx_hash, ir in data.items():
         assert isinstance(tx_hash, str)

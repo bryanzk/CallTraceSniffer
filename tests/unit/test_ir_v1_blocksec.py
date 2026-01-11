@@ -27,14 +27,93 @@ def _transfer_log(token_addr, from_addr, to_addr, amount):
     }
 
 
+def _transfer_event(token_addr, from_addr, to_addr, amount):
+    return {
+        "nodeType": 1,
+        "event": {
+            "contract": token_addr.lower(),
+            "decodedLog": {
+                "name": "Transfer",
+                "params": [
+                    {"name": "from", "value": from_addr},
+                    {"name": "to", "value": to_addr},
+                    {"name": "value", "value": amount},
+                ],
+            },
+        },
+    }
+
+
+def test_collect_transfer_nodes_prefers_event():
+    pool = "0x1111111111111111111111111111111111111111"
+    data_map = {
+        "1": _transfer_event(config.WETH, "0xaaaa", pool, 100),
+        "2": {
+            "invocation": {
+                "address": config.WETH.lower(),
+                "decodedMethod": {
+                    "name": "transfer",
+                    "callParams": [
+                        {"name": "to", "value": pool},
+                        {"name": "amount", "value": 200},
+                    ],
+                },
+            },
+        },
+    }
+    transfers = v1._collect_transfer_nodes(data_map, {pool.lower()}, {"1": 1, "2": 2})
+    assert len(transfers) == 1
+    transfer_data = v1._extract_transfer(transfers[0]["invocation"])
+    assert transfer_data["amount"] == 100
+
+
+def test_collect_transfer_nodes_falls_back_to_invocation():
+    pool = "0x2222222222222222222222222222222222222222"
+    data_map = {
+        "2": {
+            "invocation": {
+                "address": config.WETH.lower(),
+                "decodedMethod": {
+                    "name": "transfer",
+                    "callParams": [
+                        {"name": "to", "value": pool},
+                        {"name": "amount", "value": 200},
+                    ],
+                },
+            },
+        },
+    }
+    transfers = v1._collect_transfer_nodes(data_map, {pool.lower()}, {"2": 2})
+    assert len(transfers) == 1
+    transfer_data = v1._extract_transfer(transfers[0]["invocation"])
+    assert transfer_data["amount"] == 200
+
+
+def test_normalize_transfer_amount_fallback_to_one():
+    pool = "0x3333333333333333333333333333333333333333"
+    swap_nodes = {
+        pool: {
+            "swap": {"swapIntent": {"protocolId": 3, "tokenOut": config.USDC.lower()}},
+        },
+    }
+    pool_addr_to_keys = {pool: [pool]}
+    transfer = {"tokenId": config.WETH.lower(), "to": pool, "amount": 0}
+    amount = v1._normalize_transfer_amount(transfer, True, pool_addr_to_keys, swap_nodes)
+    assert amount == 1
+
+
 def test_protocol_from_logs_priority():
     pool = "0x1111111111111111111111111111111111111111"
     logs = [
         {"address": pool, "topics": [v1.TOPIC_V3]},
         {"address": pool, "topics": [v1.TOPIC_V4]},
     ]
-    assert v1._protocol_from_logs(logs, pool, "") == 4
-    assert v1._protocol_from_logs([], pool, "0x022c0d9f") == 2
+    assert v1._protocol_from_logs(logs, pool, "", pool_id=pool) == 4
+    assert v1._protocol_from_logs([], pool, "", pool_id=f"{pool}|0xdead") == 4
+    assert v1._protocol_from_logs([], pool, "0x022c0d9f", pool_id=pool) == 2
+    assert v1._protocol_from_logs([], pool, "", pool_id=pool, address_label_map={
+        pool.lower(): "Uniswap V3: pool"
+    }) == 3
 
 
 def test_infer_tokens_from_transfer_logs():
@@ -72,12 +151,57 @@ def test_extract_swap_v3_rounds_weth_output():
             ],
         },
     }
-    swap = v1._extract_swap(invocation, logs, {pool}, dict(v1.TOKEN_DECIMALS))
+    swap = v1._extract_swap(invocation, logs, {pool}, dict(v1.TOKEN_DECIMALS), {})
     intent = swap["swapIntent"]
     assert intent["tokenIn"] == config.USDC.lower()
     assert intent["tokenOut"] == config.WETH.lower()
     assert intent["amountInBig"] == 1000
     assert intent["amountOutBig"] == 256
+
+
+def test_extract_swap_preserves_amounts_without_decimals():
+    pool = "0x6666666666666666666666666666666666666666"
+    token_in = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    token_out = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    logs = [
+        _transfer_log(token_in, "0xaaaa", pool, 1234),
+        _transfer_log(token_out, pool, "0xbbbb", 5678),
+    ]
+    invocation = {
+        "address": pool,
+        "decodedMethod": {"name": "swap", "callParams": []},
+    }
+    swap = v1._extract_swap(invocation, logs, {pool}, {}, {})
+    intent = swap["swapIntent"]
+    assert intent["tokenIn"] == token_in.lower()
+    assert intent["tokenOut"] == token_out.lower()
+    assert intent["amountInBig"] == 1234
+    assert intent["amountOutBig"] == 5678
+    assert "tokenInDecimals" not in intent
+    assert "tokenOutDecimals" not in intent
+
+
+def test_extract_swap_partial_decimals():
+    pool = "0x7777777777777777777777777777777777777777"
+    token_in = config.USDC
+    token_out = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    logs = [
+        _transfer_log(token_in, "0xaaaa", pool, 1234000),
+        _transfer_log(token_out, pool, "0xbbbb", 5678),
+    ]
+    invocation = {
+        "address": pool,
+        "decodedMethod": {"name": "swap", "callParams": []},
+    }
+    swap = v1._extract_swap(invocation, logs, {pool}, {token_in.lower(): 6}, {})
+    intent = swap["swapIntent"]
+    assert intent["tokenIn"] == token_in.lower()
+    assert intent["tokenInDecimals"] == 6
+    assert intent["amountIn"] == 1.234
+    assert intent["amountInEncoded"] == f"{v1._encode_amount(token_in, intent['amountInBig']):010x}"
+    assert "tokenOutDecimals" not in intent
+    assert "amountOut" not in intent
+    assert "amountOutEncoded" not in intent
 
 
 def test_extract_swap_v4_pool_id_and_tokens():
@@ -106,7 +230,7 @@ def test_extract_swap_v4_pool_id_and_tokens():
             "returnParams": [],
         },
     }
-    swap = v1._extract_swap(invocation, logs, {pool}, dict(v1.TOKEN_DECIMALS))
+    swap = v1._extract_swap(invocation, logs, {pool}, dict(v1.TOKEN_DECIMALS), {})
     intent = swap["swapIntent"]
     assert intent["protocolId"] == 4
     expected_pool_id = v1._canonical_pool_id(f"{pool}|{topic_pool_id}")
@@ -114,6 +238,19 @@ def test_extract_swap_v4_pool_id_and_tokens():
     assert intent["tokenIn"] == config.USDC.lower()
     assert intent["tokenOut"] == config.WETH.lower()
     assert swap["executionArgs"]["recipientType"] == 1
+
+
+def test_normalize_execution_args_sets_flags_and_zero_for_one():
+    intent = {
+        "protocolId": 2,
+        "tokenIn": config.WETH,
+        "tokenOut": config.USDC,
+    }
+    exec_args = {"zeroForOne": None, "tokenInIsWETH": False, "tokenOutIsWETH": False}
+    normalized = v1._normalize_execution_args(intent, exec_args)
+    assert normalized["tokenInIsWETH"] is True
+    assert normalized["tokenOutIsWETH"] is False
+    assert normalized["zeroForOne"] == (config.WETH.lower() < config.USDC.lower())
 
 
 def test_build_blocksec_ir_empty():
