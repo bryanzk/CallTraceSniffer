@@ -106,6 +106,7 @@ async function analyzeSingle() {
         hideLoading();
 
         if (data.success) {
+            hideError();
             data.source_url = parsed.simulationUrl || buildBlocksecTxUrl(txHash);
             singleResultData = data;
             displaySingleResult(data);
@@ -533,7 +534,7 @@ function displayCompareResult() {
 
     const summary = document.getElementById('compare-summary');
     if (hasA && hasB) {
-        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB);
+        summary.innerHTML = '';
     } else {
         const done = hasA ? 'A' : 'B';
         const pending = hasA ? 'B' : 'A';
@@ -551,6 +552,7 @@ function displayCompareResult() {
         const irTextA = formatIrPayload(compareResultA.ir_v1_json || compareResultA.ir_v1, { stripTxHash: true });
         const irTextB = formatIrPayload(compareResultB.ir_v1_json || compareResultB.ir_v1, { stripTxHash: true });
         const diffHtml = buildDiffHtml(irTextA, irTextB);
+        summary.innerHTML = buildCompareSummary(compareResultA, compareResultB, !diffHtml.hasDiff);
         irA.innerHTML = diffHtml.left;
         irB.innerHTML = diffHtml.right;
         renderMermaid('compare-mermaid-a', compareResultA.mermaid_dag);
@@ -598,13 +600,19 @@ function setComparePlaceholder(containerId, mermaidText, message) {
     renderMermaid(containerId, mermaidText);
 }
 
-function buildCompareSummary(a, b) {
+function buildCompareSummary(a, b, isIdentical = false) {
     const aStats = a.stats || {};
     const bStats = b.stats || {};
     const aPath = getRootPath(a.ir_v1);
     const bPath = getRootPath(b.ir_v1);
 
     return `
+        ${isIdentical ? `
+        <div class="compare-card">
+            <h4>一致性</h4>
+            <div class="compare-values">两侧 IR 结果完全相同。</div>
+        </div>
+        ` : ''}
         <div class="compare-card">
             <h4>Swaps</h4>
             <div class="compare-values">
@@ -646,12 +654,14 @@ function buildDiffHtml(textA, textB) {
     const orderedA = orderIrForOutput(parsedA);
     const orderedB = orderIrForOutput(parsedB);
     const diffMap = buildPathDiffMap(orderedA, orderedB);
+    const hasDiff = Object.keys(diffMap).length > 0;
     const left = renderJsonLines(orderedA, diffMap, 'left');
     const right = renderJsonLines(orderedB, diffMap, 'right');
 
     return {
         left: `<div class="compare-diff">${left.join('')}</div>`,
-        right: `<div class="compare-diff">${right.join('')}</div>`
+        right: `<div class="compare-diff">${right.join('')}</div>`,
+        hasDiff
     };
 }
 
@@ -674,7 +684,8 @@ function buildLineDiffHtml(textA, textB) {
 
     return {
         left: `<div class="compare-diff">${left.join('')}</div>`,
-        right: `<div class="compare-diff">${right.join('')}</div>`
+        right: `<div class="compare-diff">${right.join('')}</div>`,
+        hasDiff: (textA || '') !== (textB || '')
     };
 }
 
