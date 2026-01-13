@@ -276,8 +276,11 @@ class AnalysisService:
         )
 
     def analyze_simulation(self, sim_url: str) -> ServiceResult:
+        # 使用注入的 extractor 工厂创建实例，然后调用 parse_simulation_url
+        # 保持依赖注入的一致性，而非直接调用 BlockSecExtractor 类
+        extractor = self._extractor_factory()
         try:
-            tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
+            tx_hash, _ = extractor.parse_simulation_url(sim_url)
         except Exception as exc:
             return ServiceResult(payload=None, error=str(exc), status_code=400)
 
@@ -291,7 +294,6 @@ class AnalysisService:
                 missing_trace_error="未找到simulation trace数据",
             )
 
-        extractor = self._extractor_factory()
         result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
         return self._build_analysis_from_result(
             tx_hash=tx_hash,

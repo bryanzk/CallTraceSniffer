@@ -36,7 +36,7 @@ def test_simulate_and_analyze_uses_prebuilt_payload(monkeypatch):
             "trace_data": {"dataMap": {}, "mainTrace": {}},
         }
 
-    def fake_process_tx_data(trace_data, tx_hash_arg, extra):
+    def fake_process_tx_data(trace_data, tx_hash_arg, extra, router_config=None):
         return {"ir_v1": {"rootTrace": None}, "ir_v1_json": "{}", "stats": {}}
 
     monkeypatch.setattr(routes, "build_simulation_request_payload", fake_build_simulation_request_payload)

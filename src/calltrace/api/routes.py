@@ -255,7 +255,8 @@ def register_routes(app, extracted_data_cache):
         extractor = BlockSecExtractor()
         for sim_url in sim_urls:
             try:
-                tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
+                # 通过实例调用 parse_simulation_url，保持一致性
+                tx_hash, _ = extractor.parse_simulation_url(sim_url)
             except Exception as e:
                 results.append({
                     'simulation_url': sim_url,

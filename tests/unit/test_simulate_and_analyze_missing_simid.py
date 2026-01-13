@@ -27,7 +27,7 @@ def test_simulate_and_analyze_missing_simulation_id_uses_tx_hash(monkeypatch):
             "trace_data": {"dataMap": {}, "mainTrace": {}},
         }
 
-    def fake_process_tx_data(trace_data, tx_hash_arg, extra):
+    def fake_process_tx_data(trace_data, tx_hash_arg, extra, router_config=None):
         return {"ir_v1": {"rootTrace": None}, "ir_v1_json": "{}", "stats": {}}
 
     monkeypatch.setattr(routes, "run_simulation_with_payload", fake_run_simulation_with_payload)
