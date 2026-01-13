@@ -303,6 +303,39 @@ async function loadLocalBlocksecCookies() {
     }
 }
 
+function triggerBlocksecCookieUpload() {
+    const input = document.getElementById('blocksec-cookie-file');
+    if (input) {
+        input.click();
+    }
+}
+
+async function uploadBlocksecCookieFile(file) {
+    if (!file) {
+        return;
+    }
+    const formData = new FormData();
+    formData.append('cookie_file', file);
+    try {
+        showLoading();
+        hideError();
+        const response = await fetch('/api/blocksec-cookies', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        hideLoading();
+        if (data.success) {
+            showError('Cookie 已上传');
+        } else {
+            showError(data.error || 'Cookie 上传失败');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Cookie 上传失败: ' + error.message);
+    }
+}
+
 function getSingleInputValue(mode) {
     if (mode === 'ir') {
         const el = document.getElementById('single-ir-input');
@@ -2031,6 +2064,17 @@ document.querySelectorAll('input[name="single-mode"]').forEach((radio) => {
 document.querySelectorAll('input[name="simulation-mode"]').forEach((radio) => {
     radio.addEventListener('change', () => toggleSimulationMode());
 });
+
+const blocksecCookieInput = document.getElementById('blocksec-cookie-file');
+if (blocksecCookieInput) {
+    blocksecCookieInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) {
+            uploadBlocksecCookieFile(file);
+            event.target.value = '';
+        }
+    });
+}
 
 toggleCompareMode('A');
 toggleCompareMode('B');

@@ -171,6 +171,8 @@
         <div id="simulation-tab" class="tab-content">
             <div class="input-section">
                 <div class="compare-mode-toggle">
+                    <button onclick="triggerBlocksecCookieUpload()" class="btn btn-secondary btn-small">上传Cookie</button>
+                    <input type="file" id="blocksec-cookie-file" accept=".json" style="display: none;">
                     <button onclick="loadLocalBlocksecCookies()" class="btn btn-secondary btn-small">加载本地Cookie</button>
                 </div>
                 <div class="compare-mode-toggle">

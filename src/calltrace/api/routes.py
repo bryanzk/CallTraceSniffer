@@ -409,6 +409,27 @@ def register_routes(app, extracted_data_cache):
         except Exception as e:
             return jsonify({'success': False, 'error': f'加载cookie失败: {str(e)}'}), 500
 
+    @app.route('/api/blocksec-cookies', methods=['POST'])
+    def upload_blocksec_cookies():
+        """上传 BlockSec cookies 文件"""
+        if 'cookie_file' not in request.files:
+            return jsonify({'success': False, 'error': '未找到cookie文件'}), 400
+        file = request.files['cookie_file']
+        if not file or not file.filename:
+            return jsonify({'success': False, 'error': 'cookie文件为空'}), 400
+        try:
+            raw = file.read()
+            payload = json.loads(raw.decode('utf-8'))
+            if not isinstance(payload, (list, dict)):
+                return jsonify({'success': False, 'error': 'cookie文件格式不正确'}), 400
+            cookie_path = resolve_cookie_file()
+            cookie_path.parent.mkdir(parents=True, exist_ok=True)
+            with cookie_path.open('w') as f:
+                json.dump(payload, f)
+            return jsonify({'success': True, 'path': str(cookie_path)})
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'保存cookie失败: {str(e)}'}), 500
+
     @app.route('/api/analyze-simulation-batch', methods=['POST'])
     def analyze_simulation_batch():
         """批量分析模拟交易"""
