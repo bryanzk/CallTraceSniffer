@@ -37,6 +37,25 @@ def _serialize_ir_payload(payload, tx_hash):
 
 
 
+def _response_from_service_result(result):
+    if not result.ok:
+        response = jsonify({'success': False, 'error': result.error})
+        response.status_code = result.status_code
+        return response
+
+    analysis = result.payload['analysis']
+    response = jsonify({
+        'success': True,
+        'tx_hash': result.payload['tx_hash'],
+        'ir_v1': analysis['ir_v1'],
+        'ir_v1_json': analysis['ir_v1_json'],
+        'mermaid_dag': result.payload['mermaid_dag'],
+        'stats': analysis['stats']
+    })
+    response.status_code = 200
+    return response
+
+
 
 def register_routes(app, extracted_data_cache):
     """注册API路由"""
@@ -55,18 +74,7 @@ def register_routes(app, extracted_data_cache):
 
         try:
             result = analysis_service.analyze_tx(tx_hash)
-            if not result.ok:
-                return jsonify({'success': False, 'error': result.error}), result.status_code
-
-            analysis = result.payload['analysis']
-            return jsonify({
-                'success': True,
-                'tx_hash': tx_hash,
-                'ir_v1': analysis['ir_v1'],
-                'ir_v1_json': analysis['ir_v1_json'],
-                'mermaid_dag': result.payload['mermaid_dag'],
-                'stats': analysis['stats']
-            })
+            return _response_from_service_result(result)
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
 
@@ -190,18 +198,7 @@ def register_routes(app, extracted_data_cache):
 
         try:
             result = analysis_service.analyze_simulation(sim_url)
-            if not result.ok:
-                return jsonify({'success': False, 'error': result.error}), result.status_code
-
-            analysis = result.payload['analysis']
-            return jsonify({
-                'success': True,
-                'tx_hash': result.payload['tx_hash'],
-                'ir_v1': analysis['ir_v1'],
-                'ir_v1_json': analysis['ir_v1_json'],
-                'mermaid_dag': result.payload['mermaid_dag'],
-                'stats': analysis['stats']
-            })
+            return _response_from_service_result(result)
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
 
