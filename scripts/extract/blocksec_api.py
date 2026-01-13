@@ -9,19 +9,18 @@ BlockSec Simulation API Client
 """
 import argparse
 import json
-import time
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import requests
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
 
-# BlockSec API 端点
-API_BASE = "https://app.blocksec.com/api/v1"
-SIMULATION_ENDPOINT = f"{API_BASE}/tx/simulation"
-TRACE_ENDPOINT = f"{API_BASE}/simulation/tx/trace"
-BALANCE_CHANGE_ENDPOINT = f"{API_BASE}/simulation/tx/balance-change"
-BASIC_INFO_ENDPOINT = f"{API_BASE}/simulation/tx/basic-info"
+from calltrace.services.blocksec_simulation import (
+    build_simulation_request_payload,
+    run_simulation_with_payload,
+)
 
 
 @dataclass
@@ -76,127 +75,6 @@ def _load_api_payload(raw: Optional[str]) -> Optional[Dict[str, Any]]:
         with open(path) as f:
             return json.load(f)
     return json.loads(raw)
-
-
-class BlockSecAPIClient:
-    """BlockSec API 客户端"""
-    
-    def __init__(self, cookies: Optional[Dict[str, str]] = None, cookie_file: Optional[str] = None):
-        """
-        初始化客户端
-        
-        Args:
-            cookies: 手动提供的 cookies 字典
-            cookie_file: cookies JSON 文件路径
-        """
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Content-Type": "application/json",
-            "Origin": "https://app.blocksec.com",
-            "Referer": "https://app.blocksec.com/",
-        })
-        
-        if cookie_file:
-            self._load_cookies_from_file(cookie_file)
-        elif cookies:
-            for name, value in cookies.items():
-                self.session.cookies.set(name, value, domain=".blocksec.com")
-    
-    def _load_cookies_from_file(self, cookie_file: str) -> None:
-        """从文件加载 cookies"""
-        path = Path(cookie_file)
-        if not path.exists():
-            raise FileNotFoundError(f"Cookie file not found: {cookie_file}")
-        
-        with open(path) as f:
-            cookies = json.load(f)
-        
-        # 支持多种格式
-        if isinstance(cookies, list):
-            # Chrome/Playwright 导出格式
-            for cookie in cookies:
-                self.session.cookies.set(
-                    cookie.get("name"),
-                    cookie.get("value"),
-                    domain=cookie.get("domain", ".blocksec.com")
-                )
-        elif isinstance(cookies, dict):
-            # 简单字典格式
-            for name, value in cookies.items():
-                self.session.cookies.set(name, value, domain=".blocksec.com")
-    
-    def simulate(self, params: Optional[SimulationParams] = None, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        执行模拟
-        
-        Args:
-            params: 模拟参数
-            payload: 直接使用的 payload（优先于 params）
-            
-        Returns:
-            模拟结果，包含 simulationId 和 txHash
-        """
-        if payload is None:
-            if params is None:
-                raise ValueError("必须提供 params 或 payload")
-            payload = params.to_api_payload()
-        
-        response = self.session.post(
-            SIMULATION_ENDPOINT,
-            json=payload,
-            timeout=60
-        )
-        
-        if response.status_code == 403:
-            raise PermissionError(
-                "API 请求被拒绝 (403)。可能需要更新 Cloudflare cookies。\n"
-                "请使用 --extract-cookies 命令从浏览器提取 cookies。"
-            )
-        
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get("code") != 0:
-            raise RuntimeError(f"API 错误: {result.get('message', 'Unknown error')}")
-        
-        return result.get("data", {})
-    
-    def get_trace(self, simulation_id: str, timestamp: int, chain: str = "eth") -> Dict[str, Any]:
-        """获取模拟交易的 trace"""
-        payload = {
-            "chain": chain,
-            "simulationId": simulation_id,
-            "timestamp": timestamp,
-        }
-        
-        response = self.session.post(TRACE_ENDPOINT, json=payload, timeout=60)
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get("code") != 0:
-            raise RuntimeError(f"API 错误: {result.get('message', 'Unknown error')}")
-        
-        return result.get("data", {})
-    
-    def get_balance_change(self, simulation_id: str, timestamp: int, chain: str = "eth") -> Dict[str, Any]:
-        """获取余额变化"""
-        payload = {
-            "chain": chain,
-            "simulationId": simulation_id,
-            "timestamp": timestamp,
-        }
-        
-        response = self.session.post(BALANCE_CHANGE_ENDPOINT, json=payload, timeout=60)
-        response.raise_for_status()
-        result = response.json()
-        
-        if result.get("code") != 0:
-            raise RuntimeError(f"API 错误: {result.get('message', 'Unknown error')}")
-        
-        return result.get("data", {})
 
 
 def extract_cookies_from_browser(
@@ -292,51 +170,37 @@ def run_simulation_with_api(
     Returns:
         模拟结果
     """
-    client = BlockSecAPIClient(cookie_file=cookie_file)
-    
-    # 执行模拟
-    print(f"正在模拟交易...")
-    payload_to_send = custom_payload if custom_payload is not None else params.to_api_payload()
-    result = client.simulate(params=params, payload=payload_to_send)
-    
-    simulation_id = result.get("simulationId")
-    tx_hash = result.get("txHash") or result.get("hash")
-    timestamp = int(time.time() * 1000)
-    
-    print(f"模拟成功!")
-    print(f"  Simulation ID: {simulation_id}")
-    print(f"  TX Hash: {tx_hash}")
-    
-    # 构建结果 URL
-    chain_name = payload_to_send.get("chain") if payload_to_send else (params.chain if params else "eth")
-    result_url = (
-        f"https://app.blocksec.com/explorer/tx/{chain_name}/{tx_hash}"
-        f"?event=simulation&type=0&timestamp={timestamp}"
+    print("正在模拟交易...")
+    if custom_payload is not None:
+        payload_to_send = custom_payload
+    else:
+        raw_payload = params.to_api_payload()
+        payload_to_send = build_simulation_request_payload(raw_payload, convert_value_for_flat=False)
+
+    sim_result = run_simulation_with_payload(
+        payload_to_send,
+        cookie_file=Path(cookie_file) if cookie_file else None,
+        fetch_trace=get_trace,
     )
-    print(f"  Result URL: {result_url}")
-    
+
+    print("模拟成功!")
+    print(f"  Simulation ID: {sim_result.simulation_id}")
+    print(f"  TX Hash: {sim_result.tx_hash}")
+    print(f"  Result URL: {sim_result.simulation_url}")
+
     full_result = {
-        "simulationId": simulation_id,
-        "txHash": tx_hash,
-        "resultUrl": result_url,
-        "timestamp": timestamp,
+        "simulationId": sim_result.simulation_id,
+        "txHash": sim_result.tx_hash,
+        "resultUrl": sim_result.simulation_url,
+        "timestamp": sim_result.timestamp_ms,
     }
-    
-    # 获取 trace（可选）
-    if get_trace and simulation_id:
-        print("正在获取 trace 数据...")
-        try:
-            trace = client.get_trace(simulation_id, timestamp, params.chain)
-            full_result["trace"] = trace
-        except Exception as e:
-            print(f"获取 trace 失败: {e}")
-    
-    # 保存结果
+
+    if get_trace and sim_result.trace_data:
+        full_result["trace"] = sim_result.trace_data
     if output_file:
         with open(output_file, "w") as f:
             json.dump(full_result, f, indent=2)
         print(f"结果已保存到: {output_file}")
-    
     return full_result
 
 

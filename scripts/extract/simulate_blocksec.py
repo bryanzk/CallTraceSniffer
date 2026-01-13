@@ -18,10 +18,15 @@ import argparse
 import asyncio
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Iterable, Optional
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+
 from playwright.async_api import async_playwright, BrowserContext
+from calltrace.services.blocksec_simulation import build_simulation_request_payload
 
 # 尝试导入 stealth 插件
 try:
@@ -58,7 +63,29 @@ DEFAULT_PAYLOAD = {
 def _coerce_payload(raw: Optional[str]) -> dict:
     if not raw:
         return DEFAULT_PAYLOAD
-    return json.loads(raw)
+    parsed = json.loads(raw)
+    return _normalize_payload(parsed)
+
+
+def _normalize_payload(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        return DEFAULT_PAYLOAD
+    try:
+        api_payload = build_simulation_request_payload(payload, convert_value_for_flat=False)
+    except Exception:
+        api_payload = payload
+
+    form_payload = {
+        "gasLimit": api_payload.get("gasLimit") or payload.get("gasLimit"),
+        "inputData": api_payload.get("data") or payload.get("inputData"),
+        "receiver": api_payload.get("to") or payload.get("receiver"),
+        "sender": api_payload.get("from") or payload.get("sender"),
+        "sourceTxnHash": payload.get("sourceTxnHash"),
+        "targetBlock": api_payload.get("blockNumber") or payload.get("targetBlock"),
+        "targetIndex": api_payload.get("position") or payload.get("targetIndex"),
+        "value": api_payload.get("value") or payload.get("value"),
+    }
+    return form_payload
 
 
 async def _fill_by_label(page, labels: Iterable[str], value: str) -> bool:
