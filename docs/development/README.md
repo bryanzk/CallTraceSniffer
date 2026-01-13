@@ -5,6 +5,7 @@
 ### 核心文档
 - [业务处理逻辑](BUSINESS_LOGIC.md) - 核心业务流程、数据处理管道、服务模块说明
 - [API路由文档](API_ROUTES.md) - 所有API端点、请求/响应格式、端到端流程
+- [外部依赖数据](EXTERNAL_DEPENDENCIES.md) - 硬编码地址、外部服务、配置依赖说明
 - [Web界面使用说明](README_WEB.md) - Web应用使用说明
 - [数据流转文档](DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
 - [IR规范文档](IR_SPEC.md) - IR结构与字段规范（中英对照）
