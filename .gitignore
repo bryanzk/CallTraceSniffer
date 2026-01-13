@@ -14,6 +14,7 @@ venv/
 env/
 ENV/
 .venv
+.venv311/
 
 # IDE
 .vscode/
@@ -49,6 +50,11 @@ data/
 
 # Local files (outputs, temporary data, logs, utils)
 local/
+outputs/
+
+# Local scripts/services
+scripts/ir_from_tenderly_har.py
+src/calltrace/services/ir_v1_tenderly.py
 
 # Environment variables
 .env
