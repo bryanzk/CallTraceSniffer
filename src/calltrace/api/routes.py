@@ -8,12 +8,18 @@ import io
 import json
 from datetime import datetime
 
-from ..services.ir_v1_blocksec import _parse_int
-from ..config import config
 from ..services.extractor import BlockSecExtractor
-from ..services.ir_v1_blocksec import build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
 from ..utils.ir_format import order_ir_payload, serialize_ir_payload
+from ..api.validators import parse_json_object, validate_simulation_url, validate_tx_hash
+from ..services.analysis_service import (
+    AnalysisService,
+    process_tx_data,
+    count_ir_nodes as _count_ir_nodes,
+    extract_total_gas as _extract_total_gas,
+    extract_transfer_edges as _extract_transfer_edges,
+    compute_flow_counts as _compute_flow_counts,
+)
 from ..services.blocksec_simulation import (
     build_simulation_request_payload,
     find_trace_payload,
@@ -30,212 +36,37 @@ def _serialize_ir_payload(payload, tx_hash):
     return serialize_ir_payload(payload, tx_hash)
 
 
-def _count_ir_nodes(node):
-    if not node or not isinstance(node, dict):
-        return 0, 0
-    swaps = 1 if node.get('type') == 'swap' else 0
-    transfers = 1 if node.get('type') == 'transfer' else 0
-    for child in node.get('callback', []) or []:
-        child_swaps, child_transfers = _count_ir_nodes(child)
-        swaps += child_swaps
-        transfers += child_transfers
-    return swaps, transfers
-
-
-def _extract_total_gas(trace_data):
-    gas_flame = trace_data.get('gasFlame', []) if trace_data else []
-    if not gas_flame:
-        return 0
-
-    def walk(node):
-        if not isinstance(node, dict):
-            return None
-        if node.get('name') == 'Actual Gas Used':
-            return node.get('value')
-        for child in node.get('children', []) or []:
-            result = walk(child)
-            if result is not None:
-                return result
-        return None
-
-    for root in gas_flame:
-        result = walk(root)
-        if result is not None:
-            return result
-    return 0
-
-
-
-
-def _extract_transfer_edges(trace_data):
-    data_map = trace_data.get('dataMap', {}) if trace_data else {}
-    edges = []
-    for entry in data_map.values():
-        inv = entry.get('invocation')
-        if not inv:
-            continue
-        method = inv.get('decodedMethod') or {}
-        name = method.get('name', '') if isinstance(method, dict) else ''
-        if name != 'transfer':
-            continue
-        call_params = method.get('callParams', []) if isinstance(method, dict) else []
-        to_addr = ''
-        amount = 0
-        for p in call_params:
-            if p.get('name') in ('to', 'recipient', 'dst'):
-                to_addr = p.get('value', '') or ''
-            if p.get('name') in ('amount', 'value', 'wad'):
-                amount = _parse_int(p.get('value')) or 0
-        if not to_addr:
-            continue
-        edges.append({
-            'from': (inv.get('fromAddress') or '').lower(),
-            'to': to_addr.lower(),
-            'token': (inv.get('address') or '').lower(),
-            'amount': amount,
-        })
-    return edges
-
-
-def _compute_flow_counts(trace_data):
-    edges = _extract_transfer_edges(trace_data)
-    if not edges:
-        return 0, 0, 0, 0
-
-    router_addresses = {addr.lower() for addr in config.ROUTER_ADDRESSES}
-
-    for edge in edges:
-        if edge['from'] and edge['from'] == edge['to']:
-            edge['flow'] = 'Virtual'
-        elif edge['from'] in router_addresses or edge['to'] in router_addresses:
-            edge['flow'] = 'Transfer'
-        else:
-            edge['flow'] = 'Direct'
-
-    incoming = {}
-    outgoing = []
-    for edge in edges:
-        if edge['flow'] != 'Transfer':
-            continue
-        if edge['to'] in router_addresses:
-            key = (edge['to'], edge['token'], edge['amount'])
-            incoming.setdefault(key, []).append(edge)
-        elif edge['from'] in router_addresses:
-            outgoing.append(edge)
-
-    merged = set()
-    direct_from_merge = 0
-    for edge in outgoing:
-        key = (edge['from'], edge['token'], edge['amount'])
-        candidates = incoming.get(key, [])
-        if len(candidates) == 1:
-            merged.add(id(edge))
-            merged.add(id(candidates[0]))
-            direct_from_merge += 1
-
-    router_count = 0
-    direct_count = 0
-    virtual_count = 0
-    for edge in edges:
-        if edge['flow'] == 'Virtual':
-            virtual_count += 1
-            continue
-        if id(edge) in merged:
-            continue
-        if edge['flow'] == 'Transfer':
-            router_count += 1
-        elif edge['flow'] == 'Direct':
-            direct_count += 1
-
-    direct_count += direct_from_merge
-    total = router_count + direct_count + virtual_count
-    return total, router_count, direct_count, virtual_count
-
-
-def process_tx_data(trace_data, tx_hash=None, extra=None):
-    """处理交易数据并生成分析结果"""
-    if not trace_data:
-        return None
-    
-    ir_v1 = build_blocksec_ir(trace_data, tx_hash, extra)
-    ir_v1_json = _serialize_ir_payload(ir_v1, tx_hash)
-    swaps_count, _ = _count_ir_nodes(ir_v1.get('rootTrace'))
-    transfers_count, router_count, direct_count, virtual_count = _compute_flow_counts(trace_data)
-    total_gas = _extract_total_gas(trace_data)
-    
-    return {
-        'ir_v1': ir_v1,
-        'ir_v1_json': ir_v1_json,
-        'stats': {
-            'swaps_count': swaps_count,
-            'transfers_count': transfers_count,
-            'router_count': router_count,
-            'direct_count': direct_count,
-            'virtual_count': virtual_count,
-            'total_gas': total_gas
-        },
-    }
 
 
 def register_routes(app, extracted_data_cache):
     """注册API路由"""
+    analysis_service = AnalysisService(extracted_data_cache)
     
     @app.route('/api/analyze', methods=['POST'])
     def analyze_tx():
         """分析单个交易"""
-        data = request.get_json(silent=True)
-        if data is None:
-            data = {}
-        elif not isinstance(data, dict):
-            return jsonify({'success': False, 'error': '请求体必须为JSON对象'}), 400
-        tx_hash = data.get('tx_hash', '').strip()
-        
-        if not tx_hash:
-            return jsonify({'success': False, 'error': '交易哈希不能为空'}), 400
-        
-        if not tx_hash.startswith('0x') or len(tx_hash) != 66:
-            return jsonify({'success': False, 'error': '无效的交易哈希格式'}), 400
-        
-        try:
-            # 提取数据
-            extractor = BlockSecExtractor()
-            result = asyncio.run(extractor.extract_blocksec_data(tx_hash))
-            
-            if not result or not result.get('success'):
-                error_msg = result.get('error', '无法提取交易数据') if result else '无法提取交易数据'
-                return jsonify({'success': False, 'error': error_msg}), 500
-            
-            trace_data = result.get('trace_data')
-            if not trace_data:
-                return jsonify({'success': False, 'error': '未找到trace数据'}), 500
-            
-            # 处理数据
-            analysis = process_tx_data(trace_data, tx_hash, result)
-            
-            if not analysis:
-                return jsonify({'success': False, 'error': '数据处理失败'}), 500
-            
-            # 缓存结果
-            extracted_data_cache[tx_hash] = {
-                'trace_data': trace_data,
-                'analysis': analysis
-            }
-            
-            mermaid_dag = None
-            try:
-                mermaid_dag = build_mermaid_dag(analysis['ir_v1'])
-            except Exception:
-                mermaid_dag = None
+        data, error = parse_json_object(request)
+        if error:
+            return jsonify({'success': False, 'error': error}), 400
 
+        tx_hash, error = validate_tx_hash(data)
+        if error:
+            return jsonify({'success': False, 'error': error}), 400
+
+        try:
+            result = analysis_service.analyze_tx(tx_hash)
+            if not result.ok:
+                return jsonify({'success': False, 'error': result.error}), result.status_code
+
+            analysis = result.payload['analysis']
             return jsonify({
                 'success': True,
                 'tx_hash': tx_hash,
                 'ir_v1': analysis['ir_v1'],
                 'ir_v1_json': analysis['ir_v1_json'],
-                'mermaid_dag': mermaid_dag,
+                'mermaid_dag': result.payload['mermaid_dag'],
                 'stats': analysis['stats']
             })
-            
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
 
@@ -349,54 +180,26 @@ def register_routes(app, extracted_data_cache):
     @app.route('/api/analyze-simulation', methods=['POST'])
     def analyze_simulation_tx():
         """分析模拟交易"""
-        data = request.get_json(silent=True)
-        if data is None:
-            data = {}
-        elif not isinstance(data, dict):
-            return jsonify({'success': False, 'error': '请求体必须为JSON对象'}), 400
-        sim_url = data.get('simulation_url', '').strip()
+        data, error = parse_json_object(request)
+        if error:
+            return jsonify({'success': False, 'error': error}), 400
 
-        if not sim_url:
-            return jsonify({'success': False, 'error': '模拟URL不能为空'}), 400
+        sim_url, error = validate_simulation_url(data)
+        if error:
+            return jsonify({'success': False, 'error': error}), 400
 
         try:
-            tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            result = analysis_service.analyze_simulation(sim_url)
+            if not result.ok:
+                return jsonify({'success': False, 'error': result.error}), result.status_code
 
-        try:
-            extractor = BlockSecExtractor()
-            result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
-
-            if not result or not result.get('success'):
-                error_msg = result.get('error', '无法提取模拟交易数据') if result else '无法提取模拟交易数据'
-                return jsonify({'success': False, 'error': error_msg}), 500
-
-            trace_data = result.get('trace_data')
-            if not trace_data:
-                return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
-
-            analysis = process_tx_data(trace_data, tx_hash, result)
-            if not analysis:
-                return jsonify({'success': False, 'error': '数据处理失败'}), 500
-
-            extracted_data_cache[tx_hash] = {
-                'trace_data': trace_data,
-                'analysis': analysis
-            }
-
-            mermaid_dag = None
-            try:
-                mermaid_dag = build_mermaid_dag(analysis['ir_v1'])
-            except Exception:
-                mermaid_dag = None
-
+            analysis = result.payload['analysis']
             return jsonify({
                 'success': True,
-                'tx_hash': tx_hash,
+                'tx_hash': result.payload['tx_hash'],
                 'ir_v1': analysis['ir_v1'],
                 'ir_v1_json': analysis['ir_v1_json'],
-                'mermaid_dag': mermaid_dag,
+                'mermaid_dag': result.payload['mermaid_dag'],
                 'stats': analysis['stats']
             })
         except Exception as e:
