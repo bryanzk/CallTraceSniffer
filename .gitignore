@@ -60,6 +60,9 @@ src/calltrace/services/ir_v1_tenderly.py
 .env
 .env.local
 
+# Secrets
+config/secrets/
+
 # Test coverage
 .coverage
 htmlcov/

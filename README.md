@@ -18,8 +18,8 @@
 
 ```bash
 # 一键启动
-chmod +x build_and_run.sh
-./build_and_run.sh
+chmod +x scripts/deploy/build_and_run.sh
+./scripts/deploy/build_and_run.sh
 ```
 
 详细说明: [QUICKSTART_DOCKER.md](docs/deployment/QUICKSTART_DOCKER.md)
@@ -44,22 +44,27 @@ CallTraceSniffer/
 ├── run.py                      # 应用入口点
 ├── src/                        # 源代码目录
 │   └── calltrace/              # 主应用包
-│       ├── app.py              # Flask应用
+│       ├── app.py              # Flask应用入口
 │       ├── config.py           # 配置管理
+│       ├── api/                # API层
+│       │   ├── routes.py       # 路由定义
+│       │   └── validators.py   # 请求验证
 │       ├── services/           # 业务逻辑层
-│       │   ├── ir_v1_blocksec.py  # IR V1 解析服务
-│       │   └── extractor.py   # 数据提取服务
-│       ├── utils/              # 工具函数
-│       │   └── address.py     # 地址处理
-│       └── api/                # API路由
-│           └── routes.py
+│       │   ├── analysis_service.py  # 分析服务（核心）
+│       │   ├── extractor.py         # 数据提取服务
+│       │   ├── ir_v1_blocksec.py    # BlockSec IR解析
+│       │   ├── mermaid_dag.py       # Mermaid图生成
+│       │   └── blocksec_simulation.py # 模拟服务
+│       └── utils/              # 工具函数层
+│           ├── address.py      # 地址处理
+│           ├── analysis_utils.py # 分析工具函数
+│           └── ir_format.py    # IR格式化
 ├── scripts/                    # 脚本目录
+│   ├── deploy/                 # 部署脚本
 │   ├── extract/                # 数据提取脚本
-│   ├── process/                # 数据处理脚本
-│   ├── parse/                  # 数据解析脚本
-│   └── utils/                  # 工具脚本
+│   └── parse/                  # 数据解析脚本
 ├── tests/                      # 测试目录
-│   ├── unit/                   # 单元测试
+│   ├── unit/                   # 单元测试（27个文件）
 │   ├── integration/            # 集成测试
 │   └── fixtures/               # 测试数据
 ├── docs/                       # 文档目录
@@ -67,7 +72,8 @@ CallTraceSniffer/
 │   ├── development/            # 开发文档
 │   └── setup/                  # 设置文档
 ├── config/                     # 配置目录
-│   └── test_cases.yaml         # 测试用例参考
+│   ├── test_cases.yaml         # 测试用例参考
+│   └── secrets/                # 敏感配置（不提交）
 ├── templates/                  # HTML模板
 ├── static/                     # 静态资源
 ├── Dockerfile                  # Docker配置
