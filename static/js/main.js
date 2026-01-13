@@ -707,6 +707,16 @@ function parseJsonMaybe(input) {
     }
 }
 
+const DIFF_IGNORE_KEYS = new Set([
+    'amount',
+    'amountIn',
+    'amountOut',
+    'amountInBig',
+    'amountOutBig',
+    'amountInEncoded',
+    'amountOutEncoded'
+]);
+
 function buildPathDiffMap(leftObj, rightObj) {
     const leftNodes = {};
     const rightNodes = {};
@@ -719,6 +729,9 @@ function buildPathDiffMap(leftObj, rightObj) {
     const allPaths = new Set([...Object.keys(leftNodes), ...Object.keys(rightNodes)]);
     allPaths.forEach((path) => {
         if (!path) {
+            return;
+        }
+        if (shouldIgnoreDiffPath(path)) {
             return;
         }
         if (!leftNodes[path]) {
@@ -738,6 +751,20 @@ function buildPathDiffMap(leftObj, rightObj) {
         }
     });
     return diffMap;
+}
+
+function shouldIgnoreDiffPath(path) {
+    if (!path) {
+        return false;
+    }
+    const lastKey = extractLastKey(path);
+    return DIFF_IGNORE_KEYS.has(lastKey);
+}
+
+function extractLastKey(path) {
+    const cleaned = path.replace(/\[\d+\]/g, '');
+    const parts = cleaned.split('.');
+    return parts[parts.length - 1];
 }
 
 function collectPathInfo(value, path, nodeMap, valueMap) {
