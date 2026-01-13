@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from ..config import config
 from ..services.extractor import BlockSecExtractor
 from ..services.ir_v1_blocksec import _parse_int, build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
@@ -21,7 +20,13 @@ class RouterConfig:
 
     @classmethod
     def from_global_config(cls) -> RouterConfig:
-        """从全局配置创建 RouterConfig（向后兼容）"""
+        """
+        从全局配置创建 RouterConfig（向后兼容）
+        
+        注意：此方法使用延迟导入以避免模块级别的循环依赖
+        """
+        # 延迟导入，避免模块级别的全局依赖
+        from ..config import config
         return cls(router_addresses=list(config.ROUTER_ADDRESSES))
 
 
