@@ -71,7 +71,7 @@ def test_extract_total_gas_from_gas_flame():
 
 def test_serialize_ir_payload_orders_tx_hash_first():
     payload = {"pattern": "", "tx_hash": "0xabc", "rootTrace": {"type": "unknown"}}
-    output = routes._serialize_ir_payload(payload, "0xabc")
+    output = routes.serialize_ir_payload(payload, "0xabc")
     assert output.lstrip().startswith('{\n  "tx_hash":')
     parsed = json.loads(output)
     assert parsed["tx_hash"] == "0xabc"
@@ -92,7 +92,7 @@ def test_serialize_ir_payload_orders_root_trace_keys():
         "pattern": "",
         "baseTokenAmountIn": 2,
     }
-    output = routes._serialize_ir_payload(payload, "0xabc")
+    output = routes.serialize_ir_payload(payload, "0xabc")
     parsed = json.loads(output)
     assert list(parsed.keys()) == [
         "tx_hash",

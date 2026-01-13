@@ -28,15 +28,6 @@ from ..services.blocksec_simulation import (
     run_simulation_with_payload,
 )
 
-def _order_ir_payload(payload, tx_hash):
-    return order_ir_payload(payload, tx_hash)
-
-
-def _serialize_ir_payload(payload, tx_hash):
-    return serialize_ir_payload(payload, tx_hash)
-
-
-
 def _response_from_service_result(result):
     if not result.ok:
         response = jsonify({'success': False, 'error': result.error})
@@ -411,7 +402,7 @@ def register_routes(app, extracted_data_cache):
         if output is None:
             return jsonify({'success': False, 'error': '未找到分析结果'}), 404
         
-        output_bytes = _serialize_ir_payload(output, tx_hash).encode('utf-8')
+        output_bytes = serialize_ir_payload(output, tx_hash).encode('utf-8')
         filename = f"analysis_{tx_hash[:10]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         mimetype = 'application/json'
         output_file = io.BytesIO(output_bytes)
@@ -438,9 +429,9 @@ def register_routes(app, extracted_data_cache):
             analysis = extracted_data_cache[tx_hash]['analysis']
             ir_json = analysis.get('ir_v1_json')
             if ir_json:
-                return app.response_class(_serialize_ir_payload(ir_json, tx_hash), mimetype='application/json')
+                return app.response_class(serialize_ir_payload(ir_json, tx_hash), mimetype='application/json')
             ir_obj = analysis.get('ir_v1')
-            return app.response_class(_serialize_ir_payload(ir_obj, tx_hash), mimetype='application/json')
+            return app.response_class(serialize_ir_payload(ir_obj, tx_hash), mimetype='application/json')
 
         try:
             extractor = BlockSecExtractor()

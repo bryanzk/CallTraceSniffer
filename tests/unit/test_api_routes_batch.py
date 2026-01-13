@@ -133,12 +133,12 @@ def test_download_result_accepts_ir_v1_object():
 
 
 def test_serialize_ir_payload_invalid_string_returns_input():
-    output = routes._serialize_ir_payload("not-json", "0xabc")
+    output = routes.serialize_ir_payload("not-json", "0xabc")
     assert output == "not-json"
 
 
 def test_serialize_ir_payload_list():
-    output = routes._serialize_ir_payload([{"tx_hash": "0xabc", "pattern": ""}], "0xabc")
+    output = routes.serialize_ir_payload([{"tx_hash": "0xabc", "pattern": ""}], "0xabc")
     parsed = json.loads(output)
     assert isinstance(parsed, list)
     assert parsed[0]["tx_hash"] == "0xabc"
