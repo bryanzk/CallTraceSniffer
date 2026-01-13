@@ -32,6 +32,9 @@ def test_simulate_and_analyze_missing_simulation_id_uses_tx_hash(monkeypatch):
 
     monkeypatch.setattr(routes, "run_simulation_with_payload", fake_run_simulation_with_payload)
     monkeypatch.setattr(routes.BlockSecExtractor, "extract_blocksec_simulation_data", fake_extract)
+    from calltrace.utils import analysis_utils
+    monkeypatch.setattr(analysis_utils, "process_tx_data", fake_process_tx_data)
+    # 同时更新 routes 中的引用
     monkeypatch.setattr(routes, "process_tx_data", fake_process_tx_data)
 
     client = app.test_client()

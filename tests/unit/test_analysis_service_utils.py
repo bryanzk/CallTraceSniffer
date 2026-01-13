@@ -1,8 +1,8 @@
 """
-测试 analysis_service.py 中的工具函数
+测试 analysis_utils.py 中的工具函数
 """
 import pytest
-from calltrace.services.analysis_service import (
+from calltrace.utils.analysis_utils import (
     count_ir_nodes,
     extract_total_gas,
     extract_transfer_edges,
@@ -464,7 +464,6 @@ class TestProcessTxData:
         from calltrace.services.ir_v1_blocksec import build_blocksec_ir
         from calltrace.utils.ir_format import serialize_ir_payload
         from calltrace.services.analysis_service import RouterConfig
-        from calltrace.config import config
         
         trace_data = {
             "dataMap": {},
@@ -478,14 +477,10 @@ class TestProcessTxData:
         def mock_serialize(ir, tx_hash):
             return "{}"
         
-        monkeypatch.setattr(
-            "calltrace.services.analysis_service.build_blocksec_ir",
-            mock_build_ir
-        )
-        monkeypatch.setattr(
-            "calltrace.services.analysis_service.serialize_ir_payload",
-            mock_serialize
-        )
+        from calltrace.services import ir_v1_blocksec
+        from calltrace.utils import ir_format
+        monkeypatch.setattr(ir_v1_blocksec, "build_blocksec_ir", mock_build_ir)
+        monkeypatch.setattr(ir_format, "serialize_ir_payload", mock_serialize)
         
         router_config = RouterConfig.from_global_config()
         result = process_tx_data(trace_data, "0x" + "a" * 64, None, router_config)
@@ -501,7 +496,6 @@ class TestProcessTxData:
     def test_includes_tx_hash_in_result(self, monkeypatch):
         """结果中包含 tx_hash"""
         from calltrace.services.analysis_service import RouterConfig
-        from calltrace.config import config
         
         trace_data = {
             "dataMap": {},
@@ -514,14 +508,10 @@ class TestProcessTxData:
         def mock_serialize(ir, tx_hash):
             return "{}"
         
-        monkeypatch.setattr(
-            "calltrace.services.analysis_service.build_blocksec_ir",
-            mock_build_ir
-        )
-        monkeypatch.setattr(
-            "calltrace.services.analysis_service.serialize_ir_payload",
-            mock_serialize
-        )
+        from calltrace.services import ir_v1_blocksec
+        from calltrace.utils import ir_format
+        monkeypatch.setattr(ir_v1_blocksec, "build_blocksec_ir", mock_build_ir)
+        monkeypatch.setattr(ir_format, "serialize_ir_payload", mock_serialize)
         
         tx_hash = "0x" + "b" * 64
         router_config = RouterConfig.from_global_config()

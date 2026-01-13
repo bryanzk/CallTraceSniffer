@@ -15,11 +15,13 @@ from ..api.validators import parse_json_object, validate_simulation_url, validat
 from ..services.analysis_service import (
     AnalysisService,
     RouterConfig,
-    process_tx_data,
+)
+from ..utils.analysis_utils import (
+    compute_flow_counts as _compute_flow_counts,
     count_ir_nodes as _count_ir_nodes,
     extract_total_gas as _extract_total_gas,
     extract_transfer_edges as _extract_transfer_edges,
-    compute_flow_counts as _compute_flow_counts,
+    process_tx_data,
 )
 from ..services.blocksec_simulation import (
     build_simulation_request_payload,

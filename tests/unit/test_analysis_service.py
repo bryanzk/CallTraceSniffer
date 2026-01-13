@@ -45,7 +45,9 @@ def test_analyze_tx_success_caches_and_builds_mermaid(monkeypatch):
     def extractor_factory():
         return MockExtractor(result)
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
     service = AnalysisService(
         cache,
         extractor_factory=extractor_factory,
@@ -122,7 +124,9 @@ def test_analyze_simulation_success(monkeypatch):
     def extractor_factory():
         return MockExtractor(result)
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
     service = AnalysisService(
         cache,
         extractor_factory=extractor_factory,
@@ -168,7 +172,9 @@ def test_analyze_tx_process_tx_data_returns_none_returns_error(monkeypatch):
     def extractor_factory():
         return MockExtractor(result)
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
     service = AnalysisService(cache, extractor_factory=extractor_factory)
 
     service_result = service.analyze_tx(tx_hash)
@@ -193,7 +199,9 @@ def test_analyze_tx_mermaid_builder_exception_handled_gracefully(monkeypatch):
     def extractor_factory():
         return MockExtractor(result)
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
     service = AnalysisService(
         cache,
         extractor_factory=extractor_factory,
@@ -270,7 +278,9 @@ def test_cache_persistence_across_calls(monkeypatch):
     def extractor_factory():
         return MockExtractor(result)
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
     service = AnalysisService(
         cache,
         extractor_factory=extractor_factory,

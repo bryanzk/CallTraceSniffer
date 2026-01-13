@@ -23,7 +23,9 @@ def test_use_fixture_env_overrides_extractor(monkeypatch, tmp_path):
     def fake_process_tx_data(trace_data, tx_hash, extra, router_config=None):
         return {"ir_v1": {"rootTrace": None}, "ir_v1_json": "{}", "stats": {}}
 
-    monkeypatch.setattr(analysis_service, "process_tx_data", fake_process_tx_data)
+    # Mock analysis_service 模块中导入的 process_tx_data
+    import calltrace.services.analysis_service as analysis_service_module
+    monkeypatch.setattr(analysis_service_module, "process_tx_data", fake_process_tx_data)
 
     service = AnalysisService({}, extractor_factory=FailingExtractor)
     result = service.analyze_tx("0x" + "a" * 64)
