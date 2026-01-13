@@ -190,7 +190,7 @@
                 <div id="simulation-input-params" style="display: none;">
                     <label for="simulation-params">模拟参数 JSON:</label>
                     <div class="input-group">
-                        <textarea id="simulation-params" rows="8" placeholder='{"chainID":1,"simulationType":"custom","blockNumber":24179989,"position":0,"txnCustom":{"value":"0.000000000258280864","sender":"0x...","receiver":"0x...","inputData":"0x...","gasPrice":"0.406730711","gasLimit":596557},"sourceTxnHash":"0x..."}' class="tx-input"></textarea>
+                        <textarea id="simulation-params" rows="8" placeholder='{&#10;  "chainID": 1,&#10;  "simulationType": "custom",&#10;  "blockNumber": 24179989,&#10;  "position": 0,&#10;  "txnCustom": {&#10;    "value": "0.000000000258280864",&#10;    "sender": "0x...",&#10;    "receiver": "0x...",&#10;    "inputData": "0x...",&#10;    "gasPrice": "0.406730711",&#10;    "gasLimit": 596557&#10;  },&#10;  "sourceTxnHash": "0x..."&#10;}' class="tx-input"></textarea>
                         <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
                     </div>
                     <small class="hint">value 使用 ETH 字符串，后端会自动换算为 wei。</small>
