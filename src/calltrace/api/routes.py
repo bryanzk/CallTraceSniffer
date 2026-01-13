@@ -14,6 +14,7 @@ from ..utils.ir_format import order_ir_payload, serialize_ir_payload
 from ..api.validators import parse_json_object, validate_simulation_url, validate_tx_hash
 from ..services.analysis_service import (
     AnalysisService,
+    RouterConfig,
     process_tx_data,
     count_ir_nodes as _count_ir_nodes,
     extract_total_gas as _extract_total_gas,
@@ -50,7 +51,14 @@ def _response_from_service_result(result):
 
 def register_routes(app, extracted_data_cache):
     """注册API路由"""
-    analysis_service = AnalysisService(extracted_data_cache)
+    # 创建路由器配置（从全局配置注入，保持向后兼容）
+    router_config = RouterConfig.from_global_config()
+    analysis_service = AnalysisService(extracted_data_cache, router_config=router_config)
+    
+    # 在函数内部使用 router_config 的辅助函数
+    def process_with_config(trace_data, tx_hash, extra=None):
+        """使用注入的 router_config 处理交易数据"""
+        return process_tx_data(trace_data, tx_hash, extra, router_config)
     
     @app.route('/api/analyze', methods=['POST'])
     def analyze_tx():
@@ -119,7 +127,7 @@ def register_routes(app, extracted_data_cache):
                     'warning': '模拟响应未返回 simulationId，且未找到simulation trace数据'
                 }), 200
 
-            analysis = process_tx_data(trace_data, sim_result.tx_hash, result)
+            analysis = process_with_config(trace_data, sim_result.tx_hash, result)
             if not analysis:
                 return jsonify({
                     'success': True,
@@ -157,7 +165,7 @@ def register_routes(app, extracted_data_cache):
             'simulation_url': sim_result.simulation_url,
         }
 
-        analysis = process_tx_data(trace_data, sim_result.tx_hash, extra)
+        analysis = process_with_config(trace_data, sim_result.tx_hash, extra)
         if not analysis:
             return jsonify({'success': False, 'error': '数据处理失败'}), 500
 
@@ -261,7 +269,7 @@ def register_routes(app, extracted_data_cache):
                 if result and result.get('success'):
                     trace_data = result.get('trace_data')
                     if trace_data:
-                        analysis = process_tx_data(trace_data, tx_hash, result)
+                        analysis = process_with_config(trace_data, tx_hash, result)
                         if analysis:
                             results.append({
                                 'simulation_url': sim_url,
@@ -339,7 +347,7 @@ def register_routes(app, extracted_data_cache):
                     if result and result.get('success'):
                         trace_data = result.get('trace_data')
                         if trace_data:
-                            analysis = process_tx_data(trace_data, tx_hash, result)
+                            analysis = process_with_config(trace_data, tx_hash, result)
                             if analysis:
                                 results.append({
                                     'tx_hash': tx_hash,
@@ -445,7 +453,7 @@ def register_routes(app, extracted_data_cache):
             if not trace_data:
                 return jsonify({'success': False, 'error': '未找到trace数据'}), 500
 
-            analysis = process_tx_data(trace_data, tx_hash, result)
+            analysis = process_with_config(trace_data, tx_hash, result)
             if not analysis:
                 return jsonify({'success': False, 'error': '数据处理失败'}), 500
 

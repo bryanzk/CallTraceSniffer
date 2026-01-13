@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Tuple
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from ..config import config
 from ..services.extractor import BlockSecExtractor
 from ..services.ir_v1_blocksec import _parse_int, build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
 from ..utils.ir_format import serialize_ir_payload
+
+
+@dataclass(frozen=True)
+class RouterConfig:
+    """路由器配置，用于依赖注入"""
+    router_addresses: List[str]
+
+    @classmethod
+    def from_global_config(cls) -> RouterConfig:
+        """从全局配置创建 RouterConfig（向后兼容）"""
+        return cls(router_addresses=list(config.ROUTER_ADDRESSES))
 
 
 def count_ir_nodes(node: Optional[dict]) -> Tuple[int, int]:
@@ -76,17 +90,30 @@ def extract_transfer_edges(trace_data: Optional[dict]) -> list[dict]:
     return edges
 
 
-def compute_flow_counts(trace_data: Optional[dict]) -> Tuple[int, int, int, int]:
+def compute_flow_counts(
+    trace_data: Optional[dict],
+    router_addresses: List[str],
+) -> Tuple[int, int, int, int]:
+    """
+    计算转账流统计
+    
+    Args:
+        trace_data: 交易追踪数据
+        router_addresses: 路由器地址列表（通过参数注入，而非全局config）
+    
+    Returns:
+        (total, router_count, direct_count, virtual_count)
+    """
     edges = extract_transfer_edges(trace_data)
     if not edges:
         return 0, 0, 0, 0
 
-    router_addresses = {addr.lower() for addr in config.ROUTER_ADDRESSES}
+    router_addresses_set = {addr.lower() for addr in router_addresses}
 
     for edge in edges:
         if edge["from"] and edge["from"] == edge["to"]:
             edge["flow"] = "Virtual"
-        elif edge["from"] in router_addresses or edge["to"] in router_addresses:
+        elif edge["from"] in router_addresses_set or edge["to"] in router_addresses_set:
             edge["flow"] = "Transfer"
         else:
             edge["flow"] = "Direct"
@@ -96,10 +123,10 @@ def compute_flow_counts(trace_data: Optional[dict]) -> Tuple[int, int, int, int]
     for edge in edges:
         if edge["flow"] != "Transfer":
             continue
-        if edge["to"] in router_addresses:
+        if edge["to"] in router_addresses_set:
             key = (edge["to"], edge["token"], edge["amount"])
             incoming.setdefault(key, []).append(edge)
-        elif edge["from"] in router_addresses:
+        elif edge["from"] in router_addresses_set:
             outgoing.append(edge)
 
     merged = set()
@@ -131,14 +158,37 @@ def compute_flow_counts(trace_data: Optional[dict]) -> Tuple[int, int, int, int]
     return total, router_count, direct_count, virtual_count
 
 
-def process_tx_data(trace_data: dict, tx_hash: Optional[str] = None, extra: Optional[dict] = None) -> Optional[dict]:
+def process_tx_data(
+    trace_data: dict,
+    tx_hash: Optional[str] = None,
+    extra: Optional[dict] = None,
+    router_config: Optional[RouterConfig] = None,
+) -> Optional[dict]:
+    """
+    处理交易数据，生成分析结果
+    
+    Args:
+        trace_data: 交易追踪数据
+        tx_hash: 交易哈希
+        extra: 额外数据
+        router_config: 路由器配置（可选，默认使用全局config，向后兼容）
+    
+    Returns:
+        分析结果字典，包含 ir_v1, ir_v1_json, stats
+    """
     if not trace_data:
         return None
+
+    # 向后兼容：如果没有提供 router_config，使用全局配置
+    if router_config is None:
+        router_config = RouterConfig.from_global_config()
 
     ir_v1 = build_blocksec_ir(trace_data, tx_hash, extra)
     ir_v1_json = serialize_ir_payload(ir_v1, tx_hash)
     swaps_count, _ = count_ir_nodes(ir_v1.get("rootTrace"))
-    transfers_count, router_count, direct_count, virtual_count = compute_flow_counts(trace_data)
+    transfers_count, router_count, direct_count, virtual_count = compute_flow_counts(
+        trace_data, router_config.router_addresses
+    )
     total_gas = extract_total_gas(trace_data)
 
     return {
@@ -153,6 +203,22 @@ def process_tx_data(trace_data: dict, tx_hash: Optional[str] = None, extra: Opti
             "total_gas": total_gas,
         },
     }
+
+
+def _use_fixture() -> bool:
+    flag = os.getenv("USE_FIXTURE", "")
+    return flag.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _load_fixture() -> dict:
+    root = Path(__file__).resolve().parents[3]
+    default_path = root / "tests/fixtures/0xe42c7f10664571e96b425333a7a06fae1de65dd30eb871d84ceb559cceed00a6_blocksec_trace.json"
+    fixture_path = Path(os.getenv("FIXTURE_PATH", str(default_path)))
+    with fixture_path.open() as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise ValueError("Fixture payload must be a JSON object")
+    return payload
 
 
 @dataclass(frozen=True)
@@ -172,12 +238,34 @@ class AnalysisService:
         cache: dict,
         extractor_factory: Callable[[], BlockSecExtractor] = BlockSecExtractor,
         mermaid_builder: Callable[[dict], str] = build_mermaid_dag,
+        router_config: Optional[RouterConfig] = None,
     ) -> None:
+        """
+        初始化分析服务
+        
+        Args:
+            cache: 缓存字典
+            extractor_factory: Extractor 工厂函数
+            mermaid_builder: Mermaid DAG 构建函数
+            router_config: 路由器配置（可选，默认使用全局config，向后兼容）
+        """
         self._cache = cache
         self._extractor_factory = extractor_factory
         self._mermaid_builder = mermaid_builder
+        # 向后兼容：如果没有提供 router_config，使用全局配置
+        self._router_config = router_config if router_config is not None else RouterConfig.from_global_config()
 
     def analyze_tx(self, tx_hash: str) -> ServiceResult:
+        if _use_fixture():
+            trace_data = _load_fixture()
+            result = {"success": True, "trace_data": trace_data}
+            return self._build_analysis_from_result(
+                tx_hash=tx_hash,
+                result=result,
+                error_default="无法提取交易数据",
+                missing_trace_error="未找到trace数据",
+            )
+
         extractor = self._extractor_factory()
         result = asyncio.run(extractor.extract_blocksec_data(tx_hash))
         return self._build_analysis_from_result(
@@ -192,6 +280,16 @@ class AnalysisService:
             tx_hash, _ = BlockSecExtractor.parse_simulation_url(sim_url)
         except Exception as exc:
             return ServiceResult(payload=None, error=str(exc), status_code=400)
+
+        if _use_fixture():
+            trace_data = _load_fixture()
+            result = {"success": True, "trace_data": trace_data}
+            return self._build_analysis_from_result(
+                tx_hash=tx_hash,
+                result=result,
+                error_default="无法提取模拟交易数据",
+                missing_trace_error="未找到simulation trace数据",
+            )
 
         extractor = self._extractor_factory()
         result = asyncio.run(extractor.extract_blocksec_simulation_data(sim_url))
@@ -217,7 +315,7 @@ class AnalysisService:
         if not trace_data:
             return ServiceResult(payload=None, error=missing_trace_error, status_code=500)
 
-        analysis = process_tx_data(trace_data, tx_hash, result)
+        analysis = process_tx_data(trace_data, tx_hash, result, self._router_config)
         if not analysis:
             return ServiceResult(payload=None, error="数据处理失败", status_code=500)
 
