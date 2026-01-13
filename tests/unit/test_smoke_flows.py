@@ -62,7 +62,7 @@ def test_smoke_analyze_simulation_url(monkeypatch, sample_trace_data):
 
 @pytest.mark.smoke
 def test_smoke_simulate_and_analyze(monkeypatch, sample_trace_data):
-    def fake_run_simulation(payload):
+    def fake_run_simulation_with_payload(payload):
         return SimulationResult(
             simulation_id="sim-1",
             tx_hash=sample_trace_data["tx_hash"],
@@ -73,7 +73,7 @@ def test_smoke_simulate_and_analyze(monkeypatch, sample_trace_data):
             basic_info={"callData": "0x"},
         )
 
-    monkeypatch.setattr(routes, "run_simulation", fake_run_simulation)
+    monkeypatch.setattr(routes, "run_simulation_with_payload", fake_run_simulation_with_payload)
 
     client = _make_app().test_client()
     resp = client.post(

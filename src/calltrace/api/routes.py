@@ -19,7 +19,7 @@ from ..services.blocksec_simulation import (
     find_trace_payload,
     resolve_chain_name,
     resolve_cookie_file,
-    run_simulation,
+    run_simulation_with_payload,
 )
 
 def _order_ir_payload(payload, tx_hash):
@@ -252,7 +252,7 @@ def register_routes(app, extracted_data_cache):
             return jsonify({'success': False, 'error': f'模拟参数处理失败: {str(e)}'}), 400
 
         try:
-            sim_result = run_simulation(payload)
+            sim_result = run_simulation_with_payload(payload)
         except PermissionError as e:
             return jsonify({'success': False, 'error': str(e)}), 403
         except Exception as e:
