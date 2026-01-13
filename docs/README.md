@@ -8,6 +8,8 @@
 - [Docker配置完成说明](deployment/DOCKER_SETUP_COMPLETE.md) - Docker配置说明
 
 ### 开发文档 (development/)
+- [业务处理逻辑](development/BUSINESS_LOGIC.md) - 核心业务流程、数据处理管道、服务模块说明
+- [API路由文档](development/API_ROUTES.md) - 所有API端点、请求/响应格式、端到端流程
 - [Web界面使用](development/README_WEB.md) - Web应用使用说明（含单个交易/模拟/批量）
 - [数据流转文档](development/DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
 - [IR规范文档](development/IR_SPEC.md) - IR结构与字段规范（中英对照）
