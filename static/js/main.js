@@ -267,6 +267,42 @@ function getSingleMode() {
     return selected ? selected.value : 'url';
 }
 
+function getSimulationMode() {
+    const selected = document.querySelector('input[name="simulation-mode"]:checked');
+    return selected ? selected.value : 'url';
+}
+
+function toggleSimulationMode() {
+    const mode = getSimulationMode();
+    const urlBlock = document.getElementById('simulation-input-url');
+    const paramsBlock = document.getElementById('simulation-input-params');
+    if (!urlBlock || !paramsBlock) {
+        return;
+    }
+    urlBlock.style.display = mode === 'url' ? 'block' : 'none';
+    paramsBlock.style.display = mode === 'params' ? 'block' : 'none';
+}
+
+async function loadLocalBlocksecCookies() {
+    try {
+        showLoading();
+        hideError();
+        const response = await fetch('/api/blocksec-cookies/load', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        hideLoading();
+        if (data.success) {
+            showError('Cookie 已加载');
+        } else {
+            showError(data.error || 'Cookie 加载失败');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Cookie 加载失败: ' + error.message);
+    }
+}
+
 function getSingleInputValue(mode) {
     if (mode === 'ir') {
         const el = document.getElementById('single-ir-input');
@@ -933,6 +969,49 @@ function formatGas(value) {
 
 // 模拟交易分析
 async function analyzeSimulation() {
+    const mode = getSimulationMode();
+    if (mode === 'params') {
+        const rawParams = document.getElementById('simulation-params').value.trim();
+        if (!rawParams) {
+            showError('请输入模拟参数 JSON');
+            return;
+        }
+        let parsed;
+        try {
+            parsed = JSON.parse(rawParams);
+        } catch (e) {
+            showError('JSON解析失败: ' + e.message);
+            return;
+        }
+
+        try {
+            showLoading();
+            hideError();
+
+            const response = await fetch('/api/simulate-and-analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ params: parsed })
+            });
+
+            const data = await response.json();
+            hideLoading();
+
+            if (data.success) {
+                simulationResultData = data;
+                displaySimulationResult(data);
+            } else {
+                showError(data.error || '模拟分析失败');
+            }
+        } catch (error) {
+            hideLoading();
+            showError('请求失败: ' + error.message);
+        }
+        return;
+    }
+
     const rawInput = document.getElementById('simulation-url').value;
     const simUrls = rawInput
         .split(/\r?\n/)
@@ -1009,6 +1088,22 @@ function displaySimulationResult(data) {
     const irDiv = document.getElementById('simulation-ir');
     const outputDiv = document.getElementById('simulation-output');
     const copyButton = document.getElementById('copy-simulation-ir');
+
+    if (!data.ir_v1 || !data.stats) {
+        statsDiv.innerHTML = '';
+        outputDiv.style.display = 'none';
+        irDiv.textContent = '';
+        if (copyButton) {
+            copyButton.style.display = 'none';
+        }
+        renderSourceLink('simulation-source-url', 'BlockSec URL:', data.simulation_url || data.source_url);
+        resultSection.style.display = 'block';
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+        if (data.warning) {
+            showError(data.warning);
+        }
+        return;
+    }
 
     statsDiv.innerHTML = `
         <div class="stat-card">
@@ -1933,5 +2028,10 @@ document.querySelectorAll('input[name="single-mode"]').forEach((radio) => {
     });
 });
 
+document.querySelectorAll('input[name="simulation-mode"]').forEach((radio) => {
+    radio.addEventListener('change', () => toggleSimulationMode());
+});
+
 toggleCompareMode('A');
 toggleCompareMode('B');
+toggleSimulationMode();

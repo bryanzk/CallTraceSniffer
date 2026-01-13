@@ -6,13 +6,21 @@ import asyncio
 import csv
 import io
 import json
+from datetime import datetime
+
 from ..services.ir_v1_blocksec import _parse_int
 from ..config import config
-from datetime import datetime
 from ..services.extractor import BlockSecExtractor
 from ..services.ir_v1_blocksec import build_blocksec_ir
 from ..services.mermaid_dag import build_mermaid_dag
 from ..utils.ir_format import order_ir_payload, serialize_ir_payload
+from ..services.blocksec_simulation import (
+    build_simulation_request_payload,
+    find_trace_payload,
+    resolve_chain_name,
+    resolve_cookie_file,
+    run_simulation,
+)
 
 def _order_ir_payload(payload, tx_hash):
     return order_ir_payload(payload, tx_hash)
@@ -55,6 +63,8 @@ def _extract_total_gas(trace_data):
         if result is not None:
             return result
     return 0
+
+
 
 
 def _extract_transfer_edges(trace_data):
@@ -225,6 +235,113 @@ def register_routes(app, extracted_data_cache):
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
 
+    @app.route('/api/simulate-and-analyze', methods=['POST'])
+    def simulate_and_analyze_tx():
+        """使用 BlockSec Simulation API 进行模拟并输出 IR"""
+        data = request.json or {}
+        raw_params = data.get('params') or data.get('simulation_params') or data.get('payload') or data
+
+        if not isinstance(raw_params, dict) or not raw_params:
+            return jsonify({'success': False, 'error': '模拟参数不能为空'}), 400
+
+        try:
+            payload = build_simulation_request_payload(raw_params)
+        except ValueError as e:
+            return jsonify({'success': False, 'error': str(e)}), 400
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'模拟参数处理失败: {str(e)}'}), 400
+
+        try:
+            sim_result = run_simulation(payload)
+        except PermissionError as e:
+            return jsonify({'success': False, 'error': str(e)}), 403
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'模拟请求失败: {str(e)}'}), 500
+
+        if not sim_result.simulation_id:
+            simulation_url = sim_result.simulation_url
+            extractor = BlockSecExtractor()
+            result = asyncio.run(extractor.extract_blocksec_simulation_data(simulation_url))
+            if not result or not result.get('success'):
+                error_msg = result.get('error', '无法提取模拟交易数据') if result else '无法提取模拟交易数据'
+                return jsonify({
+                    'success': True,
+                    'tx_hash': sim_result.tx_hash,
+                    'simulation_url': simulation_url,
+                    'ir_v1': None,
+                    'ir_v1_json': None,
+                    'stats': None,
+                    'warning': f'模拟响应未返回 simulationId，且页面抓取失败: {error_msg}'
+                }), 200
+            trace_data = result.get('trace_data')
+            if not trace_data:
+                return jsonify({
+                    'success': True,
+                    'tx_hash': sim_result.tx_hash,
+                    'simulation_url': simulation_url,
+                    'ir_v1': None,
+                    'ir_v1_json': None,
+                    'stats': None,
+                    'warning': '模拟响应未返回 simulationId，且未找到simulation trace数据'
+                }), 200
+
+            analysis = process_tx_data(trace_data, tx_hash, result)
+            if not analysis:
+                return jsonify({
+                    'success': True,
+                    'tx_hash': sim_result.tx_hash,
+                    'simulation_url': simulation_url,
+                    'ir_v1': None,
+                    'ir_v1_json': None,
+                    'stats': None,
+                    'warning': '模拟响应未返回 simulationId，且数据处理失败'
+                }), 200
+
+            extracted_data_cache[tx_hash] = {
+                'trace_data': trace_data,
+                'analysis': analysis
+            }
+
+            return jsonify({
+                'success': True,
+                'tx_hash': sim_result.tx_hash,
+                'simulation_url': simulation_url,
+                'ir_v1': analysis['ir_v1'],
+                'ir_v1_json': analysis['ir_v1_json'],
+                'stats': analysis['stats'],
+                'warning': '模拟响应未返回 simulationId，已通过页面抓取获取 trace/IR'
+            }), 200
+
+        trace_data = find_trace_payload(sim_result.trace_data)
+        if not trace_data:
+            return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
+
+        extra = {
+            'trace_data': trace_data,
+            'balance_change': sim_result.balance_change,
+            'basic_info': sim_result.basic_info,
+            'simulation_url': sim_result.simulation_url,
+        }
+
+        analysis = process_tx_data(trace_data, sim_result.tx_hash, extra)
+        if not analysis:
+            return jsonify({'success': False, 'error': '数据处理失败'}), 500
+
+        extracted_data_cache[sim_result.tx_hash] = {
+            'trace_data': trace_data,
+            'analysis': analysis
+        }
+
+        return jsonify({
+            'success': True,
+            'tx_hash': sim_result.tx_hash,
+            'simulation_id': sim_result.simulation_id,
+            'simulation_url': sim_result.simulation_url,
+            'ir_v1': analysis['ir_v1'],
+            'ir_v1_json': analysis['ir_v1_json'],
+            'stats': analysis['stats']
+        })
+
     @app.route('/api/analyze-simulation', methods=['POST'])
     def analyze_simulation_tx():
         """分析模拟交易"""
@@ -276,6 +393,21 @@ def register_routes(app, extracted_data_cache):
             })
         except Exception as e:
             return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+
+    @app.route('/api/blocksec-cookies/load', methods=['POST'])
+    def load_blocksec_cookies():
+        """加载本地 BlockSec cookies 文件"""
+        try:
+            cookie_path = resolve_cookie_file()
+            if not cookie_path.exists():
+                return jsonify({'success': False, 'error': f'未找到本地cookie文件: {cookie_path}'}), 404
+            with cookie_path.open() as f:
+                payload = json.load(f)
+            if not isinstance(payload, (list, dict)):
+                return jsonify({'success': False, 'error': 'cookie文件格式不正确'}), 400
+            return jsonify({'success': True, 'path': str(cookie_path)})
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'加载cookie失败: {str(e)}'}), 500
 
     @app.route('/api/analyze-simulation-batch', methods=['POST'])
     def analyze_simulation_batch():

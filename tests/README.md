@@ -70,6 +70,9 @@ pytest -m unit
 
 # 只运行集成测试
 pytest -m integration
+
+# 只运行冒烟测试
+pytest -m smoke
 ```
 
 ## 测试覆盖范围

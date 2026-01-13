@@ -170,12 +170,29 @@
         <!-- 单个TX模拟分析 -->
         <div id="simulation-tab" class="tab-content">
             <div class="input-section">
-                <label for="simulation-url">模拟交易URL:</label>
-                <div class="input-group">
-                    <textarea id="simulation-url" rows="4" placeholder="每行一个模拟交易URL&#10;https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation" class="tx-input"></textarea>
-                    <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
+                <div class="compare-mode-toggle">
+                    <button onclick="loadLocalBlocksecCookies()" class="btn btn-secondary btn-small">加载本地Cookie</button>
                 </div>
-                <small class="hint">支持换行粘贴多个BlockSec模拟交易URL（event=simulation）</small>
+                <div class="compare-mode-toggle">
+                    <label class="compare-toggle"><input type="radio" name="simulation-mode" value="url" checked> 模拟URL</label>
+                    <label class="compare-toggle"><input type="radio" name="simulation-mode" value="params"> JSON参数</label>
+                </div>
+                <div id="simulation-input-url">
+                    <label for="simulation-url">模拟交易URL:</label>
+                    <div class="input-group">
+                        <textarea id="simulation-url" rows="4" placeholder="每行一个模拟交易URL&#10;https://app.blocksec.com/explorer/tx/eth/0x...?...event=simulation" class="tx-input"></textarea>
+                        <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
+                    </div>
+                    <small class="hint">支持换行粘贴多个BlockSec模拟交易URL（event=simulation）</small>
+                </div>
+                <div id="simulation-input-params" style="display: none;">
+                    <label for="simulation-params">模拟参数 JSON:</label>
+                    <div class="input-group">
+                        <textarea id="simulation-params" rows="8" placeholder='{"chainID":1,"simulationType":"custom","blockNumber":24179989,"position":0,"txnCustom":{"value":"0.000000000258280864","sender":"0x...","receiver":"0x...","inputData":"0x...","gasPrice":"0.406730711","gasLimit":596557},"sourceTxnHash":"0x..."}' class="tx-input"></textarea>
+                        <button onclick="analyzeSimulation()" class="btn btn-primary">分析</button>
+                    </div>
+                    <small class="hint">value 使用 ETH 字符串，后端会自动换算为 wei。</small>
+                </div>
             </div>
 
             <div id="simulation-result" class="result-section" style="display: none;">
