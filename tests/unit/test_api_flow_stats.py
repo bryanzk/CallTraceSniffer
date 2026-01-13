@@ -47,7 +47,7 @@ def test_compute_flow_counts_with_merge_and_virtual():
         }
     }
 
-    total, router_count, direct_count, virtual_count = routes._compute_flow_counts(trace_data)
+    total, router_count, direct_count, virtual_count = routes._compute_flow_counts(trace_data, config.ROUTER_ADDRESSES)
     assert router_count == 1
     assert direct_count == 2  # merged edge + direct edge
     assert virtual_count == 1
