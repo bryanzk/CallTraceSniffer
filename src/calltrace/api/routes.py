@@ -285,7 +285,7 @@ def register_routes(app, extracted_data_cache):
                     'warning': '模拟响应未返回 simulationId，且未找到simulation trace数据'
                 }), 200
 
-            analysis = process_tx_data(trace_data, tx_hash, result)
+            analysis = process_tx_data(trace_data, sim_result.tx_hash, result)
             if not analysis:
                 return jsonify({
                     'success': True,
@@ -297,7 +297,7 @@ def register_routes(app, extracted_data_cache):
                     'warning': '模拟响应未返回 simulationId，且数据处理失败'
                 }), 200
 
-            extracted_data_cache[tx_hash] = {
+            extracted_data_cache[sim_result.tx_hash] = {
                 'trace_data': trace_data,
                 'analysis': analysis
             }
