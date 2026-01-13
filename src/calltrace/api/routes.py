@@ -183,7 +183,11 @@ def register_routes(app, extracted_data_cache):
     @app.route('/api/analyze', methods=['POST'])
     def analyze_tx():
         """分析单个交易"""
-        data = request.json
+        data = request.get_json(silent=True)
+        if data is None:
+            data = {}
+        elif not isinstance(data, dict):
+            return jsonify({'success': False, 'error': '请求体必须为JSON对象'}), 400
         tx_hash = data.get('tx_hash', '').strip()
         
         if not tx_hash:
@@ -345,7 +349,11 @@ def register_routes(app, extracted_data_cache):
     @app.route('/api/analyze-simulation', methods=['POST'])
     def analyze_simulation_tx():
         """分析模拟交易"""
-        data = request.json
+        data = request.get_json(silent=True)
+        if data is None:
+            data = {}
+        elif not isinstance(data, dict):
+            return jsonify({'success': False, 'error': '请求体必须为JSON对象'}), 400
         sim_url = data.get('simulation_url', '').strip()
 
         if not sim_url:
