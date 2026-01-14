@@ -194,6 +194,16 @@ def _addr_from_topic(topic):
     return "0x" + cleaned[-40:]
 
 
+def _build_log_entry(event):
+    """从 event 构建标准化的日志条目"""
+    return {
+        'address': event.get('contract', ''),
+        'topics': event.get('topics', []),
+        'data': event.get('logData', ''),
+        'decodedLog': event.get('decodedLog'),
+    }
+
+
 def _collect_logs(trace_data):
     logs = []
     for node in trace_data.get('dataMap', {}).values():
@@ -202,18 +212,16 @@ def _collect_logs(trace_data):
         event = node.get('event') or {}
         if not event:
             continue
-        logs.append({
-            'address': event.get('contract', ''),
-            'topics': event.get('topics', []),
-            'data': event.get('logData', ''),
-            'decodedLog': event.get('decodedLog'),
-        })
+        logs.append(_build_log_entry(event))
     return logs
 
 
 def _collect_logs_by_node(trace_data):
-    data_map = trace_data.get('dataMap', {}) if trace_data else {}
-    main_trace = trace_data.get('mainTrace', []) if trace_data else []
+    if not trace_data:
+        return {}
+
+    data_map = trace_data.get('dataMap', {})
+    main_trace = trace_data.get('mainTrace', [])
     node_logs = {}
 
     def build(node):
@@ -223,12 +231,7 @@ def _collect_logs_by_node(trace_data):
         if entry.get('nodeType') == 1:
             event = entry.get('event') or {}
             if event:
-                logs.append({
-                    'address': event.get('contract', ''),
-                    'topics': event.get('topics', []),
-                    'data': event.get('logData', ''),
-                    'decodedLog': event.get('decodedLog'),
-                })
+                logs.append(_build_log_entry(event))
         for child in node.get('children', []):
             logs.extend(build(child))
         node_logs[node_id] = logs
@@ -277,21 +280,23 @@ def _fundflow_entry_to_big(entry, token_decimals):
     return int(amount * (10 ** decimals))
 
 
+def _pick_best_fundflow_entry(entries, token_decimals):
+    """从 fundflow entries 中选择金额最大的条目"""
+    best = None
+    best_amount = None
+    for entry in entries:
+        amount_big = _fundflow_entry_to_big(entry, token_decimals)
+        if amount_big is None:
+            continue
+        if best_amount is None or amount_big > best_amount:
+            best = entry
+            best_amount = amount_big
+    return best, best_amount
+
+
 def _apply_fundflow_overrides(root_trace, fundflow, token_decimals):
     if not root_trace or not isinstance(fundflow, list):
         return
-
-    def pick_best(entries):
-        best = None
-        best_amount = None
-        for entry in entries:
-            amount_big = _fundflow_entry_to_big(entry, token_decimals)
-            if amount_big is None:
-                continue
-            if best_amount is None or amount_big > best_amount:
-                best = entry
-                best_amount = amount_big
-        return best, best_amount
 
     def apply_to_node(node):
         if node.get("type") == "swap":
@@ -300,8 +305,8 @@ def _apply_fundflow_overrides(root_trace, fundflow, token_decimals):
             if pool_addr:
                 inflow = [e for e in fundflow if (e.get("to") or "").lower() == pool_addr]
                 outflow = [e for e in fundflow if (e.get("from") or "").lower() == pool_addr]
-                in_entry, in_amount = pick_best(inflow)
-                out_entry, out_amount = pick_best(outflow)
+                in_entry, in_amount = _pick_best_fundflow_entry(inflow, token_decimals)
+                out_entry, out_amount = _pick_best_fundflow_entry(outflow, token_decimals)
 
                 if (intent.get("tokenIn") in (None, "", "unknown") or intent.get("amountInBig") is None) and in_entry:
                     token_in = (in_entry.get("token") or "").lower()
@@ -339,18 +344,6 @@ def _apply_fundflow_overrides_to_swaps(swaps, fundflow, token_decimals):
     if not swaps or not isinstance(fundflow, list):
         return
 
-    def pick_best(entries):
-        best = None
-        best_amount = None
-        for entry in entries:
-            amount_big = _fundflow_entry_to_big(entry, token_decimals)
-            if amount_big is None:
-                continue
-            if best_amount is None or amount_big > best_amount:
-                best = entry
-                best_amount = amount_big
-        return best, best_amount
-
     for item in swaps.values():
         swap = item.get("swap") or {}
         intent = swap.get("swapIntent") or {}
@@ -360,8 +353,8 @@ def _apply_fundflow_overrides_to_swaps(swaps, fundflow, token_decimals):
             continue
         inflow = [e for e in fundflow if (e.get("to") or "").lower() == pool_addr]
         outflow = [e for e in fundflow if (e.get("from") or "").lower() == pool_addr]
-        in_entry, in_amount = pick_best(inflow)
-        out_entry, out_amount = pick_best(outflow)
+        in_entry, in_amount = _pick_best_fundflow_entry(inflow, token_decimals)
+        out_entry, out_amount = _pick_best_fundflow_entry(outflow, token_decimals)
 
         if (intent.get("tokenIn") in (None, "", "unknown") or intent.get("amountInBig") is None) and in_entry:
             token_in = (in_entry.get("token") or "").lower()

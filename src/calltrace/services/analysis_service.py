@@ -40,8 +40,7 @@ class FixtureLoader:
     
     def should_use_fixture(self) -> bool:
         """检查是否应该使用 fixture（从环境变量读取）"""
-        flag = os.getenv("USE_FIXTURE", "")
-        return flag.strip().lower() in {"1", "true", "yes", "on"}
+        return os.getenv("USE_FIXTURE", "").strip().lower() in {"1", "true", "yes", "on"}
     
     def load_fixture(self) -> dict:
         """加载 fixture 数据"""
