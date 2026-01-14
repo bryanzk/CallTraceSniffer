@@ -33,7 +33,9 @@ from ..services.blocksec_simulation import (
 
 def _error_response(error, status=400):
     """构建错误响应"""
-    return jsonify({'success': False, 'error': error}), status
+    response = jsonify({'success': False, 'error': error})
+    response.status_code = status
+    return response
 
 
 def _build_batch_item_result(identifier, key_name, analysis=None, error=None):
