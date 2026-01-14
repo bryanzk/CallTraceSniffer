@@ -402,10 +402,10 @@ def register_routes(app, extracted_data_cache):
                     })
             
             return jsonify({'success': True, 'results': results, 'total': len(results)})
-            
+
         except Exception as e:
-            return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
-    
+            return _error_response(f'处理失败: {str(e)}', 500)
+
     @app.route('/api/download-result', methods=['POST'])
     def download_result():
         """下载分析结果"""
@@ -414,10 +414,10 @@ def register_routes(app, extracted_data_cache):
         output_type = data.get('output_type', 'ir_v1')
         provided_ir = data.get('ir_v1')
         provided_ir_json = data.get('ir_v1_json')
-        
+
         output = None
         if output_type != 'ir_v1':
-            return jsonify({'success': False, 'error': '仅支持输出IR V1 JSON'}), 400
+            return _error_response('仅支持输出IR V1 JSON')
 
         if tx_hash in extracted_data_cache:
             analysis = extracted_data_cache[tx_hash]['analysis']
@@ -428,7 +428,7 @@ def register_routes(app, extracted_data_cache):
             output = provided_ir
 
         if output is None:
-            return jsonify({'success': False, 'error': '未找到分析结果'}), 404
+            return _error_response('未找到分析结果', 404)
         
         output_bytes = serialize_ir_payload(output, tx_hash).encode('utf-8')
         filename = f"analysis_{tx_hash[:10]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -449,9 +449,9 @@ def register_routes(app, extracted_data_cache):
         tx_hash = data.get('tx_hash', '').strip()
 
         if not tx_hash:
-            return jsonify({'success': False, 'error': '交易哈希不能为空'}), 400
+            return _error_response('交易哈希不能为空')
         if not tx_hash.startswith('0x') or len(tx_hash) != 66:
-            return jsonify({'success': False, 'error': '无效的交易哈希格式'}), 400
+            return _error_response('无效的交易哈希格式')
 
         if tx_hash in extracted_data_cache:
             analysis = extracted_data_cache[tx_hash]['analysis']
@@ -467,15 +467,15 @@ def register_routes(app, extracted_data_cache):
 
             if not result or not result.get('success'):
                 error_msg = result.get('error', '无法提取交易数据') if result else '无法提取交易数据'
-                return jsonify({'success': False, 'error': error_msg}), 500
+                return _error_response(error_msg, 500)
 
             trace_data = result.get('trace_data')
             if not trace_data:
-                return jsonify({'success': False, 'error': '未找到trace数据'}), 500
+                return _error_response('未找到trace数据', 500)
 
             analysis = process_with_config(trace_data, tx_hash, result)
             if not analysis:
-                return jsonify({'success': False, 'error': '数据处理失败'}), 500
+                return _error_response('数据处理失败', 500)
 
             extracted_data_cache[tx_hash] = {
                 'trace_data': trace_data,
@@ -484,7 +484,7 @@ def register_routes(app, extracted_data_cache):
 
             return app.response_class(analysis['ir_v1_json'], mimetype='application/json')
         except Exception as e:
-            return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+            return _error_response(f'处理失败: {str(e)}', 500)
 
     @app.route('/api/ir-to-mermaid', methods=['POST'])
     def ir_to_mermaid():
@@ -492,19 +492,19 @@ def register_routes(app, extracted_data_cache):
         data = request.json or {}
         ir_payload = data.get('ir_v1')
         if ir_payload is None:
-            return jsonify({'success': False, 'error': 'ir_v1不能为空'}), 400
+            return _error_response('ir_v1不能为空')
 
         if isinstance(ir_payload, str):
             try:
                 ir_payload = json.loads(ir_payload)
             except Exception:
-                return jsonify({'success': False, 'error': 'ir_v1不是有效JSON'}), 400
+                return _error_response('ir_v1不是有效JSON')
 
         if not isinstance(ir_payload, dict):
-            return jsonify({'success': False, 'error': 'ir_v1必须为JSON对象'}), 400
+            return _error_response('ir_v1必须为JSON对象')
 
         try:
             mermaid_dag = build_mermaid_dag(ir_payload)
             return jsonify({'success': True, 'mermaid_dag': mermaid_dag})
         except Exception as e:
-            return jsonify({'success': False, 'error': f'生成失败: {str(e)}'}), 400
+            return _error_response(f'生成失败: {str(e)}')
