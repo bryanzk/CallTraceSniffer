@@ -70,33 +70,41 @@ def extract_total_gas(trace_data: Optional[dict]) -> int:
 def extract_transfer_edges(trace_data: Optional[dict]) -> list[dict]:
     """
     从 trace_data 中提取所有 transfer 边
-    
+
     Args:
         trace_data: 交易追踪数据
-    
+
     Returns:
         transfer 边列表，每个边包含 from, to, token, amount
     """
-    data_map = trace_data.get("dataMap", {}) if trace_data else {}
+    if not trace_data:
+        return []
+
+    TO_PARAM_NAMES = ("to", "recipient", "dst")
+    AMOUNT_PARAM_NAMES = ("amount", "value", "wad")
+
     edges = []
-    for entry in data_map.values():
+    for entry in trace_data.get("dataMap", {}).values():
         inv = entry.get("invocation")
         if not inv:
             continue
+
         method = inv.get("decodedMethod") or {}
-        name = method.get("name", "") if isinstance(method, dict) else ""
-        if name != "transfer":
+        if not isinstance(method, dict) or method.get("name") != "transfer":
             continue
-        call_params = method.get("callParams", []) if isinstance(method, dict) else []
+
         to_addr = ""
         amount = 0
-        for param in call_params:
-            if param.get("name") in ("to", "recipient", "dst"):
+        for param in method.get("callParams", []):
+            param_name = param.get("name")
+            if param_name in TO_PARAM_NAMES:
                 to_addr = param.get("value", "") or ""
-            if param.get("name") in ("amount", "value", "wad"):
+            elif param_name in AMOUNT_PARAM_NAMES:
                 amount = _parse_int(param.get("value")) or 0
+
         if not to_addr:
             continue
+
         edges.append({
             "from": (inv.get("fromAddress") or "").lower(),
             "to": to_addr.lower(),
