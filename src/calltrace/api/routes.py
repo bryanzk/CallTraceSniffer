@@ -31,11 +31,28 @@ from ..services.blocksec_simulation import (
     run_simulation_with_payload,
 )
 
+def _error_response(error, status=400):
+    """构建错误响应"""
+    return jsonify({'success': False, 'error': error}), status
+
+
+def _build_batch_item_result(identifier, key_name, analysis=None, error=None):
+    """构建批量处理单项结果"""
+    result = {key_name: identifier, 'success': analysis is not None}
+    if analysis:
+        result.update({
+            'ir_v1': analysis['ir_v1'],
+            'ir_v1_json': analysis['ir_v1_json'],
+            'stats': analysis['stats']
+        })
+    else:
+        result['error'] = error or '处理失败'
+    return result
+
+
 def _response_from_service_result(result):
     if not result.ok:
-        response = jsonify({'success': False, 'error': result.error})
-        response.status_code = result.status_code
-        return response
+        return _error_response(result.error, result.status_code)
 
     analysis = result.payload['analysis']
     response = jsonify({
@@ -67,17 +84,17 @@ def register_routes(app, extracted_data_cache):
         """分析单个交易"""
         data, error = parse_json_object(request)
         if error:
-            return jsonify({'success': False, 'error': error}), 400
+            return _error_response(error)
 
         tx_hash, error = validate_tx_hash(data)
         if error:
-            return jsonify({'success': False, 'error': error}), 400
+            return _error_response(error)
 
         try:
             result = analysis_service.analyze_tx(tx_hash)
             return _response_from_service_result(result)
         except Exception as e:
-            return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+            return _error_response(f'处理失败: {str(e)}', 500)
 
     @app.route('/api/simulate-and-analyze', methods=['POST'])
     def simulate_and_analyze_tx():
@@ -86,21 +103,21 @@ def register_routes(app, extracted_data_cache):
         raw_params = data.get('params') or data.get('simulation_params') or data.get('payload') or data
 
         if not isinstance(raw_params, dict) or not raw_params:
-            return jsonify({'success': False, 'error': '模拟参数不能为空'}), 400
+            return _error_response('模拟参数不能为空')
 
         try:
             payload = build_simulation_request_payload(raw_params)
         except ValueError as e:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return _error_response(str(e))
         except Exception as e:
-            return jsonify({'success': False, 'error': f'模拟参数处理失败: {str(e)}'}), 400
+            return _error_response(f'模拟参数处理失败: {str(e)}')
 
         try:
             sim_result = run_simulation_with_payload(payload)
         except PermissionError as e:
-            return jsonify({'success': False, 'error': str(e)}), 403
+            return _error_response(str(e), 403)
         except Exception as e:
-            return jsonify({'success': False, 'error': f'模拟请求失败: {str(e)}'}), 500
+            return _error_response(f'模拟请求失败: {str(e)}', 500)
 
         if not sim_result.simulation_id:
             simulation_url = sim_result.simulation_url
@@ -158,7 +175,7 @@ def register_routes(app, extracted_data_cache):
 
         trace_data = find_trace_payload(sim_result.trace_data)
         if not trace_data:
-            return jsonify({'success': False, 'error': '未找到simulation trace数据'}), 500
+            return _error_response('未找到simulation trace数据', 500)
 
         extra = {
             'trace_data': trace_data,
@@ -169,7 +186,7 @@ def register_routes(app, extracted_data_cache):
 
         analysis = process_with_config(trace_data, sim_result.tx_hash, extra)
         if not analysis:
-            return jsonify({'success': False, 'error': '数据处理失败'}), 500
+            return _error_response('数据处理失败', 500)
 
         extracted_data_cache[sim_result.tx_hash] = {
             'trace_data': trace_data,
@@ -191,17 +208,17 @@ def register_routes(app, extracted_data_cache):
         """分析模拟交易"""
         data, error = parse_json_object(request)
         if error:
-            return jsonify({'success': False, 'error': error}), 400
+            return _error_response(error)
 
         sim_url, error = validate_simulation_url(data)
         if error:
-            return jsonify({'success': False, 'error': error}), 400
+            return _error_response(error)
 
         try:
             result = analysis_service.analyze_simulation(sim_url)
             return _response_from_service_result(result)
         except Exception as e:
-            return jsonify({'success': False, 'error': f'处理失败: {str(e)}'}), 500
+            return _error_response(f'处理失败: {str(e)}', 500)
 
     @app.route('/api/blocksec-cookies/load', methods=['POST'])
     def load_blocksec_cookies():
@@ -209,35 +226,35 @@ def register_routes(app, extracted_data_cache):
         try:
             cookie_path = resolve_cookie_file()
             if not cookie_path.exists():
-                return jsonify({'success': False, 'error': f'未找到本地cookie文件: {cookie_path}'}), 404
+                return _error_response(f'未找到本地cookie文件: {cookie_path}', 404)
             with cookie_path.open() as f:
                 payload = json.load(f)
             if not isinstance(payload, (list, dict)):
-                return jsonify({'success': False, 'error': 'cookie文件格式不正确'}), 400
+                return _error_response('cookie文件格式不正确')
             return jsonify({'success': True, 'path': str(cookie_path)})
         except Exception as e:
-            return jsonify({'success': False, 'error': f'加载cookie失败: {str(e)}'}), 500
+            return _error_response(f'加载cookie失败: {str(e)}', 500)
 
     @app.route('/api/blocksec-cookies', methods=['POST'])
     def upload_blocksec_cookies():
         """上传 BlockSec cookies 文件"""
         if 'cookie_file' not in request.files:
-            return jsonify({'success': False, 'error': '未找到cookie文件'}), 400
+            return _error_response('未找到cookie文件')
         file = request.files['cookie_file']
         if not file or not file.filename:
-            return jsonify({'success': False, 'error': 'cookie文件为空'}), 400
+            return _error_response('cookie文件为空')
         try:
             raw = file.read()
             payload = json.loads(raw.decode('utf-8'))
             if not isinstance(payload, (list, dict)):
-                return jsonify({'success': False, 'error': 'cookie文件格式不正确'}), 400
+                return _error_response('cookie文件格式不正确')
             cookie_path = resolve_cookie_file()
             cookie_path.parent.mkdir(parents=True, exist_ok=True)
             with cookie_path.open('w') as f:
                 json.dump(payload, f)
             return jsonify({'success': True, 'path': str(cookie_path)})
         except Exception as e:
-            return jsonify({'success': False, 'error': f'保存cookie失败: {str(e)}'}), 500
+            return _error_response(f'保存cookie失败: {str(e)}', 500)
 
     @app.route('/api/analyze-simulation-batch', methods=['POST'])
     def analyze_simulation_batch():
@@ -245,13 +262,13 @@ def register_routes(app, extracted_data_cache):
         data = request.json or {}
         sim_urls = data.get('simulation_urls', [])
         if not isinstance(sim_urls, list):
-            return jsonify({'success': False, 'error': 'simulation_urls必须为列表'}), 400
+            return _error_response('simulation_urls必须为列表')
 
         sim_urls = [url.strip() for url in sim_urls if isinstance(url, str) and url.strip()]
         if not sim_urls:
-            return jsonify({'success': False, 'error': '模拟URL不能为空'}), 400
+            return _error_response('模拟URL不能为空')
         if len(sim_urls) > 10:
-            return jsonify({'success': False, 'error': '最多支持10个交易'}), 400
+            return _error_response('最多支持10个交易')
 
         results = []
         extractor = BlockSecExtractor()
@@ -318,11 +335,11 @@ def register_routes(app, extracted_data_cache):
     def analyze_batch_tx():
         """批量分析交易"""
         if 'file' not in request.files:
-            return jsonify({'success': False, 'error': '未上传文件'}), 400
-        
+            return _error_response('未上传文件')
+
         file = request.files['file']
         if file.filename == '':
-            return jsonify({'success': False, 'error': '文件名为空'}), 400
+            return _error_response('文件名为空')
         
         try:
             # 读取CSV文件
@@ -331,7 +348,7 @@ def register_routes(app, extracted_data_cache):
             tx_hashes = [row[0].strip() for row in csv_reader if row and row[0].strip()]
             
             if len(tx_hashes) > 10:
-                return jsonify({'success': False, 'error': '最多支持10个交易'}), 400
+                return _error_response('最多支持10个交易')
             
             results = []
             extractor = BlockSecExtractor()
