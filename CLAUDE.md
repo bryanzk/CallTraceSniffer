@@ -114,3 +114,9 @@ Protocol detection priority: V4 > V3 > V2 (via log topics)
 - `WETH`, `USDC`: Common token addresses
 - `BLOCKSEC_BASE_URL`: BlockSec API base URL
 - `MAX_BATCH_SIZE`: Maximum transactions per batch (10)
+
+## Token Optimization
+
+- 大文件（>200行）先用 `grep -n` 定位目标函数，再用 `Read` 的 `offset`/`limit` 参数分段读取
+- 代码审查拆分到多个会话，每次只处理 1-2 个文件
+- 避免重复读取相同文件，优先使用缓存的上下文
