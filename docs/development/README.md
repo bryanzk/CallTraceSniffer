@@ -3,10 +3,10 @@
 ## 📚 文档索引
 
 ### 核心文档
-- [业务处理逻辑](BUSINESS_LOGIC.md) - 核心业务流程、数据处理管道、服务模块说明
+- [Pool 过滤业务](POOL_FILTER_BUSINESS.md) - 核心业务流程、池过滤设计与接口说明
 - [API路由文档](API_ROUTES.md) - 所有API端点、请求/响应格式、端到端流程
 - [外部依赖数据](EXTERNAL_DEPENDENCIES.md) - 硬编码地址、外部服务、配置依赖说明
-- [Web界面使用说明](README_WEB.md) - Web应用使用说明
+- [Web界面使用说明](README_WEB.md) - Web应用使用说明（含多交易Pool检查）
 - [数据流转文档](DATA_FLOW.md) - 数据在各模块间的流转过程（包含数据流图）
 - [IR规范文档](IR_SPEC.md) - IR结构与字段规范（中英对照）
 - [IR V1 解析流程](IR_V1_FLOW.md) - BlockSec→IR V1 标准流程（中英对照）
@@ -39,10 +39,12 @@ src/calltrace/
 │   │   ├── ServiceResult   # 服务结果数据类
 │   │   ├── RouterConfig    # 路由器配置
 │   │   └── FixtureLoader   # Fixture加载器
+│   ├── dune_service.py     # Dune API 调用封装
 │   ├── extractor.py        # BlockSec数据提取服务
 │   ├── ir_v1_blocksec.py   # BlockSec IR解析
 │   ├── ir_v1_tenderly.py   # Tenderly IR解析
 │   ├── mermaid_dag.py      # Mermaid图生成
+│   ├── pool_filter_service.py # Pool 过滤服务（Dune/本地）
 │   └── blocksec_simulation.py # 模拟服务
 ├── utils/                  # 工具函数层
 │   ├── address.py          # 地址处理工具
@@ -83,6 +85,16 @@ API层 (routes.py)
 3. 激活虚拟环境：`source venv/bin/activate`
 4. 安装依赖：`pip install -r requirements.txt`
 5. 安装 Playwright：`playwright install chromium`
+
+## Dune API 配置（Uniswap Pool 查询）
+
+在项目根目录创建 `.env`，加入：
+
+```
+DUNE_API_KEY=your_api_key
+```
+
+后端启动时会自动加载 `.env`。
 
 ## 运行开发服务器
 

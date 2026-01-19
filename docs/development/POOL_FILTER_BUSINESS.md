@@ -1,4 +1,4 @@
-# 业务处理逻辑文档
+# Pool 过滤业务文档
 
 ## 📋 概述
 
@@ -38,6 +38,75 @@ CallTraceSniffer 是一个以太坊交易分析工具，核心功能是从 Block
 | 模拟交易分析 | simulation_url | 提取→解析→转换 | IR V1 + Mermaid |
 | 模拟并分析 | simulation_params | 模拟→提取→转换 | IR V1 + 统计 |
 | 批量分析 | CSV文件 | 循环(提取→转换) | 批量结果 |
+
+## 🧩 交易池过滤（Uniswap Pool Filter）
+
+### 业务需求
+
+- 前端新增 Tab：批量输入 tx_hash（换行），判断是否“包含 Uniswap 池”
+- 不直接从前端访问 Dune，避免消耗 credit
+- 后端集中调用 Dune，结果直接返回 true/false
+
+### 当前实现（维护性 + 成本优先）
+
+- **数据来源**：Dune `dex.trades`（Uniswap）
+- **查询方式**：按 tx_hash 列表批量查询，不做本地池缓存
+- **判断条件**：`project = 'uniswap'` 且 `block_date > CURRENT_DATE - INTERVAL '3' DAY`
+- **结果**：`tx_hash -> bool_used_uni`
+
+### 实现要点
+
+1. **Dune SQL**
+   - 使用 `VALUES {{tx_hashes}}` 参数传入多笔交易
+   - 返回 `tx_hash` 与 `bool_used_uni`
+2. **后端调用**
+   - `DuneService.fetch_uniswap_flags()` 负责参数拼接与结果解析
+   - `PoolFilterService._check_tx_hashes_with_dune()` 对外返回结果
+3. **前端输入**
+   - 最多 10 条 tx_hash
+   - 去重后提交
+   - 展示重复输入提示与命中结果
+
+### 环境配置
+
+在项目根目录 `.env` 中配置：
+
+```
+DUNE_API_KEY=your_api_key
+```
+
+后端启动时自动加载 `.env`，否则 `/api/unipool/check` 会返回错误。
+
+### 对外接口
+
+- `POST /api/unipool/check`
+  - 输入：`{ "tx_hashes": ["0x..", ...] }`
+  - 输出：`{ "results": [{ "tx_hash": "...", "has_uni_pool": true }] }`
+- `GET /api/unipool/status`
+  - 当前返回 storage disabled（未启用本地池缓存）
+
+### 接口时序图（前端 → 后端）
+
+```text
+User
+  |
+  v
+Frontend (Pool Tab)
+  |
+  | POST /api/unipool/check
+  | body: { tx_hashes: [...] }
+  v
+Flask API
+  |
+  | 1) 去重/校验
+  | 2) Dune 批量查询 dex.trades
+  | 3) 组装 tx_hash -> bool_used_uni
+  v
+Response
+  |
+  v
+Frontend Render
+```
 
 ## 🔧 核心服务模块
 

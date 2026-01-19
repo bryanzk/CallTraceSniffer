@@ -8,7 +8,7 @@
 - [Docker配置完成说明](deployment/DOCKER_SETUP_COMPLETE.md) - Docker配置说明
 
 ### 开发文档 (development/)
-- [业务处理逻辑](development/BUSINESS_LOGIC.md) - 核心业务流程、数据处理管道、服务模块说明
+- [Pool 过滤业务](development/POOL_FILTER_BUSINESS.md) - Dune Pool 查询流程、接口与前端使用说明
 - [API路由文档](development/API_ROUTES.md) - 所有API端点、请求/响应格式、端到端流程
 - [外部依赖数据](development/EXTERNAL_DEPENDENCIES.md) - 硬编码地址、外部服务、配置依赖说明
 - [Web界面使用](development/README_WEB.md) - Web应用使用说明（含单个交易/模拟/批量）
