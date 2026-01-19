@@ -17,6 +17,7 @@
             <button class="tab-btn active" onclick="switchTab('single')">单个交易</button>
             <button class="tab-btn" onclick="switchTab('compare')">对比</button>
             <button class="tab-btn" onclick="switchTab('simulation')">模拟TX</button>
+            <button class="tab-btn" onclick="switchTab('unipool')">多交易支持Pool 检查</button>
             <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
         </div>
 
@@ -236,6 +237,27 @@
                 </div>
                 <div id="batch-stats" class="batch-stats"></div>
                 <div id="batch-output" class="batch-output"></div>
+            </div>
+        </div>
+
+        <!-- Uniswap 过滤 -->
+        <div id="unipool-tab" class="tab-content">
+            <div class="input-section">
+                <label for="unipool-input">交易哈希列表 (Tx Hash):</label>
+                <div class="input-group">
+                    <textarea id="unipool-input" rows="6" placeholder="每行一个 tx hash，最多 10 条" class="tx-input"></textarea>
+                    <button onclick="analyzeUnipool()" class="btn btn-primary">查询</button>
+                </div>
+                <small class="hint">限制：仅支持以太坊主网；最多 10 条；仅判断是否命中 Uniswap 池；查询窗口为近 3 天。</small>
+                <div id="unipool-duplicates" class="hint" style="display: none;"></div>
+            </div>
+
+            <div id="unipool-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>过滤结果</h2>
+                </div>
+                <div id="unipool-stats" class="batch-stats"></div>
+                <div id="unipool-output" class="batch-output"></div>
             </div>
         </div>
 

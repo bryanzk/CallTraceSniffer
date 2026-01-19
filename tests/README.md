@@ -66,6 +66,7 @@ tests/
 | `test_extractor_payload.py` | 数据提取 |
 | `test_blocksec_extra_smoke.py` | BlockSec冒烟测试 |
 | `test_smoke_flows.py` | 流程冒烟测试 |
+| `test_smoke_unipool_dune.py` | Uniswap pool 查询冒烟测试 |
 
 ## 安装测试依赖
 

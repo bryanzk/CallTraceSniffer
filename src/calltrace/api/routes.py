@@ -6,8 +6,10 @@ import asyncio
 import csv
 import io
 import json
+import os
 from datetime import datetime
 
+from ..config import config
 from ..services.extractor import BlockSecExtractor
 from ..services.mermaid_dag import build_mermaid_dag
 from ..utils.ir_format import order_ir_payload, serialize_ir_payload
@@ -16,6 +18,8 @@ from ..services.analysis_service import (
     AnalysisService,
     RouterConfig,
 )
+from ..services.pool_filter_service import PoolFilterService
+from ..services.dune_service import DuneService
 from ..utils.analysis_utils import (
     compute_flow_counts as _compute_flow_counts,
     count_ir_nodes as _count_ir_nodes,
@@ -75,6 +79,10 @@ def register_routes(app, extracted_data_cache):
     # 创建路由器配置（从全局配置注入，保持向后兼容）
     router_config = RouterConfig.from_global_config()
     analysis_service = AnalysisService(extracted_data_cache, router_config=router_config)
+    dune_service = None
+    if os.getenv("DUNE_API_KEY"):
+        dune_service = DuneService()
+    pool_filter_service = PoolFilterService(None, dune_service=dune_service)
     
     # 在函数内部使用 router_config 的辅助函数
     def process_with_config(trace_data, tx_hash, extra=None):
@@ -97,6 +105,55 @@ def register_routes(app, extracted_data_cache):
             return _response_from_service_result(result)
         except Exception as e:
             return _error_response(f'处理失败: {str(e)}', 500)
+
+    @app.route('/api/unipool/check', methods=['POST'])
+    def check_unipool():
+        """批量检查交易是否包含Uniswap池"""
+        data, error = parse_json_object(request)
+        if error:
+            return _error_response(error)
+
+        tx_hashes = data.get("tx_hashes")
+        if not isinstance(tx_hashes, list) or not tx_hashes:
+            return _error_response("tx_hashes 必须为非空数组")
+        if len(tx_hashes) > config.MAX_BATCH_SIZE:
+            return _error_response(f"最多支持 {config.MAX_BATCH_SIZE} 条交易哈希")
+
+        cleaned = []
+        results = []
+        for raw_hash in tx_hashes:
+            tx_hash = (str(raw_hash) if raw_hash is not None else "").strip()
+            if not tx_hash or not tx_hash.startswith("0x") or len(tx_hash) != 66:
+                results.append({
+                    "tx_hash": tx_hash,
+                    "success": False,
+                    "has_uni_pool": False,
+                    "matched_pools": [],
+                    "error": "无效的交易哈希格式",
+                })
+                continue
+            cleaned.append(tx_hash)
+
+        if cleaned:
+            for result in pool_filter_service.check_tx_hashes(cleaned):
+                results.append({
+                    "tx_hash": result.tx_hash,
+                    "success": result.success,
+                    "has_uni_pool": result.has_uni_pool,
+                    "matched_pools": result.matched_pools,
+                    "error": result.error,
+                })
+
+        return jsonify({
+            "success": True,
+            "results": results,
+        })
+
+    @app.route('/api/unipool/status', methods=['GET'])
+    def unipool_status():
+        """查询Uniswap池缓存状态"""
+        status = pool_filter_service.get_status()
+        return jsonify(status)
 
     @app.route('/api/simulate-and-analyze', methods=['POST'])
     def simulate_and_analyze_tx():

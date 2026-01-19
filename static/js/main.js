@@ -4,6 +4,7 @@ let batchResultData = null;
 let simulationResultData = null;
 let compareResultA = null;
 let compareResultB = null;
+let unipoolResultData = null;
 let mermaidInitialized = false;
 let singleMermaidText = null;
 let isSyncingScroll = false;
@@ -48,6 +49,10 @@ function switchTab(tab) {
     document.getElementById('single-result').style.display = 'none';
     document.getElementById('simulation-result').style.display = 'none';
     document.getElementById('batch-result').style.display = 'none';
+    const unipoolResult = document.getElementById('unipool-result');
+    if (unipoolResult) {
+        unipoolResult.style.display = 'none';
+    }
     const compareResult = document.getElementById('compare-result');
     if (compareResult) {
         compareResult.style.display = 'none';
@@ -1552,6 +1557,136 @@ function displaySimulationBatchResult(data) {
     if (copyButton) {
         copyButton.style.display = 'none';
     }
+    resultSection.style.display = 'block';
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function analyzeUnipool() {
+    const inputEl = document.getElementById('unipool-input');
+    const dupEl = document.getElementById('unipool-duplicates');
+    if (!inputEl) {
+        return;
+    }
+    const rawLines = inputEl.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (rawLines.length === 0) {
+        showError('请输入交易哈希');
+        return;
+    }
+    if (rawLines.length > 10) {
+        showError('最多支持 10 条交易哈希');
+        return;
+    }
+    const seen = new Set();
+    const duplicates = new Set();
+    const txHashes = [];
+    rawLines.forEach(line => {
+        const normalized = normalizeTxInput(line) || line;
+        if (seen.has(normalized)) {
+            duplicates.add(normalized);
+            return;
+        }
+        seen.add(normalized);
+        txHashes.push(normalized);
+    });
+    if (dupEl) {
+        if (duplicates.size > 0) {
+            dupEl.innerHTML = `重复输入已去重：${escapeHtml(Array.from(duplicates).join(', '))}`;
+            dupEl.style.display = 'block';
+        } else {
+            dupEl.textContent = '';
+            dupEl.style.display = 'none';
+        }
+    }
+
+    showLoading();
+    hideError();
+
+    try {
+        const response = await fetch('/api/unipool/check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tx_hashes: txHashes })
+        });
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            unipoolResultData = data;
+            displayUnipoolResult(data);
+        } else {
+            showError(data.error || '查询失败');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('请求失败: ' + error.message);
+    }
+}
+
+function displayUnipoolResult(data) {
+    const resultSection = document.getElementById('unipool-result');
+    const statsDiv = document.getElementById('unipool-stats');
+    const outputDiv = document.getElementById('unipool-output');
+    if (!resultSection || !statsDiv || !outputDiv) {
+        return;
+    }
+
+    const results = Array.isArray(data.results) ? data.results : [];
+    const total = results.length;
+    const hitCount = results.filter(r => r.success && r.has_uni_pool).length;
+    const missCount = results.filter(r => r.success && !r.has_uni_pool).length;
+    const errorCount = results.filter(r => !r.success).length;
+
+    statsDiv.innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>${total}</h3>
+                <p>总交易数</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                <h3>${hitCount}</h3>
+                <p>命中Uniswap</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ecc94b 0%, #d69e2e 100%);">
+                <h3>${missCount}</h3>
+                <p>未命中</p>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
+                <h3>${errorCount}</h3>
+                <p>异常</p>
+            </div>
+        </div>
+    `;
+
+    outputDiv.innerHTML = results.map((result, index) => {
+        if (!result.success) {
+            return `
+                <div class="batch-item error">
+                    <h3>交易 ${index + 1}</h3>
+                    <div class="tx-hash">${escapeHtml(result.tx_hash || '')}</div>
+                    <div style="color: #c53030; margin-top: 10px;">
+                        <strong>错误:</strong> ${escapeHtml(result.error || '查询失败')}
+                    </div>
+                </div>
+            `;
+        }
+        const statusText = result.has_uni_pool ? '命中 Uniswap' : '未命中 Uniswap';
+        const statusStyle = result.has_uni_pool ? 'color: #2f855a;' : 'color: #b7791f;';
+        const itemClass = result.has_uni_pool ? 'batch-item success' : 'batch-item';
+        return `
+            <div class="${itemClass}">
+                <div class="batch-item-header">
+                    <h3>交易 ${index + 1}</h3>
+                </div>
+                <div class="tx-hash">${escapeHtml(result.tx_hash || '')}</div>
+                <div style="${statusStyle} margin-top: 10px;">
+                    <strong>${statusText}</strong>
+                </div>
+            </div>
+        `;
+    }).join('');
+
     resultSection.style.display = 'block';
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
