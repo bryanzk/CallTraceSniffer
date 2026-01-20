@@ -86,15 +86,25 @@ API层 (routes.py)
 4. 安装依赖：`pip install -r requirements.txt`
 5. 安装 Playwright：`playwright install chromium`
 
-## Dune API 配置（Uniswap Pool 查询）
+## Dune API 配置（Uniswap Pool 查询 / tx metrics）
 
 在项目根目录创建 `.env`，加入：
 
 ```
 DUNE_API_KEY=your_api_key
+DUNE_TX_QUERY_ID=6569281
 ```
 
 后端启动时会自动加载 `.env`。
+
+## tx metrics 配置
+
+在 `.env` 中补充：
+
+```
+ETH_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/your_api_key
+EIGENPHI_BASE_URL=https://storage.googleapis.com/eigenphi-ethereum-tx/{tx_hash}
+```
 
 ## 运行开发服务器
 

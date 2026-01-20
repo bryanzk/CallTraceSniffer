@@ -53,6 +53,18 @@ class Config:
     MAX_BATCH_SIZE: int = 10  # 批量分析最大数量
     REQUEST_TIMEOUT: int = 30000  # 请求超时（毫秒）
 
+    # EigenPhi 配置
+    EIGENPHI_BASE_URL: str = os.getenv(
+        "EIGENPHI_BASE_URL",
+        "https://storage.googleapis.com/eigenphi-ethereum-tx/{tx_hash}",
+    )
+
+    # Dune 配置
+    DUNE_TX_QUERY_ID: int = int(os.getenv("DUNE_TX_QUERY_ID", "6569281"))
+
+    # RPC 配置
+    ETH_RPC_URL: str = os.getenv("ETH_RPC_URL", "").strip()
+
 
 # 创建全局配置实例
 config = Config()

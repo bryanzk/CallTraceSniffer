@@ -13,6 +13,7 @@
 | `/api/simulate-and-analyze` | POST | 模拟并分析交易 | 需Cookie |
 | `/api/analyze-batch` | POST | 批量分析交易 | 无 |
 | `/api/analyze-simulation-batch` | POST | 批量分析模拟交易 | 无 |
+| `/api/tx-metrics-batch` | POST | 批量交易指标（EigenPhi + Dune + RPC） | 无 |
 | `/api/ir_parse` | POST | 获取 IR V1 JSON | 无 |
 | `/api/ir-to-mermaid` | POST | IR 转 Mermaid | 无 |
 | `/api/download-result` | POST | 下载分析结果 | 无 |
@@ -252,7 +253,98 @@ file: CSV文件（每行一个tx_hash）
 
 ---
 
-### 5. 批量分析模拟交易
+### 5. 批量交易指标（EigenPhi + Dune + RPC）
+
+**端点**: `POST /api/tx-metrics-batch`
+
+**请求**:
+```json
+{
+  "tx_hashes": [
+    "0x24c7...",
+    "0x88f0...",
+    "0x49f3..."
+  ]
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "block_start": 24182471,
+  "block_end": 24278160,
+  "results": [
+    {
+      "tx_hash": "0x24c7...",
+      "success": true,
+      "blockNumber": 24278160,
+      "gasUsed": 1700457,
+      "builderTip": "0.000000000001700457",
+      "builderTipPerGas": "0.000000000000000001",
+      "coinbaseTransfer": "0.000034047305653313",
+      "builderTipWithCT": "0.00003404730735377",
+      "blockIndex": 128,
+      "botAddress": "0x...",
+      "builder": {
+        "address": "0x...",
+        "name": "builder-name-or-address"
+      },
+      "revenueEth": "0.002876356082165525",
+      "revenueUsd": "9.1548550181512379531504185",
+      "revenueUsdAll": "9.154855018151237953",
+      "blockTxCount": 320
+    }
+  ]
+}
+```
+
+**字段与来源**:
+- `block_start` / `block_end`: EigenPhi `txMeta.blockNumber` 的最小/最大值
+- `blockNumber`: EigenPhi `txMeta.blockNumber`
+- `gasUsed`: EigenPhi `txMeta.gasUsed`
+- `builderTipPerGas`: 计算字段（使用 EigenPhi `txMeta.gasPrice/baseFeePerGas`）
+- `builderTip`: 计算字段（使用 EigenPhi `txMeta.gasUsed`）
+- `coinbaseTransfer`: Dune `miner_tip_amount`（为空按 0）
+- `builderTipWithCT`: 计算字段（见下方公式）
+- `blockIndex`: EigenPhi `txMeta.transactionIndex`
+- `botAddress`: EigenPhi `txMeta.transactionToAddress`（tx.to）
+- `builder.address`: Dune `builder_address`，缺失时回退 EigenPhi `txMeta.blockMiner`
+- `builder.name`: Dune `builder`（可能为空）
+- `revenueEth`: 计算字段（仅 ETH/WETH）
+- `revenueUsd`: 计算字段（仅 ETH/WETH）
+- `revenueUsdAll`: 计算字段（全 token）
+- `blockTxCount`: RPC `eth_getBlockByNumber(blockNumber)` 返回的 `transactions.length`
+
+**计算方法**:
+```text
+builderTipPerGas = max(0, gasPrice - baseFeePerGas)
+builderTip = builderTipPerGas * gasUsed
+coinbaseTransfer = Dune.miner_tip_amount (ETH, 为空按 0)
+builderTipWithCT = builderTip + coinbaseTransfer
+
+revenueEth = sum(tokenAmount) for botAddress where tokenSpec == PLATFORM
+             or tokenAddress == WETH, then / 1e18
+revenueUsd = revenueEth * ethPriceUsd
+revenueUsdAll = sum(tokenVolume) for botAddress (all tokenBalances)
+```
+
+**单位**:
+- `builderTip*` / `coinbaseTransfer` / `revenueEth`: ETH（字符串）
+- `builderTipPerGas`: ETH/gas（字符串）
+- `revenueUsd*`: USD（字符串）
+- `gasUsed` / `blockIndex` / `blockTxCount`: 整数
+
+**说明**:
+- `ethPriceUsd` 来自 EigenPhi `tokenPrices`（优先 PLATFORM/WETH 价格）。
+- `revenueUsdAll` 使用 EigenPhi `tokenVolume`，与 EigenPhi 页面展示对齐。
+- 若 EigenPhi 缺少 gas 字段，`builderTip` 会回退使用 Dune `priority_fee`。
+
+**限制**: 最多 10 个交易
+
+---
+
+### 6. 批量分析模拟交易
 
 **端点**: `POST /api/analyze-simulation-batch`
 
@@ -272,7 +364,7 @@ file: CSV文件（每行一个tx_hash）
 
 ---
 
-### 6. 获取 IR V1 JSON
+### 7. 获取 IR V1 JSON
 
 **端点**: `POST /api/ir_parse`
 
@@ -292,7 +384,7 @@ file: CSV文件（每行一个tx_hash）
 
 ---
 
-### 7. IR 转 Mermaid
+### 8. IR 转 Mermaid
 
 **端点**: `POST /api/ir-to-mermaid`
 
@@ -316,7 +408,7 @@ file: CSV文件（每行一个tx_hash）
 
 ---
 
-### 8. 下载分析结果
+### 9. 下载分析结果
 
 **端点**: `POST /api/download-result`
 
@@ -332,7 +424,7 @@ file: CSV文件（每行一个tx_hash）
 
 ---
 
-### 9. Cookie 管理
+### 10. Cookie 管理
 
 #### 上传 Cookie
 

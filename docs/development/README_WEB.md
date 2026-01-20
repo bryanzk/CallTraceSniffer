@@ -136,6 +136,47 @@ python app.py
 }
 ```
 
+### POST /api/tx-metrics-batch
+批量交易指标（EigenPhi + Dune + RPC）
+
+**请求**:
+```json
+{
+  "tx_hashes": ["0x...", "0x..."]
+}
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "block_start": 24182471,
+  "block_end": 24278160,
+  "results": [
+    {
+      "tx_hash": "0x...",
+      "success": true,
+      "blockNumber": 24278160,
+      "gasUsed": 1700457,
+      "builderTip": "0.000000000001700457",
+      "builderTipPerGas": "0.000000000000000001",
+      "coinbaseTransfer": "0.000034047305653313",
+      "builderTipWithCT": "0.00003404730735377",
+      "blockIndex": 128,
+      "botAddress": "0x...",
+      "builder": {
+        "address": "0x...",
+        "name": "builder-name-or-address"
+      },
+      "revenueEth": "0.002876356082165525",
+      "revenueUsd": "9.1548550181512379531504185",
+      "revenueUsdAll": "9.154855018151237953",
+      "blockTxCount": 320
+    }
+  ]
+}
+```
+
 ### POST /api/analyze-simulation
 分析模拟交易
 
@@ -212,9 +253,11 @@ python app.py
 
 1. **性能**: 每个交易分析需要约15-20秒（需要访问BlockSec页面并等待API响应）
 2. **限制**: 批量分析最多支持10个交易
-3. **Dune**: 使用 `/api/unipool/check` 需要配置 `DUNE_API_KEY`
-4. **网络**: 需要能够访问BlockSec网站
-5. **浏览器**: 使用Playwright的Chromium浏览器进行数据提取
+3. **Dune**: 使用 `/api/unipool/check` 或 `/api/tx-metrics-batch` 需要配置 `DUNE_API_KEY`
+4. **EigenPhi**: 使用 `/api/tx-metrics-batch` 需要可访问 `storage.googleapis.com`
+5. **RPC**: 使用 `/api/tx-metrics-batch` 需要配置 `ETH_RPC_URL`
+6. **网络**: 需要能够访问BlockSec网站
+7. **浏览器**: 使用Playwright的Chromium浏览器进行数据提取
 
 ## 技术栈
 

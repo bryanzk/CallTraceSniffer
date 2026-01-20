@@ -20,6 +20,7 @@ from ..services.analysis_service import (
 )
 from ..services.pool_filter_service import PoolFilterService
 from ..services.dune_service import DuneService
+from ..services.tx_metrics_service import TxMetricsService
 from ..utils.analysis_utils import (
     compute_flow_counts as _compute_flow_counts,
     count_ir_nodes as _count_ir_nodes,
@@ -83,6 +84,12 @@ def register_routes(app, extracted_data_cache):
     if os.getenv("DUNE_API_KEY"):
         dune_service = DuneService()
     pool_filter_service = PoolFilterService(None, dune_service=dune_service)
+    tx_metrics_service = None
+    tx_metrics_error = None
+    try:
+        tx_metrics_service = TxMetricsService.from_config()
+    except Exception as exc:
+        tx_metrics_error = str(exc)
     
     # 在函数内部使用 router_config 的辅助函数
     def process_with_config(trace_data, tx_hash, extra=None):
@@ -154,6 +161,51 @@ def register_routes(app, extracted_data_cache):
         """查询Uniswap池缓存状态"""
         status = pool_filter_service.get_status()
         return jsonify(status)
+
+    @app.route('/api/tx-metrics-batch', methods=['POST'])
+    def tx_metrics_batch():
+        """批量查询交易指标"""
+        if tx_metrics_service is None:
+            return _error_response(tx_metrics_error or "tx metrics 服务未就绪", 500)
+
+        data, error = parse_json_object(request)
+        if error:
+            return _error_response(error)
+
+        tx_hashes = data.get("tx_hashes")
+        if not isinstance(tx_hashes, list) or not tx_hashes:
+            return _error_response("tx_hashes 必须为非空数组")
+        if len(tx_hashes) > config.MAX_BATCH_SIZE:
+            return _error_response(f"最多支持 {config.MAX_BATCH_SIZE} 条交易哈希")
+
+        cleaned = []
+        results = []
+        for raw_hash in tx_hashes:
+            tx_hash = (str(raw_hash) if raw_hash is not None else "").strip()
+            if not tx_hash or not tx_hash.startswith("0x") or len(tx_hash) != 66:
+                results.append({
+                    "tx_hash": tx_hash,
+                    "success": False,
+                    "error": "无效的交易哈希格式",
+                })
+                continue
+            cleaned.append(tx_hash)
+
+        if cleaned:
+            service_result = tx_metrics_service.analyze_batch(cleaned)
+            if not service_result.get("ok"):
+                return _error_response(service_result.get("error", "处理失败"), 500)
+            results.extend(service_result.get("results", []))
+            response = {
+                "success": True,
+                "block_start": service_result.get("block_start"),
+                "block_end": service_result.get("block_end"),
+                "results": results,
+            }
+        else:
+            response = {"success": True, "results": results}
+
+        return jsonify(response)
 
     @app.route('/api/simulate-and-analyze', methods=['POST'])
     def simulate_and_analyze_tx():

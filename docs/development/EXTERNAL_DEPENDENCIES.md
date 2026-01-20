@@ -12,6 +12,9 @@
 |------|------|------|----------|
 | BlockSec API | `blocksec_simulation.py` | 模拟交易 | 模拟功能 |
 | BlockSec 页面 | `extractor.py` | 数据抓取 | 核心功能 |
+| EigenPhi 数据 | `tx_metrics_service.py` | 交易指标 | tx metrics |
+| Dune API | `tx_metrics_service.py` | builder/coinbase 数据 | tx metrics |
+| 以太坊 RPC | `tx_metrics_service.py` | blockTxCount | tx metrics |
 
 #### BlockSec API 端点
 
@@ -31,6 +34,30 @@ BLOCKSEC_SIM_BASIC_ENDPOINT = f"{BLOCKSEC_API_BASE}/simulation/tx/basic-info"
 
 ```python
 url = f"https://app.blocksec.com/explorer/tx/eth/{tx_hash}/"
+```
+
+#### EigenPhi 数据 URL
+
+**文件**: `src/calltrace/services/tx_metrics_service.py`
+
+```python
+EIGENPHI_BASE_URL = "https://storage.googleapis.com/eigenphi-ethereum-tx/{tx_hash}"
+```
+
+#### Dune Query
+
+**文件**: `src/calltrace/services/tx_metrics_service.py`
+
+```python
+DUNE_TX_QUERY_ID = 6569281
+```
+
+#### 以太坊 RPC
+
+**文件**: `src/calltrace/services/tx_metrics_service.py`
+
+```python
+ETH_RPC_URL = "https://eth-mainnet.g.alchemy.com/v2/<apiKey>"
 ```
 
 ---
@@ -186,6 +213,10 @@ REQUEST_TIMEOUT: int = 30000
 | `USE_FIXTURE` | `""` | `analysis_service.py` | 测试模式 |
 | `FIXTURE_PATH` | `tests/fixtures/...json` | `analysis_service.py` | Fixture 路径 |
 | `BLOCKSEC_COOKIE_FILE` | `blocksec_cookies.json` | `blocksec_simulation.py` | Cookie 文件 |
+| `DUNE_API_KEY` | `""` | `tx_metrics_service.py` | Dune API 认证 |
+| `DUNE_TX_QUERY_ID` | `6569281` | `config.py` | tx metrics Dune Query |
+| `EIGENPHI_BASE_URL` | `https://storage.googleapis.com/eigenphi-ethereum-tx/{tx_hash}` | `config.py` | EigenPhi 数据源 |
+| `ETH_RPC_URL` | `""` | `config.py` | 区块交易数查询 |
 
 ---
 
