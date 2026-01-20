@@ -276,9 +276,9 @@ class DuneTxMetricsClient:
             ],
         )
         if self._performance:
-            result = self._client.execute_query(query=query, performance=self._performance)
+            result = self._client.run_query(query=query, performance=self._performance)
         else:
-            result = self._client.execute_query(query=query)
+            result = self._client.run_query(query=query)
         return _extract_rows(result)
 
 
