@@ -134,6 +134,15 @@ def _normalize_dune_tx_hash(value: Any) -> str:
     return _normalize_tx_hash(str(value))
 
 
+def _normalize_builder_name(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, (bytes, bytearray)):
+        return "0x" + value.hex()
+    text = str(value).strip()
+    return text or None
+
+
 def _build_builder_metrics(
     tx_meta: Dict[str, Any],
     dune_row: Optional[Dict[str, Any]],
@@ -344,7 +353,7 @@ class TxMetricsService:
             builder_address = _normalize_address(dune_row.get("builder_address") if dune_row else None)
             if not builder_address:
                 builder_address = _normalize_address(tx_meta.get("blockMiner"))
-            builder_name = dune_row.get("builder") if dune_row else None
+            builder_name = _normalize_builder_name(dune_row.get("builder") if dune_row else None)
 
             if block_number and block_number not in block_tx_count_cache:
                 block_tx_count_cache[block_number] = self._rpc_client.get_block_tx_count(block_number)
