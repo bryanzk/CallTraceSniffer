@@ -641,11 +641,15 @@ def register_routes(app, extracted_data_cache):
     @app.route('/mev/block/<int:block_number>/<path:filename>')
     def mev_block_assets(block_number, filename):
         """MEV 区块资源文件（SVG等）"""
-        from flask import send_from_directory
+        from flask import send_file
         import os
+        import logging
+        
+        logger = logging.getLogger(__name__)
         
         # 构建文件路径
         base_dir = os.path.join(os.path.dirname(__file__), '../../..')
+        base_dir = os.path.abspath(base_dir)  # 确保使用绝对路径
         block_dir = os.path.join(base_dir, 'token_flow_graphs', f'block_{block_number}')
         
         # 安全检查：只允许访问 SVG 文件
@@ -655,7 +659,18 @@ def register_routes(app, extracted_data_cache):
         # 检查文件是否存在
         file_path = os.path.join(block_dir, filename)
         if not os.path.exists(file_path):
+            # 记录调试信息
+            logger.warning(f'SVG 文件不存在: {file_path} (block_dir: {block_dir}, base_dir: {base_dir})')
             return _error_response(f'文件 {filename} 不存在', 404)
         
-        # 返回文件
-        return send_from_directory(block_dir, filename)
+        # 返回文件，显式设置 MIME 类型为 image/svg+xml
+        # 使用 send_file 而不是 send_from_directory，以便更好地控制 MIME 类型
+        try:
+            return send_file(
+                file_path,
+                mimetype='image/svg+xml',
+                as_attachment=False
+            )
+        except Exception as e:
+            logger.error(f'发送 SVG 文件失败: {e}')
+            return _error_response(f'无法读取文件: {str(e)}', 500)
