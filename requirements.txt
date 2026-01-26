@@ -4,6 +4,7 @@ playwright>=1.40.0
 requests>=2.31.0
 dune-client>=1.0.0
 playwright-stealth>=1.0.6  # 可选，用于反检测
+gunicorn>=21.2.0  # 生产环境 WSGI 服务器
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0

@@ -22,3 +22,5 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+# 如果 token_flow_graphs 目录不存在，不会导致构建失败
+# 但建议在构建前创建空目录: mkdir -p token_flow_graphs

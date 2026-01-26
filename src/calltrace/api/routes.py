@@ -666,11 +666,21 @@ def register_routes(app, extracted_data_cache):
         # 返回文件，显式设置 MIME 类型为 image/svg+xml
         # 使用 send_file 而不是 send_from_directory，以便更好地控制 MIME 类型
         try:
-            return send_file(
-                file_path,
-                mimetype='image/svg+xml',
-                as_attachment=False
+            # 读取文件内容并直接返回，确保编码正确
+            with open(file_path, 'rb') as f:
+                file_content = f.read()
+            
+            from flask import Response
+            response = Response(
+                file_content,
+                mimetype='image/svg+xml; charset=utf-8',
+                headers={
+                    'Content-Disposition': f'inline; filename="{filename}"',
+                    'Cache-Control': 'public, max-age=3600',
+                    'Access-Control-Allow-Origin': '*',
+                }
             )
+            return response
         except Exception as e:
             logger.error(f'发送 SVG 文件失败: {e}')
             return _error_response(f'无法读取文件: {str(e)}', 500)
