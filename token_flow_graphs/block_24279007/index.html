@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区块 24279007 - MEV 交易 Token Flow Graph</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .transaction {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tx-index {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .tx-hash {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #666;
+        }
+        .tx-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .type-arbitrage {
+            background-color: #E3F2FD;
+            color: #1976D2;
+        }
+        .type-liquidation {
+            background-color: #FFF3E0;
+            color: #F57C00;
+        }
+        .type-sandwich {
+            background-color: #FCE4EC;
+            color: #C2185B;
+        }
+        .tx-info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .info-item {
+            font-size: 14px;
+        }
+        .info-label {
+            color: #999;
+            margin-right: 5px;
+        }
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+        .profit-positive {
+            color: #4CAF50;
+        }
+        .profit-negative {
+            color: #F44336;
+        }
+        .svg-container {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            background: #fafafa;
+        }
+        .svg-container svg {
+            display: block;
+            margin: 0 auto;
+        }
+        .summary {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>区块 24279007 - MEV 交易 Token Flow Graph</h1>
+        <div class="subtitle">共 14 笔 MEV 交易 | 总利润: +505.40 USD</div>
+
+        <div class="summary">
+            <h2>区块汇总</h2>
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-value">14</div>
+                    <div class="stat-label">MEV 交易数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value profit-positive">+505.40</div>
+                    <div class="stat-label">总利润 (USD)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">13</div>
+                    <div class="stat-label">套利交易</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">1</div>
+                    <div class="stat-label">清算交易</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">三明治攻击</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction 1: Liquidation -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[2]</span>
+                    <span class="tx-hash">0x79d1082f9e3897db08cb534cedbc6fbddc5641961166692c22f956d5cb3570f8</span>
+                </div>
+                <span class="tx-type type-liquidation">Liquidation</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+99.2730 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">9,825.9133 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">9,925.1863 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x79d1082f9e3897db08_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 2: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[5]</span>
+                    <span class="tx-hash">0xf215f1ecf4bbfd1512090914e2e96de69ea2b8906eac79bbada52e22da7b78f6</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+54.4047 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">76.4035 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">130.8082 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xf215f1ecf4bbfd1512_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 3: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[6]</span>
+                    <span class="tx-hash">0xce4226cd218e7638e1c6df65d028848618d97de8b2ca131a699f2afd6be0b803</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+114.1572 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">1,028.2902 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">1,142.4474 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xce4226cd218e7638e1_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 4: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[27]</span>
+                    <span class="tx-hash">0xa6a06d1250e37384f9f099a6b2a47573b2ccac06519c8b4447074bce827c9485</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+37.9546 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">379.3649 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">417.3195 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xa6a06d1250e37384f9_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 5: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[28]</span>
+                    <span class="tx-hash">0x01c2621d6e4f52b6f330fb1b2261fdf4c0acb244f98ee87bc2892b6a4f0e8afc</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+42.4948 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">227.4994 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">269.9943 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x01c2621d6e4f52b6f3_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 6: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[29]</span>
+                    <span class="tx-hash">0x63ffd5117993fa133e6edcdbfc6c7e89d85e3b04d03caca9a76bfe175e917f18</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+155.2683 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">180.4435 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">335.7118 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x63ffd5117993fa133e_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 7: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[36]</span>
+                    <span class="tx-hash">0x90ad61fedcb23aaf6a39e7e62827344107d6b2fd9380fa390148bf62239780b3</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.3630 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.0413 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.4043 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x90ad61fedcb23aaf6a_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 8: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[37]</span>
+                    <span class="tx-hash">0x16463e8551296cd252ab044d9b714b512ff156b189e1cfb4f3fb3429d01124d5</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.0722 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.1934 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.2657 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x16463e8551296cd252_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 9: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[41]</span>
+                    <span class="tx-hash">0xa73a8ac2384a1e6b1b78ccefc0fdfc23cd62e9d60cde6623c126cac5a87c6d40</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.4128 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.5196 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.9324 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xa73a8ac2384a1e6b1b_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 10: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[42]</span>
+                    <span class="tx-hash">0xbba99d537787b889ee86c43527e7eb5e52c8af79e673cba41e17d7590b2c09ac</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.3434 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.4340 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.7774 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xbba99d537787b889ee_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 11: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[43]</span>
+                    <span class="tx-hash">0x40ed6f1e9025873ecd0a442624e00ab3b1b5491eca09947323136c53a3477dd7</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.2714 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.3505 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.6219 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x40ed6f1e9025873ecd_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 12: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[44]</span>
+                    <span class="tx-hash">0xc961ba361ce56f9f8c49bf9d3d3f5f59cce9033a1aab470926dd5ccdc48ea9f3</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.1995 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.2670 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.4665 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xc961ba361ce56f9f8c_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 13: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[45]</span>
+                    <span class="tx-hash">0xc1492224a6ecccbcc2e29a651286182e28a1ca7558855b9580bf9e96fc291836</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.1277 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.1835 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.3112 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0xc1492224a6ecccbcc2_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+        <!-- Transaction 14: Arbitrage -->
+        <div class="transaction">
+            <div class="transaction-header">
+                <div>
+                    <span class="tx-index">[46]</span>
+                    <span class="tx-hash">0x39d116078840a6a588f90a5749a48f156439e8fcf5a0d52bdc8a025bd5723fda</span>
+                </div>
+                <span class="tx-type type-arbitrage">Arbitrage</span>
+            </div>
+            <div class="tx-info">
+                <div class="info-item">
+                    <span class="info-label">利润:</span>
+                    <span class="info-value profit-positive">+0.0558 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">成本:</span>
+                    <span class="info-value">0.1001 USD</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收入:</span>
+                    <span class="info-value">0.1559 USD</span>
+                </div>
+            </div>
+            <div class="svg-container">
+                <object data="0x39d116078840a6a588_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
