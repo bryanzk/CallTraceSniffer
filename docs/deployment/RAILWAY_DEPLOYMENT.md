@@ -86,7 +86,7 @@ PORT=5001
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "python3 run.py",
+    "startCommand": "sh -c 'if command -v gunicorn > /dev/null 2>&1; then gunicorn --bind 0.0.0.0:${PORT:-5001} --workers 2 --threads 2 --timeout 300 --access-logfile - --error-logfile - --log-level info run:app; else python3 run.py; fi'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
