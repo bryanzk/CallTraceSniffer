@@ -43,6 +43,9 @@ COPY run.py .
 COPY src/ ./src/
 COPY templates/ ./templates/
 COPY static/ ./static/
+# 复制 Token Flow Graph 文件（如果存在）
+# 注意：如果目录不存在，构建会失败，需要先创建目录或使用 .dockerignore 排除
+COPY token_flow_graphs/ ./token_flow_graphs/
 
 # 创建数据目录
 RUN mkdir -p /app/data
