@@ -394,7 +394,11 @@ def generate_html(block_data, output_dir):
         html += '''
             </div>
             <div class="svg-container">
-                <object data="''' + tx['tx_hash'][:20] + '''_flow.svg" type="image/svg+xml" style="width: 100%; height: auto;"></object>
+                <img src="''' + tx['tx_hash'][:20] + '''_flow.svg" alt="Token Flow Graph" style="width: 100%; height: auto; max-width: 100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div style="display: none; padding: 20px; text-align: center; color: #999;">
+                    <p>SVG 图加载失败</p>
+                    <a href="''' + tx['tx_hash'][:20] + '''_flow.svg" target="_blank">直接打开 SVG 文件</a>
+                </div>
             </div>
         </div>'''
     
