@@ -1,53 +1,24 @@
-# Python
+# 排除不需要的文件
+.git
+.gitignore
+*.md
+!README.md
+docs/
+tests/
+.vscode/
+.idea/
+*.log
+.env
+.env.local
+data/
+logs/
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
+*.pyc
+*.pyo
+*.pyd
 .Python
+*.so
+*.egg
 *.egg-info/
 dist/
 build/
-
-# Virtual environments
-venv/
-env/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Git
-.git/
-.gitignore
-
-# Documentation
-*.md
-!README_DOCKER.md
-
-# Data files (不需要打包到镜像)
-*.json
-*.yaml
-*.csv
-!requirements.txt
-!example_tx_hashes.csv
-
-# Logs
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Test files
-*_test.py
-test_*.py
-
-# Temporary files
-*.tmp
-*.bak
-
-
