@@ -391,13 +391,15 @@ def generate_html(block_data, output_dir):
             html += f'''
                 <a href="{tx['eigentx_url']}" target="_blank" class="tx-link">🔗 EigenTx</a>'''
         
-        html += '''
+        # 使用绝对路径，确保在 HTML 页面中能正确加载
+        svg_path = f'/mev/block/{block_number}/' + tx['tx_hash'][:20] + '_flow.svg'
+        html += f'''
             </div>
             <div class="svg-container">
-                <img src="''' + tx['tx_hash'][:20] + '''_flow.svg" alt="Token Flow Graph" style="width: 100%; height: auto; max-width: 100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <img src="{svg_path}" alt="Token Flow Graph" style="width: 100%; height: auto; max-width: 100%;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                 <div style="display: none; padding: 20px; text-align: center; color: #999;">
                     <p>SVG 图加载失败</p>
-                    <a href="''' + tx['tx_hash'][:20] + '''_flow.svg" target="_blank">直接打开 SVG 文件</a>
+                    <a href="{svg_path}" target="_blank">直接打开 SVG 文件</a>
                 </div>
             </div>
         </div>'''
