@@ -619,3 +619,43 @@ def register_routes(app, extracted_data_cache):
             return jsonify({'success': True, 'mermaid_dag': mermaid_dag})
         except Exception as e:
             return _error_response(f'生成失败: {str(e)}')
+
+    @app.route('/mev/block/<int:block_number>')
+    def mev_block_viewer(block_number):
+        """MEV 区块 Token Flow Graph 查看器"""
+        from flask import send_from_directory
+        import os
+        
+        # 构建文件路径
+        base_dir = os.path.join(os.path.dirname(__file__), '../../..')
+        block_dir = os.path.join(base_dir, 'token_flow_graphs', f'block_{block_number}')
+        index_file = os.path.join(block_dir, 'index.html')
+        
+        # 检查文件是否存在
+        if not os.path.exists(index_file):
+            return _error_response(f'区块 {block_number} 的 MEV 分析数据不存在', 404)
+        
+        # 返回 HTML 文件
+        return send_from_directory(block_dir, 'index.html')
+
+    @app.route('/mev/block/<int:block_number>/<path:filename>')
+    def mev_block_assets(block_number, filename):
+        """MEV 区块资源文件（SVG等）"""
+        from flask import send_from_directory
+        import os
+        
+        # 构建文件路径
+        base_dir = os.path.join(os.path.dirname(__file__), '../../..')
+        block_dir = os.path.join(base_dir, 'token_flow_graphs', f'block_{block_number}')
+        
+        # 安全检查：只允许访问 SVG 文件
+        if not filename.endswith('.svg'):
+            return _error_response('只允许访问 SVG 文件', 403)
+        
+        # 检查文件是否存在
+        file_path = os.path.join(block_dir, filename)
+        if not os.path.exists(file_path):
+            return _error_response(f'文件 {filename} 不存在', 404)
+        
+        # 返回文件
+        return send_from_directory(block_dir, filename)
