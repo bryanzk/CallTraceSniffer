@@ -65,6 +65,13 @@ class Config:
     # RPC 配置
     ETH_RPC_URL: str = os.getenv("ETH_RPC_URL", "").strip()
 
+    # MCP (Model Context Protocol) 配置
+    MCP_EIGENPHI_SERVER: str = os.getenv(
+        "MCP_EIGENPHI_SERVER",
+        "/Users/kezheng/Codes/CursorDeveloper/MEVAL/eigenphi-backend-go/bin/mcp-server",
+    ).strip()
+    MCP_TIMEOUT_SECONDS: int = int(os.getenv("MCP_TIMEOUT_SECONDS", "120"))
+
 
 # 创建全局配置实例
 config = Config()

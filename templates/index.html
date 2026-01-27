@@ -19,6 +19,7 @@
             <button class="tab-btn" onclick="switchTab('simulation')">模拟TX</button>
             <button class="tab-btn" onclick="switchTab('unipool')">多交易支持Pool 检查</button>
             <button class="tab-btn" onclick="switchTab('batch')">批量分析 (CSV)</button>
+            <button class="tab-btn" onclick="switchTab('mev-block')">MEV 区块</button>
         </div>
 
         <!-- 单个交易分析 -->
@@ -258,6 +259,26 @@
                 </div>
                 <div id="unipool-stats" class="batch-stats"></div>
                 <div id="unipool-output" class="batch-output"></div>
+            </div>
+        </div>
+
+        <!-- MEV 区块 -->
+        <div id="mev-block-tab" class="tab-content">
+            <div class="input-section">
+                <label for="mev-block-number">区块号 (Block Number):</label>
+                <div class="input-group">
+                    <input type="text" id="mev-block-number" placeholder="例如 24279007" class="tx-input">
+                    <button onclick="analyzeMevBlock()" class="btn btn-primary">加载</button>
+                </div>
+                <small class="hint">优先读取缓存，缺失时自动调用 MCP (Model Context Protocol) 生成区块 MEV 图谱。</small>
+            </div>
+
+            <div id="mev-block-result" class="result-section" style="display: none;">
+                <div class="result-header">
+                    <h2>MEV 区块结果</h2>
+                    <a id="mev-block-viewer-link" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">打开独立页面</a>
+                </div>
+                <div id="mev-block-html" class="mev-block-html"></div>
             </div>
         </div>
 

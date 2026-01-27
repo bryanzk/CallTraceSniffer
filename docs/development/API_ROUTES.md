@@ -14,8 +14,10 @@
 | `/api/analyze-batch` | POST | 批量分析交易 | 无 |
 | `/api/analyze-simulation-batch` | POST | 批量分析模拟交易 | 无 |
 | `/api/tx-metrics-batch` | POST | 批量交易指标（EigenPhi + Dune + RPC） | 无 |
+| `/api/trace` | POST | 获取原始 trace 数据（从 BlockSec） | 无 |
 | `/api/ir_parse` | POST | 获取 IR V1 JSON | 无 |
 | `/api/ir-to-mermaid` | POST | IR 转 Mermaid | 无 |
+| `/api/mev/block` | POST | 获取 MEV 区块 HTML 片段 | 无 |
 | `/api/download-result` | POST | 下载分析结果 | 无 |
 | `/api/blocksec-cookies` | POST | 上传 Cookie | 无 |
 | `/api/blocksec-cookies/load` | POST | 加载本地 Cookie | 无 |
@@ -135,6 +137,38 @@ POST /api/analyze-simulation
 │  4. 转换为 IR                        │
 │     └─ process_tx_data()            │
 └─────────────────────────────────────┘
+```
+
+---
+
+### 3. MEV 区块 HTML 片段
+
+**端点**: `POST /api/mev/block`
+
+**请求**:
+```json
+{
+  "block_number": 24279007,
+  "refresh": false
+}
+```
+
+**响应（成功）**:
+```json
+{
+  "success": true,
+  "block_number": 24279007,
+  "viewer_url": "/mev/block/24279007",
+  "html": "<style>...</style><div class=\"mev-block-viewer\">...</div>"
+}
+```
+
+**响应（失败）**:
+```json
+{
+  "success": false,
+  "error": "错误信息"
+}
 ```
 
 ---
@@ -364,7 +398,83 @@ revenueUsdAll = sum(tokenVolume) for botAddress (all tokenBalances)
 
 ---
 
-### 7. 获取 IR V1 JSON
+### 7. 获取原始 Trace 数据
+
+**端点**: `POST /api/trace`
+
+**描述**: 根据 tx_hash 从 BlockSec 获取原始 trace 数据，不进行任何转换处理
+
+**请求**:
+```json
+{
+  "tx_hash": "0x1234567890abcdef..."
+}
+```
+
+**响应（成功）**:
+```json
+{
+  "success": true,
+  "tx_hash": "0x1234...",
+  "trace_data": {
+    "dataMap": {...},
+    "mainTrace": {...}
+  },
+  "cached": false
+}
+```
+
+**响应（失败）**:
+```json
+{
+  "success": false,
+  "error": "错误信息"
+}
+```
+
+**端到端流程**:
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    POST /api/trace                              │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  1. 请求验证                                                    │
+│     └─ parse_json_object(request)                              │
+│     └─ validate_tx_hash(data)                                  │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  2. 检查缓存                                                    │
+│     └─ extracted_data_cache[tx_hash]['trace_data']            │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  3. 提取 Trace 数据                                             │
+│     └─ BlockSecExtractor.extract_blocksec_data(tx_hash)        │
+│        ├─ 访问 BlockSec 页面                                   │
+│        ├─ 使用 Playwright 监听网络响应                          │
+│        └─ 提取原始 trace_data                                  │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  4. 返回原始 Trace 数据                                         │
+│     └─ 直接返回 trace_data，不进行 IR 转换                      │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**特点**:
+- 直接返回 BlockSec 原始 trace 数据，不进行任何转换
+- 支持缓存机制，提高响应速度
+- 返回的 `trace_data` 包含 `dataMap` 和 `mainTrace` 等原始结构
+
+---
+
+### 8. 获取 IR V1 JSON
 
 **端点**: `POST /api/ir_parse`
 
@@ -384,7 +494,7 @@ revenueUsdAll = sum(tokenVolume) for botAddress (all tokenBalances)
 
 ---
 
-### 8. IR 转 Mermaid
+### 9. IR 转 Mermaid
 
 **端点**: `POST /api/ir-to-mermaid`
 
@@ -408,7 +518,7 @@ revenueUsdAll = sum(tokenVolume) for botAddress (all tokenBalances)
 
 ---
 
-### 9. 下载分析结果
+### 10. 下载分析结果
 
 **端点**: `POST /api/download-result`
 
@@ -424,7 +534,7 @@ revenueUsdAll = sum(tokenVolume) for botAddress (all tokenBalances)
 
 ---
 
-### 10. Cookie 管理
+### 11. Cookie 管理
 
 #### 上传 Cookie
 

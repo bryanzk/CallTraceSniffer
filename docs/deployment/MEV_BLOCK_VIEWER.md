@@ -68,6 +68,11 @@ docker run -d \
 - 区块 24274722: `http://your-server:5001/mev/block/24274722`
 - 区块 24279007: `http://your-server:5001/mev/block/24279007`
 
+## ⚙️ 环境变量
+
+- `MCP_EIGENPHI_SERVER`: MCP (Model Context Protocol) 服务命令路径
+- `ETH_RPC_URL`: MCP 调用所需的以太坊 RPC 地址
+
 ## 🌐 远程访问配置
 
 ### 方式 1: 端口映射（本地部署）
@@ -127,6 +132,19 @@ sudo ufw allow 5001/tcp
 **示例**:
 ```bash
 curl http://localhost:5001/mev/block/24274722
+```
+
+### 生成并获取 MEV 区块 HTML 片段
+
+**POST** `/api/mev/block`
+
+用于自动调用 MCP (Model Context Protocol) 生成区块 MEV 数据与 SVG，返回可直接嵌入的 HTML 片段。
+
+**示例**:
+```bash
+curl -X POST http://localhost:5001/api/mev/block \
+  -H "Content-Type: application/json" \
+  -d '{"block_number":24279007}'
 ```
 
 ### 获取资源文件

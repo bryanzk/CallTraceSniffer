@@ -21,6 +21,7 @@ from ..services.analysis_service import (
 from ..services.pool_filter_service import PoolFilterService
 from ..services.dune_service import DuneService
 from ..services.tx_metrics_service import TxMetricsService
+from ..services.mev_block_service import MevBlockService
 from ..utils.analysis_utils import (
     compute_flow_counts as _compute_flow_counts,
     count_ir_nodes as _count_ir_nodes,
@@ -90,6 +91,10 @@ def register_routes(app, extracted_data_cache):
         tx_metrics_service = TxMetricsService.from_config()
     except Exception as exc:
         tx_metrics_error = str(exc)
+    mev_block_service = MevBlockService(
+        mcp_server=config.MCP_EIGENPHI_SERVER,
+        timeout_seconds=config.MCP_TIMEOUT_SECONDS,
+    )
     
     # 在函数内部使用 router_config 的辅助函数
     def process_with_config(trace_data, tx_hash, extra=None):
@@ -206,6 +211,39 @@ def register_routes(app, extracted_data_cache):
             response = {"success": True, "results": results}
 
         return jsonify(response)
+
+    @app.route('/api/mev/block', methods=['POST'])
+    def get_mev_block():
+        """获取 MEV 区块 HTML 片段"""
+        data, error = parse_json_object(request)
+        if error:
+            return _error_response(error)
+
+        raw_block = data.get("block_number")
+        if raw_block is None or str(raw_block).strip() == "":
+            return _error_response("区块号不能为空")
+        try:
+            block_number = int(raw_block)
+        except (TypeError, ValueError):
+            return _error_response("区块号必须为正整数")
+        if block_number <= 0:
+            return _error_response("区块号必须为正整数")
+
+        refresh_raw = data.get("refresh", False)
+        if isinstance(refresh_raw, str):
+            refresh = refresh_raw.strip().lower() in ("1", "true", "yes", "y")
+        else:
+            refresh = bool(refresh_raw)
+        html, error = mev_block_service.get_or_build_block(block_number, refresh=refresh)
+        if error:
+            return _error_response(error, 500)
+
+        return jsonify({
+            "success": True,
+            "block_number": block_number,
+            "viewer_url": f"/mev/block/{block_number}",
+            "html": html,
+        })
 
     @app.route('/api/simulate-and-analyze', methods=['POST'])
     def simulate_and_analyze_tx():
@@ -552,6 +590,57 @@ def register_routes(app, extracted_data_cache):
             as_attachment=True,
             download_name=filename
         )
+
+    @app.route('/api/trace', methods=['POST'])
+    def get_trace():
+        """根据 tx_hash 从 BlockSec 获取原始 trace 数据"""
+        data, error = parse_json_object(request)
+        if error:
+            return _error_response(error)
+
+        tx_hash, error = validate_tx_hash(data)
+        if error:
+            return _error_response(error)
+
+        # 检查缓存
+        if tx_hash in extracted_data_cache:
+            cached_trace = extracted_data_cache[tx_hash].get('trace_data')
+            if cached_trace:
+                return jsonify({
+                    'success': True,
+                    'tx_hash': tx_hash,
+                    'trace_data': cached_trace,
+                    'cached': True
+                })
+
+        try:
+            extractor = BlockSecExtractor()
+            result = asyncio.run(extractor.extract_blocksec_data(tx_hash))
+
+            if not result or not result.get('success'):
+                error_msg = result.get('error', '无法提取交易数据') if result else '无法提取交易数据'
+                return _error_response(error_msg, 500)
+
+            trace_data = result.get('trace_data')
+            if not trace_data:
+                return _error_response('未找到trace数据', 500)
+
+            # 保存到缓存（如果还没有）
+            if tx_hash not in extracted_data_cache:
+                extracted_data_cache[tx_hash] = {
+                    'trace_data': trace_data
+                }
+            elif 'trace_data' not in extracted_data_cache[tx_hash]:
+                extracted_data_cache[tx_hash]['trace_data'] = trace_data
+
+            return jsonify({
+                'success': True,
+                'tx_hash': tx_hash,
+                'trace_data': trace_data,
+                'cached': False
+            })
+        except Exception as e:
+            return _error_response(f'处理失败: {str(e)}', 500)
 
     @app.route('/api/ir_parse', methods=['POST'])
     def get_ir_v1():

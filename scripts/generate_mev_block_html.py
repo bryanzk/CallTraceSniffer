@@ -12,7 +12,10 @@ from pathlib import Path
 
 def get_block_mev_data(block_number):
     """获取区块 MEV 数据"""
-    mcp_server = "/Users/kezheng/Codes/CursorDeveloper/MEVAL/eigenphi-backend-go/bin/mcp-server"
+    mcp_server = os.getenv(
+        "MCP_EIGENPHI_SERVER",
+        "/Users/kezheng/Codes/CursorDeveloper/MEVAL/eigenphi-backend-go/bin/mcp-server",
+    ).strip()
     
     request = {
         "method": "tools/call",

@@ -249,6 +249,11 @@ header h1 {
     overflow-y: auto;
 }
 
+.mev-block-html {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 .output-label {
     margin: 16px 0 8px;
     font-weight: 600;

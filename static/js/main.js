@@ -5,6 +5,7 @@ let simulationResultData = null;
 let compareResultA = null;
 let compareResultB = null;
 let unipoolResultData = null;
+let mevBlockResultHtml = null;
 let mermaidInitialized = false;
 let singleMermaidText = null;
 let isSyncingScroll = false;
@@ -56,6 +57,10 @@ function switchTab(tab) {
     const compareResult = document.getElementById('compare-result');
     if (compareResult) {
         compareResult.style.display = 'none';
+    }
+    const mevBlockResult = document.getElementById('mev-block-result');
+    if (mevBlockResult) {
+        mevBlockResult.style.display = 'none';
     }
 }
 
@@ -1691,6 +1696,64 @@ function displayUnipoolResult(data) {
     resultSection.scrollIntoView({ behavior: 'smooth' });
 }
 
+async function analyzeMevBlock() {
+    const inputEl = document.getElementById('mev-block-number');
+    const resultSection = document.getElementById('mev-block-result');
+    const htmlContainer = document.getElementById('mev-block-html');
+    const viewerLink = document.getElementById('mev-block-viewer-link');
+    if (!inputEl || !resultSection || !htmlContainer) {
+        return;
+    }
+
+    const rawValue = inputEl.value.trim();
+    if (!rawValue) {
+        showError('请输入区块号');
+        return;
+    }
+    const blockNumber = Number(rawValue);
+    if (!Number.isInteger(blockNumber) || blockNumber <= 0) {
+        showError('区块号必须为正整数');
+        return;
+    }
+
+    htmlContainer.innerHTML = '';
+    if (viewerLink) {
+        viewerLink.removeAttribute('href');
+        viewerLink.style.display = 'none';
+    }
+
+    showLoading();
+    hideError();
+
+    try {
+        const response = await fetch('/api/mev/block', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ block_number: blockNumber })
+        });
+        const data = await response.json();
+        hideLoading();
+
+        if (data.success) {
+            mevBlockResultHtml = data.html || '';
+            htmlContainer.innerHTML = mevBlockResultHtml;
+            if (viewerLink && data.viewer_url) {
+                viewerLink.href = data.viewer_url;
+                viewerLink.style.display = 'inline-flex';
+            }
+            resultSection.style.display = 'block';
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            showError(data.error || '加载失败');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('请求失败: ' + error.message);
+    }
+}
+
 // 批量分析
 let selectedFile = null;
 
@@ -2172,6 +2235,15 @@ if (compareIrB) {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             analyzeCompare('B');
+        }
+    });
+}
+
+const mevBlockInput = document.getElementById('mev-block-number');
+if (mevBlockInput) {
+    mevBlockInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            analyzeMevBlock();
         }
     });
 }
