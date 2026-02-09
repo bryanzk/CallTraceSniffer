@@ -52,6 +52,17 @@ data/
 local/
 outputs/
 
+# Generated token flow artifacts (local)
+token_flow_graphs/eigenphi_*.html
+token_flow_graphs/eigenphi_*.mmd
+token_flow_graphs/**/test_*.svg
+# Default: ignore newly generated MEV block directories to avoid repo bloat.
+# Existing tracked sample blocks are unaffected by .gitignore.
+token_flow_graphs/block_*/
+
+# Research-only fixtures (generated locally; keep unit-test fixtures explicit)
+tests/fixtures/eigenphi_analyse_tx_*.json
+
 # Local scripts/services
 scripts/ir_from_tenderly_har.py
 src/calltrace/services/ir_v1_tenderly.py

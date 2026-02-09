@@ -102,7 +102,51 @@ result = mcp_tool("get_token_flow_graph", {
 
 ---
 
-### 4. 区块和交易信息
+### 4. MEV 实时流与最新列表
+
+#### `get_eigenphi_mev_stream`
+**描述**: EigenPhi MEV 实时流 (WebSocket)。用于订阅或获取 MEV 交易的实时推送，对应 EigenPhi 的 [MEV Live-Stream](https://eigenphi.io/mev/ethereum/txr) 能力。
+
+**参数**: 无（MCP 工具列表显示为无必填/可选参数）
+
+**返回**: 由 MCP 服务实现决定，可能包括：
+- 实时 MEV 交易推送（时间、tx_hash、区块号、利润/成本/收入、MEV 类型等）
+- 或 WebSocket 订阅/连接说明
+
+**使用示例**:
+```python
+result = mcp_tool("get_eigenphi_mev_stream", {})
+```
+
+**说明**: 与 EigenPhi 网页端的 MEV Live-Stream 同源，适合做实时监控、告警或回放。通过 WebSocket MCP（如 `ws://127.0.0.1:8080/`）调用时，服务端可能在本连接上持续推送 MEV 事件。
+
+---
+
+#### `get_eigenphi_latest_mev`
+**描述**: 获取 EigenPhi 最新 MEV 列表（来自 Firestore）。
+
+**参数**:
+- `chain` (可选, string): 链标识，如 `ethereum`
+- `tx_count` (可选, number): 返回条数
+
+**返回**: 最新若干笔 MEV 交易摘要列表。
+
+**使用示例**:
+```python
+result = mcp_tool("get_eigenphi_latest_mev", {"chain": "ethereum", "tx_count": 20})
+```
+
+**批量 ROI 筛选与策略分析（WebSocket 脚本）**  
+拉取最新 50 笔、筛选 profit/cost > 1 并逐笔做策略分析，可用本仓库脚本（需 EigenPhi MCP 以 WebSocket 形式运行，如 `eigenphi-wss-local` 对应 `ws://127.0.0.1:8080/`）：
+```bash
+# 需先安装 websockets: pip install websockets
+python scripts/latest_mev_roi_analysis_ws.py -H "X-API-Key: eigenphi123" ws://127.0.0.1:8080/
+python scripts/latest_mev_roi_analysis_ws.py --tx-count 50 --min-roi 1.0 -o report.json ws://127.0.0.1:8080/
+```
+
+---
+
+### 5. 区块和交易信息
 
 #### `get_block_by_number`
 **描述**: 根据区块号获取区块详细信息
@@ -241,6 +285,8 @@ result = call_mcp_tool(
 - `get_eigenphi_block_mev` - 区块 MEV 汇总
 - `get_eigenphi_tx_mev` - 交易 MEV 摘要
 - `get_eigenphi_tx_mev_analysis` - 交易 MEV 策略分析
+- `get_eigenphi_latest_mev` - 最新 MEV 列表 (Firestore)
+- `get_eigenphi_mev_stream` - **EigenPhi MEV 实时流 (WebSocket)**
 
 ### 可视化类
 - `get_token_flow_graph` - Token Flow 图（SVG）
