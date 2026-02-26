@@ -8,3 +8,4 @@ gunicorn>=21.2.0  # 生产环境 WSGI 服务器
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
+openai>=2.20.0

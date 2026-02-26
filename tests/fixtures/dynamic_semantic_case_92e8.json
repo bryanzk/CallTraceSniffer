@@ -1,0 +1,1842 @@
+{
+  "status": "ok",
+  "result": [
+    {
+      "transaction": {
+        "transactionHash": "0x92e8b6cf1367b5db3810186be30a3148e49283fe33f980919905f0433b1738de",
+        "from": "0x2655099e5e38635c8401d015724cf34d6e237613",
+        "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+        "miner": "0xdadb0d80178819f2319190d340ce9a924f783711",
+        "callStack": {
+          "frameId": "0",
+          "type": "CALL",
+          "from": "0x2655099e5e38635c8401d015724cf34d6e237613",
+          "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+          "fourBytes": "72b9aa93",
+          "transferSteps": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "children": [
+            {
+              "frameId": "0_1",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+              "fourBytes": "5c38449e",
+              "transferSteps": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17
+              ],
+              "children": [
+                {
+                  "frameId": "0_1_2",
+                  "type": "CALL",
+                  "from": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+                  "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                  "fourBytes": "a9059cbb",
+                  "transferSteps": [
+                    0
+                  ],
+                  "children": [
+                    {
+                      "frameId": "0_1_2_0",
+                      "type": "DELEGATECALL",
+                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                      "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                      "fourBytes": "a9059cbb",
+                      "transferSteps": [
+                        0
+                      ],
+                      "children": [
+                        {
+                          "frameId": "0_1_2_0_0",
+                          "type": "LOG3",
+                          "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                          "to": "",
+                          "fourBytes": "ddf252ad",
+                          "transferSteps": [
+                            0
+                          ],
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "frameId": "0_1_3",
+                  "type": "CALL",
+                  "from": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+                  "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+                  "fourBytes": "f04f2707",
+                  "transferSteps": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    17
+                  ],
+                  "children": [
+                    {
+                      "frameId": "0_1_3_2",
+                      "type": "CALL",
+                      "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+                      "to": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                      "fourBytes": "00a718a9",
+                      "transferSteps": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5,
+                        6
+                      ],
+                      "children": [
+                        {
+                          "frameId": "0_1_3_2_0",
+                          "type": "DELEGATECALL",
+                          "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                          "to": "0x5ae329203e00f76891094dcfedd5aca082a50e1b",
+                          "fourBytes": "00a718a9",
+                          "transferSteps": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                          ],
+                          "children": [
+                            {
+                              "frameId": "0_1_3_2_0_2",
+                              "type": "DELEGATECALL",
+                              "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                              "to": "0xc0816efc31779c697b18b3b68f1dfbede313e1fa",
+                              "fourBytes": "83c1087d",
+                              "transferSteps": [
+                                1,
+                                2,
+                                3,
+                                4,
+                                5,
+                                6
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_2_0_2_15",
+                                  "type": "CALL",
+                                  "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                                  "to": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+                                  "fourBytes": "f5298aca",
+                                  "transferSteps": [
+                                    1
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_2_0_2_15_0",
+                                      "type": "DELEGATECALL",
+                                      "from": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+                                      "to": "0x86c71796ccdb31c3997f8ec5c2e3db3e9e40b985",
+                                      "fourBytes": "f5298aca",
+                                      "transferSteps": [
+                                        1
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_2_0_2_15_0_1",
+                                          "type": "LOG3",
+                                          "from": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            1
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "frameId": "0_1_3_2_0_2_20",
+                                  "type": "CALL",
+                                  "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                                  "to": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                  "fourBytes": "d7020d0a",
+                                  "transferSteps": [
+                                    2,
+                                    3
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_2_0_2_20_0",
+                                      "type": "DELEGATECALL",
+                                      "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                      "to": "0x6175ddec3b9b38c88157c10a01ed4a3fa8639cc6",
+                                      "fourBytes": "d7020d0a",
+                                      "transferSteps": [
+                                        2,
+                                        3
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_2_0_2_20_0_1",
+                                          "type": "CALL",
+                                          "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                          "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                          "fourBytes": "a9059cbb",
+                                          "transferSteps": [
+                                            2
+                                          ],
+                                          "children": [
+                                            {
+                                              "frameId": "0_1_3_2_0_2_20_0_1_0",
+                                              "type": "LOG3",
+                                              "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                              "to": "",
+                                              "fourBytes": "ddf252ad",
+                                              "transferSteps": [
+                                                2
+                                              ],
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "frameId": "0_1_3_2_0_2_20_0_2",
+                                          "type": "LOG3",
+                                          "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            3
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "frameId": "0_1_3_2_0_2_23",
+                                  "type": "CALL",
+                                  "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                                  "to": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                  "fourBytes": "f866c319",
+                                  "transferSteps": [
+                                    4,
+                                    5
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_2_0_2_23_0",
+                                      "type": "DELEGATECALL",
+                                      "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                      "to": "0x6175ddec3b9b38c88157c10a01ed4a3fa8639cc6",
+                                      "fourBytes": "f866c319",
+                                      "transferSteps": [
+                                        4,
+                                        5
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_2_0_2_23_0_3",
+                                          "type": "LOG3",
+                                          "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            4
+                                          ],
+                                          "children": []
+                                        },
+                                        {
+                                          "frameId": "0_1_3_2_0_2_23_0_5",
+                                          "type": "LOG3",
+                                          "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            5
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "frameId": "0_1_3_2_0_2_24",
+                                  "type": "CALL",
+                                  "from": "0xc13e21b648a5ee794902342038ff3adab66be987",
+                                  "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                  "fourBytes": "23b872dd",
+                                  "transferSteps": [
+                                    6
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_2_0_2_24_0",
+                                      "type": "DELEGATECALL",
+                                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                      "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                                      "fourBytes": "23b872dd",
+                                      "transferSteps": [
+                                        6
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_2_0_2_24_0_0",
+                                          "type": "LOG3",
+                                          "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            6
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "frameId": "0_1_3_6",
+                      "type": "CALL",
+                      "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+                      "to": "0x0000000000001ff3684f28c67538d4d072c22734",
+                      "fourBytes": "2213bc0b",
+                      "transferSteps": [
+                        7,
+                        8,
+                        9,
+                        10,
+                        11,
+                        12,
+                        13,
+                        14,
+                        15,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "frameId": "0_1_3_6_1",
+                          "type": "CALL",
+                          "from": "0x0000000000001ff3684f28c67538d4d072c22734",
+                          "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                          "fourBytes": "1fff991f",
+                          "transferSteps": [
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            12,
+                            13,
+                            14,
+                            15,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "frameId": "0_1_3_6_1_1",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0x0000000000001ff3684f28c67538d4d072c22734",
+                              "fourBytes": "15dacbea",
+                              "transferSteps": [
+                                7
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_1_0",
+                                  "type": "CALL",
+                                  "from": "0x0000000000001ff3684f28c67538d4d072c22734",
+                                  "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                  "fourBytes": "23b872dd",
+                                  "transferSteps": [
+                                    7
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_1_0_0",
+                                      "type": "LOG3",
+                                      "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                      "to": "",
+                                      "fourBytes": "ddf252ad",
+                                      "transferSteps": [
+                                        7
+                                      ],
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "frameId": "0_1_3_6_1_3",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+                              "fourBytes": "128acb08",
+                              "transferSteps": [
+                                8,
+                                9
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_3_0",
+                                  "type": "CALL",
+                                  "from": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+                                  "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                  "fourBytes": "a9059cbb",
+                                  "transferSteps": [
+                                    8
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_3_0_0",
+                                      "type": "DELEGATECALL",
+                                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                      "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                                      "fourBytes": "a9059cbb",
+                                      "transferSteps": [
+                                        8
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_6_1_3_0_0_0",
+                                          "type": "LOG3",
+                                          "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            8
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "frameId": "0_1_3_6_1_3_2",
+                                  "type": "CALL",
+                                  "from": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+                                  "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                  "fourBytes": "fa461e33",
+                                  "transferSteps": [
+                                    9
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_3_2_0",
+                                      "type": "CALL",
+                                      "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                      "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                      "fourBytes": "a9059cbb",
+                                      "transferSteps": [
+                                        9
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_6_1_3_2_0_0",
+                                          "type": "LOG3",
+                                          "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                          "to": "",
+                                          "fourBytes": "ddf252ad",
+                                          "transferSteps": [
+                                            9
+                                          ],
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "frameId": "0_1_3_6_1_5",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                              "fourBytes": "2e1a7d4d",
+                              "transferSteps": [
+                                10,
+                                11
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_5_0",
+                                  "type": "CALL",
+                                  "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                  "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                  "fourBytes": null,
+                                  "transferSteps": [
+                                    10
+                                  ],
+                                  "children": []
+                                },
+                                {
+                                  "frameId": "0_1_3_6_1_5_1",
+                                  "type": "LOG2",
+                                  "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                                  "to": "",
+                                  "fourBytes": "7fcf532c",
+                                  "transferSteps": [
+                                    11
+                                  ],
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "frameId": "0_1_3_6_1_6",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0x000000000004444c5dc75cb358380d2e3de08a90",
+                              "fourBytes": "48c89491",
+                              "transferSteps": [
+                                12,
+                                13
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_6_0",
+                                  "type": "CALL",
+                                  "from": "0x000000000004444c5dc75cb358380d2e3de08a90",
+                                  "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                  "fourBytes": "91dd7346",
+                                  "transferSteps": [
+                                    12,
+                                    13
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_6_0_1",
+                                      "type": "CALL",
+                                      "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                      "to": "0x000000000004444c5dc75cb358380d2e3de08a90",
+                                      "fourBytes": "0b0d9c09",
+                                      "transferSteps": [
+                                        12
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_6_1_6_0_1_0",
+                                          "type": "CALL",
+                                          "from": "0x000000000004444c5dc75cb358380d2e3de08a90",
+                                          "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                                          "fourBytes": "a9059cbb",
+                                          "transferSteps": [
+                                            12
+                                          ],
+                                          "children": [
+                                            {
+                                              "frameId": "0_1_3_6_1_6_0_1_0_0",
+                                              "type": "LOG3",
+                                              "from": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                                              "to": "",
+                                              "fourBytes": "ddf252ad",
+                                              "transferSteps": [
+                                                12
+                                              ],
+                                              "children": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "frameId": "0_1_3_6_1_6_0_3",
+                                      "type": "CALL",
+                                      "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                      "to": "0x000000000004444c5dc75cb358380d2e3de08a90",
+                                      "fourBytes": "11da60b4",
+                                      "transferSteps": [
+                                        13
+                                      ],
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "frameId": "0_1_3_6_1_7",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                              "fourBytes": "f83d08ba",
+                              "transferSteps": [
+                                14,
+                                15
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_7_0",
+                                  "type": "CALL",
+                                  "from": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                                  "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                  "fourBytes": "b45a3c0e",
+                                  "transferSteps": [
+                                    14,
+                                    15
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_7_0_2",
+                                      "type": "CALL",
+                                      "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                      "to": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                                      "fourBytes": "03a65ab6",
+                                      "transferSteps": [
+                                        14
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_6_1_7_0_2_0",
+                                          "type": "CALL",
+                                          "from": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                                          "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                          "fourBytes": "a9059cbb",
+                                          "transferSteps": [
+                                            14
+                                          ],
+                                          "children": [
+                                            {
+                                              "frameId": "0_1_3_6_1_7_0_2_0_0",
+                                              "type": "DELEGATECALL",
+                                              "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                              "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                                              "fourBytes": "a9059cbb",
+                                              "transferSteps": [
+                                                14
+                                              ],
+                                              "children": [
+                                                {
+                                                  "frameId": "0_1_3_6_1_7_0_2_0_0_0",
+                                                  "type": "LOG3",
+                                                  "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                                  "to": "",
+                                                  "fourBytes": "ddf252ad",
+                                                  "transferSteps": [
+                                                    14
+                                                  ],
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "frameId": "0_1_3_6_1_7_0_3",
+                                      "type": "CALL",
+                                      "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                      "to": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                                      "fourBytes": "0c11dedd",
+                                      "transferSteps": [
+                                        15
+                                      ],
+                                      "children": [
+                                        {
+                                          "frameId": "0_1_3_6_1_7_0_3_1",
+                                          "type": "CALL",
+                                          "from": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+                                          "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                          "fourBytes": "599d0714",
+                                          "transferSteps": [
+                                            15
+                                          ],
+                                          "children": [
+                                            {
+                                              "frameId": "0_1_3_6_1_7_0_3_1_0",
+                                              "type": "CALL",
+                                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                                              "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                                              "fourBytes": "a9059cbb",
+                                              "transferSteps": [
+                                                15
+                                              ],
+                                              "children": [
+                                                {
+                                                  "frameId": "0_1_3_6_1_7_0_3_1_0_0",
+                                                  "type": "LOG3",
+                                                  "from": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+                                                  "to": "",
+                                                  "fourBytes": "ddf252ad",
+                                                  "transferSteps": [
+                                                    15
+                                                  ],
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "frameId": "0_1_3_6_1_10",
+                              "type": "CALL",
+                              "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+                              "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                              "fourBytes": "a9059cbb",
+                              "transferSteps": [
+                                16
+                              ],
+                              "children": [
+                                {
+                                  "frameId": "0_1_3_6_1_10_0",
+                                  "type": "DELEGATECALL",
+                                  "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                  "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                                  "fourBytes": "a9059cbb",
+                                  "transferSteps": [
+                                    16
+                                  ],
+                                  "children": [
+                                    {
+                                      "frameId": "0_1_3_6_1_10_0_0",
+                                      "type": "LOG3",
+                                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                                      "to": "",
+                                      "fourBytes": "ddf252ad",
+                                      "transferSteps": [
+                                        16
+                                      ],
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "frameId": "0_1_3_8",
+                      "type": "CALL",
+                      "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+                      "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                      "fourBytes": "a9059cbb",
+                      "transferSteps": [
+                        17
+                      ],
+                      "children": [
+                        {
+                          "frameId": "0_1_3_8_0",
+                          "type": "DELEGATECALL",
+                          "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                          "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                          "fourBytes": "a9059cbb",
+                          "transferSteps": [
+                            17
+                          ],
+                          "children": [
+                            {
+                              "frameId": "0_1_3_8_0_0",
+                              "type": "LOG3",
+                              "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                              "to": "",
+                              "fourBytes": "ddf252ad",
+                              "transferSteps": [
+                                17
+                              ],
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "frameId": "0_4",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "fourBytes": "a9059cbb",
+              "transferSteps": [
+                18
+              ],
+              "children": [
+                {
+                  "frameId": "0_4_0",
+                  "type": "DELEGATECALL",
+                  "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                  "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                  "fourBytes": "a9059cbb",
+                  "transferSteps": [
+                    18
+                  ],
+                  "children": [
+                    {
+                      "frameId": "0_4_0_0",
+                      "type": "LOG3",
+                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                      "to": "",
+                      "fourBytes": "ddf252ad",
+                      "transferSteps": [
+                        18
+                      ],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "frameId": "0_7",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+              "fourBytes": "022c0d9f",
+              "transferSteps": [
+                19
+              ],
+              "children": [
+                {
+                  "frameId": "0_7_0",
+                  "type": "CALL",
+                  "from": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+                  "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                  "fourBytes": "a9059cbb",
+                  "transferSteps": [
+                    19
+                  ],
+                  "children": [
+                    {
+                      "frameId": "0_7_0_0",
+                      "type": "LOG3",
+                      "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                      "to": "",
+                      "fourBytes": "ddf252ad",
+                      "transferSteps": [
+                        19
+                      ],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "frameId": "0_9",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "fourBytes": "2e1a7d4d",
+              "transferSteps": [
+                20,
+                21
+              ],
+              "children": [
+                {
+                  "frameId": "0_9_0",
+                  "type": "CALL",
+                  "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                  "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+                  "fourBytes": null,
+                  "transferSteps": [
+                    20
+                  ],
+                  "children": []
+                },
+                {
+                  "frameId": "0_9_1",
+                  "type": "LOG2",
+                  "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                  "to": "",
+                  "fourBytes": "7fcf532c",
+                  "transferSteps": [
+                    21
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "frameId": "0_10",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xdadb0d80178819f2319190d340ce9a924f783711",
+              "fourBytes": null,
+              "transferSteps": [
+                22
+              ],
+              "children": []
+            },
+            {
+              "frameId": "0_12",
+              "type": "CALL",
+              "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+              "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "fourBytes": "a9059cbb",
+              "transferSteps": [
+                23
+              ],
+              "children": [
+                {
+                  "frameId": "0_12_0",
+                  "type": "DELEGATECALL",
+                  "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                  "to": "0x43506849d7c04f9138d1a2050bbf3a0c054402dd",
+                  "fourBytes": "a9059cbb",
+                  "transferSteps": [
+                    23
+                  ],
+                  "children": [
+                    {
+                      "frameId": "0_12_0_0",
+                      "type": "LOG3",
+                      "from": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                      "to": "",
+                      "fourBytes": "ddf252ad",
+                      "transferSteps": [
+                        23
+                      ],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "transfers": [
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+            "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "2434.842996",
+            "logIndex": 0,
+            "frameId": "0_1_2_0_0",
+            "transferStep": 0,
+            "tags": [
+              {
+                "category": 6,
+                "categoryName": "TransferPurpose",
+                "value": "Flashloan"
+              },
+              {
+                "category": 7,
+                "categoryName": "TransferBusiness",
+                "value": "Borrow"
+              }
+            ]
+          },
+          {
+            "type": 2,
+            "typeName": "Burn",
+            "category": "Transfer",
+            "from": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+            "to": "0xdd19ffe9b7ef3ad63ddc936d5f6a02eb62304cf1",
+            "token": {
+              "protocol": 20,
+              "address": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "variableDebtUSDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "2434.629188",
+            "logIndex": 2,
+            "frameId": "0_1_3_2_0_2_15_0_1",
+            "transferStep": 1,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+            "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1.412932203829756943",
+            "logIndex": 4,
+            "frameId": "0_1_3_2_0_2_20_0_1_0",
+            "transferStep": 2,
+            "tags": []
+          },
+          {
+            "type": 2,
+            "typeName": "Burn",
+            "category": "Transfer",
+            "from": "0xdd19ffe9b7ef3ad63ddc936d5f6a02eb62304cf1",
+            "to": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+            "token": {
+              "protocol": 20,
+              "address": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "spWETH",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1.412890087461769438",
+            "logIndex": 5,
+            "frameId": "0_1_3_2_0_2_20_0_2",
+            "transferStep": 3,
+            "tags": []
+          },
+          {
+            "type": 1,
+            "typeName": "Mint",
+            "category": "Transfer",
+            "from": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+            "to": "0xb137e7d16564c81ae2b0c8ee6b55de81dd46ece5",
+            "token": {
+              "protocol": 20,
+              "address": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "spWETH",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.000000003150356584",
+            "logIndex": 7,
+            "frameId": "0_1_3_2_0_2_23_0_3",
+            "transferStep": 4,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xdd19ffe9b7ef3ad63ddc936d5f6a02eb62304cf1",
+            "to": "0xb137e7d16564c81ae2b0c8ee6b55de81dd46ece5",
+            "token": {
+              "protocol": 20,
+              "address": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "spWETH",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.006760441166649555",
+            "logIndex": 9,
+            "frameId": "0_1_3_2_0_2_23_0_5",
+            "transferStep": 5,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0x377c3bd93f2a2984e1e7be6a5c22c525ed4a4815",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "2434.842996",
+            "logIndex": 11,
+            "frameId": "0_1_3_2_0_2_24_0_0",
+            "transferStep": 6,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1.412932203829756943",
+            "logIndex": 15,
+            "frameId": "0_1_3_6_1_1_0_0",
+            "transferStep": 7,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+            "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1203.956824",
+            "logIndex": 16,
+            "frameId": "0_1_3_6_1_3_0_0_0",
+            "transferStep": 8,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "to": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.671142796819134547",
+            "logIndex": 17,
+            "frameId": "0_1_3_6_1_3_2_0_0",
+            "transferStep": 9,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "InternalTransaction",
+            "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "token": {
+              "protocol": 20,
+              "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "ETH",
+              "name": "ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.741789407010622396",
+            "logIndex": -1,
+            "frameId": "0_1_3_6_1_5_0",
+            "transferStep": 10,
+            "tags": []
+          },
+          {
+            "type": 2,
+            "typeName": "Burn",
+            "category": "WithdrawalW",
+            "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.741789407010622396",
+            "logIndex": 19,
+            "frameId": "0_1_3_6_1_5_1",
+            "transferStep": 11,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0x000000000004444c5dc75cb358380d2e3de08a90",
+            "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "token": {
+              "protocol": 20,
+              "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDT",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1334.021251",
+            "logIndex": 21,
+            "frameId": "0_1_3_6_1_6_0_1_0_0",
+            "transferStep": 12,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "InternalTransaction",
+            "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "to": "0x000000000004444c5dc75cb358380d2e3de08a90",
+            "token": {
+              "protocol": 20,
+              "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "ETH",
+              "name": "ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.741789407010622396",
+            "logIndex": -1,
+            "frameId": "0_1_3_6_1_6_0_3",
+            "transferStep": 13,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+            "to": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1331.982582",
+            "logIndex": 23,
+            "frameId": "0_1_3_6_1_7_0_2_0_0_0",
+            "transferStep": 14,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "to": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+            "token": {
+              "protocol": 20,
+              "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDT",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "1334.021251",
+            "logIndex": 24,
+            "frameId": "0_1_3_6_1_7_0_3_1_0_0",
+            "transferStep": 15,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+            "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "2535.939406",
+            "logIndex": 25,
+            "frameId": "0_1_3_6_1_10_0_0",
+            "transferStep": 16,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "2434.842996",
+            "logIndex": 26,
+            "frameId": "0_1_3_8_0_0",
+            "transferStep": 17,
+            "tags": [
+              {
+                "category": 6,
+                "categoryName": "TransferPurpose",
+                "value": "Flashloan"
+              },
+              {
+                "category": 7,
+                "categoryName": "TransferBusiness",
+                "value": "Repay"
+              }
+            ]
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "97.052553",
+            "logIndex": 28,
+            "frameId": "0_4_0_0",
+            "transferStep": 18,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+            "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.054831738650997602",
+            "logIndex": 29,
+            "frameId": "0_7_0_0",
+            "transferStep": 19,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "InternalTransaction",
+            "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "to": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "token": {
+              "protocol": 20,
+              "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "ETH",
+              "name": "ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.054831738650997602",
+            "logIndex": -1,
+            "frameId": "0_9_0",
+            "transferStep": 20,
+            "tags": []
+          },
+          {
+            "type": 2,
+            "typeName": "Burn",
+            "category": "WithdrawalW",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "token": {
+              "protocol": 20,
+              "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "WETH",
+              "name": "Wrapped ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.054831738650997602",
+            "logIndex": 32,
+            "frameId": "0_9_1",
+            "transferStep": 21,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "InternalTransaction",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0xdadb0d80178819f2319190d340ce9a924f783711",
+            "token": {
+              "protocol": 20,
+              "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "tokenId": null,
+              "decimals": 18,
+              "symbol": "ETH",
+              "name": "ETH",
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "0.054831738650997602",
+            "logIndex": -1,
+            "frameId": "0_10",
+            "transferStep": 22,
+            "tags": []
+          },
+          {
+            "type": 0,
+            "typeName": "Normal",
+            "category": "Transfer",
+            "from": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+            "to": "0x9bac8489195b23974a7a4fbe492e07fa3ab49f9c",
+            "token": {
+              "protocol": 20,
+              "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+              "tokenId": null,
+              "decimals": 6,
+              "symbol": "USDC",
+              "name": null,
+              "transferable": true,
+              "virtual": false
+            },
+            "amount": "4.043857",
+            "logIndex": 33,
+            "frameId": "0_12_0_0",
+            "transferStep": 23,
+            "tags": []
+          }
+        ]
+      },
+      "addressGroups": [],
+      "addressTags": [
+        {
+          "address": "0x2655099e5e38635c8401d015724cf34d6e237613",
+          "tags": [
+            {
+              "category": 0,
+              "categoryName": "TransactionField",
+              "value": "from"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "EOA"
+            }
+          ]
+        },
+        {
+          "address": "0xa7bc4d21680ab2d088614951b20c9195e8d23470",
+          "tags": [
+            {
+              "category": 0,
+              "categoryName": "TransactionField",
+              "value": "to"
+            },
+            {
+              "category": 1,
+              "categoryName": "ProtocolField",
+              "value": "liquidator"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0xdadb0d80178819f2319190d340ce9a924f783711",
+          "tags": [
+            {
+              "category": 0,
+              "categoryName": "TransactionField",
+              "value": "miner"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "EOA"
+            }
+          ]
+        },
+        {
+          "address": "0x0000000000000000000000000000000000000000",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "null"
+            }
+          ]
+        },
+        {
+          "address": "0x000000000000000000000000000000000000dead",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "burn"
+            }
+          ]
+        },
+        {
+          "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "ETH"
+            }
+          ]
+        },
+        {
+          "address": "0xdd19ffe9b7ef3ad63ddc936d5f6a02eb62304cf1",
+          "tags": [
+            {
+              "category": 1,
+              "categoryName": "ProtocolField",
+              "value": "borrower"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "EOA"
+            }
+          ]
+        },
+        {
+          "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "USDC"
+            }
+          ]
+        },
+        {
+          "address": "0x7b70d04099cb9cfb1db7b6820badafb4c5c70a67",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "variableDebtUSDC"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            },
+            {
+              "category": 8,
+              "categoryName": "Others",
+              "value": "leaf"
+            }
+          ]
+        },
+        {
+          "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "WETH"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0x59cd1c87501baa753d0b5b5ab5d8416a45cd71db",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "spWETH"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            },
+            {
+              "category": 8,
+              "categoryName": "Others",
+              "value": "leaf"
+            }
+          ]
+        },
+        {
+          "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "USDT"
+            }
+          ]
+        },
+        {
+          "address": "0xb137e7d16564c81ae2b0c8ee6b55de81dd46ece5",
+          "tags": [
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            },
+            {
+              "category": 8,
+              "categoryName": "Others",
+              "value": "leaf"
+            }
+          ]
+        },
+        {
+          "address": "0x377c3bd93f2a2984e1e7be6a5c22c525ed4a4815",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "spUSDC"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            },
+            {
+              "category": 8,
+              "categoryName": "Others",
+              "value": "leaf"
+            }
+          ]
+        },
+        {
+          "address": "0xe0554a476a092703abdb3ef35c80e0d76d32939f",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "UniswapV3Pool"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0x000000000004444c5dc75cb358380d2e3de08a90",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "Uniswap V4: Pool Manager"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0xe0e0e08a6a4b9dc7bd67bcb7aade5cf48157d444",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "Core"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0xf48a3f7c0575c85cf4529aa220caf3c055773f1c",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "MainnetSettler"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "Balancer Vault"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+          "tags": [
+            {
+              "category": 2,
+              "categoryName": "Address",
+              "value": "UniswapV2Pool"
+            },
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "Contract"
+            }
+          ]
+        },
+        {
+          "address": "0x9bac8489195b23974a7a4fbe492e07fa3ab49f9c",
+          "tags": [
+            {
+              "category": 5,
+              "categoryName": "AddressType",
+              "value": "EOA"
+            },
+            {
+              "category": 8,
+              "categoryName": "Others",
+              "value": "leaf"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

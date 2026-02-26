@@ -1,0 +1,70 @@
+{
+  "status": "ok",
+  "result": [
+    {
+      "transaction": {
+        "transactionHash": "0xa5c9243ad9599426d7a0a02ae6a7603bf7914f17aeba4cfd4e2aedd2f25bebc3",
+        "from": "0xcafecd3587d7b627620022cffee76d404c2195c3",
+        "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+        "callStack": {
+          "frameId": "0",
+          "type": "CALL",
+          "from": "0xcafecd3587d7b627620022cffee76d404c2195c3",
+          "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+          "value": 0,
+          "transferCount": 14,
+          "transferSteps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+          "children": [
+            {
+              "frameId": "0_2",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+              "value": 0,
+              "methodNames": ["flashLoan"],
+              "transferCount": 10,
+              "transferSteps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+              "children": [
+                {
+                  "frameId": "0_2_0",
+                  "type": "CALL",
+                  "from": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
+                  "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                  "value": 0,
+                  "methodNames": ["transfer"],
+                  "transferCount": 1,
+                  "transferSteps": [0],
+                  "children": [
+                    {
+                      "frameId": "0_2_0_0",
+                      "type": "LOG3",
+                      "transferCount": 1,
+                      "transferSteps": [0],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "transfers": [
+          {"transferStep": 0, "frameId": "0_2_0_0", "from": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "token": {"symbol": "WETH", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}, "amount": "1499.02", "typeName": "Transfer"},
+          {"transferStep": 1, "frameId": "0_2_1_0_0_0_0", "from": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "token": {"symbol": "USDC"}, "amount": "2632879.59", "typeName": "Transfer"},
+          {"transferStep": 2, "frameId": "0_2_1_0_0_2_0_0", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", "token": {"symbol": "WETH"}, "amount": "1499.02", "typeName": "Transfer"},
+          {"transferStep": 3, "frameId": "0_2_1_0_1_0_2_16_0_1", "from": "0x72e95b8931767c79ba4eee721354d6e99a61d004", "to": "0x94e96e1b9b8c7ecf8ddb37a379e6bbeffa057c93", "token": {"symbol": "variableDebtEthUSDC"}, "amount": "2632613.80", "typeName": "Burn"},
+          {"transferStep": 4, "frameId": "0_2_1_0_1_0_2_19_0_1_0", "from": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8", "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "token": {"symbol": "WETH"}, "amount": "1529.43", "typeName": "Transfer"},
+          {"transferStep": 5, "frameId": "0_2_1_0_1_0_2_19_0_2", "from": "0x94e96e1b9b8c7ecf8ddb37a379e6bbeffa057c93", "to": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8", "token": {"symbol": "aEthWETH"}, "amount": "1529.36", "typeName": "Burn"},
+          {"transferStep": 6, "frameId": "0_2_1_0_1_0_2_22_0_2", "from": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8", "to": "0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c", "token": {"symbol": "aEthWETH"}, "amount": "0.0001", "typeName": "Mint"},
+          {"transferStep": 7, "frameId": "0_2_1_0_1_0_2_22_0_4", "from": "0x94e96e1b9b8c7ecf8ddb37a379e6bbeffa057c93", "to": "0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c", "token": {"symbol": "aEthWETH"}, "amount": "7.31", "typeName": "Transfer"},
+          {"transferStep": 8, "frameId": "0_2_1_0_1_0_2_23_0_0", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0x98c23e9d8f34fefb1b7bd6a91b7ff122f4e16f5c", "token": {"symbol": "USDC"}, "amount": "2632879.59", "typeName": "Transfer"},
+          {"transferStep": 9, "frameId": "0_2_2_0", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", "token": {"symbol": "WETH"}, "amount": "1499.02", "typeName": "Transfer"},
+          {"transferStep": 10, "frameId": "0_3_0", "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "token": {"symbol": "ETH"}, "amount": "23.95", "typeName": "InternalTransaction"},
+          {"transferStep": 11, "frameId": "0_3_1", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "token": {"symbol": "WETH"}, "amount": "23.95", "typeName": "WithdrawalW"},
+          {"transferStep": 12, "frameId": "0_4", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0xdadb0d80178819f2319190d340ce9a924f783711", "token": {"symbol": "ETH"}, "amount": "23.95", "typeName": "InternalTransaction"},
+          {"transferStep": 13, "frameId": "0_6_0", "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb", "to": "0xc2eb4e0a17505a60e1385d276126e2539ffc0716", "token": {"symbol": "WETH"}, "amount": "6.45", "typeName": "Transfer"}
+        ]
+      }
+    }
+  ]
+}

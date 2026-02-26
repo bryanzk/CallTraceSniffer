@@ -1,0 +1,61 @@
+{
+  "status": "ok",
+  "result": [
+    {
+      "transaction": {
+        "transactionHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "from": "0x1111111111111111111111111111111111111111",
+        "to": "0x2222222222222222222222222222222222222222",
+        "miner": "0x3333333333333333333333333333333333333333",
+        "callStack": {
+          "frameId": "0",
+          "type": "CALL",
+          "from": "0x1111111111111111111111111111111111111111",
+          "to": "0x2222222222222222222222222222222222222222",
+          "fourBytes": "12345678",
+          "transferSteps": [0, 1],
+          "children": [
+            {
+              "frameId": "0_0",
+              "type": "CALL",
+              "from": "0x2222222222222222222222222222222222222222",
+              "to": "0x4444444444444444444444444444444444444444",
+              "fourBytes": "abcdef01",
+              "transferSteps": [0],
+              "children": []
+            },
+            {
+              "frameId": "0_1",
+              "type": "CALL",
+              "from": "0x2222222222222222222222222222222222222222",
+              "to": "0x5555555555555555555555555555555555555555",
+              "fourBytes": "abcdef02",
+              "transferSteps": [1],
+              "children": []
+            }
+          ]
+        },
+        "transfers": [
+          {
+            "transferStep": 0,
+            "frameId": "0_0",
+            "from": "0x7777777777777777777777777777777777777777",
+            "to": "0x2222222222222222222222222222222222222222",
+            "amount": "10",
+            "token": {"symbol": "XYZ", "address": "0x9999999999999999999999999999999999999999"}
+          },
+          {
+            "transferStep": 1,
+            "frameId": "0_1",
+            "from": "0x2222222222222222222222222222222222222222",
+            "to": "0x6666666666666666666666666666666666666666",
+            "amount": "9.8",
+            "token": {"symbol": "XYZ", "address": "0x9999999999999999999999999999999999999999"}
+          }
+        ]
+      },
+      "addressGroups": [],
+      "addressTags": []
+    }
+  ]
+}

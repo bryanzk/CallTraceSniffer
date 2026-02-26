@@ -1,0 +1,136 @@
+{
+  "status": "ok",
+  "result": [
+    {
+      "transaction": {
+        "transactionHash": "0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000",
+        "from": "0xcafecd3587d7b627620022cffee76d404c2195c3",
+        "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+        "miner": "0xdadb0d80178819f2319190d340ce9a924f783711",
+        "callStack": {
+          "frameId": "0",
+          "type": "CALL",
+          "from": "0xcafecd3587d7b627620022cffee76d404c2195c3",
+          "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+          "transferCount": 9,
+          "children": [
+            {
+              "frameId": "0_0",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0xbbbb00000000000000000000000000000000ffcb",
+              "transferCount": 1,
+              "children": []
+            },
+            {
+              "frameId": "0_1",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+              "transferCount": 2,
+              "children": []
+            },
+            {
+              "frameId": "0_2",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8",
+              "transferCount": 2,
+              "children": []
+            },
+            {
+              "frameId": "0_3",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "transferCount": 2,
+              "children": []
+            },
+            {
+              "frameId": "0_4",
+              "type": "CALL",
+              "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+              "to": "0xdadb0d80178819f2319190d340ce9a924f783711",
+              "transferCount": 2,
+              "children": []
+            }
+          ]
+        },
+        "transfers": [
+          {
+            "transferStep": 0,
+            "frameId": "0_0",
+            "from": "0xbbbb00000000000000000000000000000000ffcb",
+            "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "amount": "1499.0200241812",
+            "token": {"symbol": "WETH", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}
+          },
+          {
+            "transferStep": 1,
+            "frameId": "0_1",
+            "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "to": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+            "amount": "1499.0200241812",
+            "token": {"symbol": "WETH", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}
+          },
+          {
+            "transferStep": 2,
+            "frameId": "0_1",
+            "from": "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+            "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "amount": "2632879.593568",
+            "token": {"symbol": "USDC", "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}
+          },
+          {
+            "transferStep": 3,
+            "frameId": "0_2",
+            "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "to": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8",
+            "amount": "2632879.593568",
+            "token": {"symbol": "USDC", "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"}
+          },
+          {
+            "transferStep": 4,
+            "frameId": "0_2",
+            "from": "0x4d5f47fa6a74757f35c14fd3a6ef8e3c9bc514e8",
+            "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "amount": "1529.4364838279",
+            "token": {"symbol": "WETH", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}
+          },
+          {
+            "transferStep": 9,
+            "frameId": "0_3",
+            "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "to": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "amount": "23.9595179363",
+            "token": {"symbol": "WETH", "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}
+          },
+          {
+            "transferStep": 10,
+            "frameId": "0_3",
+            "from": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "to": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "amount": "23.9595179363",
+            "token": {"symbol": "ETH", "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+          },
+          {
+            "transferStep": 11,
+            "frameId": "0_4",
+            "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "to": "0xdadb0d80178819f2319190d340ce9a924f783711",
+            "amount": "23.9595179363",
+            "token": {"symbol": "ETH", "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+          },
+          {
+            "transferStep": 12,
+            "frameId": "0_4",
+            "from": "0xf00001968c1d6196d3d0553030c7af8d1905dcbb",
+            "to": "0xcafecd3587d7b627620022cffee76d404c2195c3",
+            "amount": "6.4569408901",
+            "token": {"symbol": "ETH", "address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+          }
+        ]
+      }
+    }
+  ]
+}
