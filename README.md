@@ -84,7 +84,7 @@ CallTraceSniffer/
 
 BlockSec 解析核心已拆分到独立项目 `blocksec-parser`（Library + CLI + HTTP）。
 本仓库通过适配层保持 `calltrace.services.extractor.BlockSecExtractor` 兼容导入路径。
-当前迁移期优先从同级目录 `../blocksec-parser/src` 动态加载；发布后再切换为固定版本依赖（`>=0.1,<0.2`）。
+适配层通过 HTTP 调用 `blocksec-parser` 服务，地址由环境变量 `BLOCKSEC_PARSER_API_BASE_URL` 控制（默认 `http://127.0.0.1:4444`）。
 
 ## 📖 文档
 
@@ -94,6 +94,7 @@ BlockSec 解析核心已拆分到独立项目 `blocksec-parser`（Library + CLI 
 - [远程访问部署选项](docs/deployment/REMOTE_ACCESS_OPTIONS.md) - 让同事远程访问服务的多种方式（Web UI + API）
 - [免费云平台部署](docs/deployment/FREE_CLOUD_DEPLOYMENT.md) - Vercel、Cloudflare、Railway 等免费平台部署指南
 - [Railway 部署指南](docs/deployment/RAILWAY_DEPLOYMENT.md) - Railway 平台详细部署说明
+- [blocksec-parser 接入文档](docs/development/BLOCKSEC_PARSER_API_INTEGRATION.md) - 第三方 API 调用协议与重试策略
 - [API 使用指南](docs/deployment/API_USAGE.md) - API 接口使用文档和代码示例
 
 ### 开发文档
