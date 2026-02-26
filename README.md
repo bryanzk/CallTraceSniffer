@@ -51,7 +51,7 @@ CallTraceSniffer/
 │       │   └── validators.py   # 请求验证
 │       ├── services/           # 业务逻辑层
 │       │   ├── analysis_service.py  # 分析服务（核心）
-│       │   ├── extractor.py         # 数据提取服务
+│       │   ├── extractor.py         # 兼容层（转发至独立项目 blocksec-parser）
 │       │   ├── ir_v1_blocksec.py    # BlockSec IR解析
 │       │   ├── mermaid_dag.py       # Mermaid图生成
 │       │   └── blocksec_simulation.py # 模拟服务
@@ -79,6 +79,12 @@ CallTraceSniffer/
 ├── Dockerfile                  # Docker配置
 └── docker-compose.yml          # Docker Compose配置
 ```
+
+## 🔌 BlockSec 解析独立化
+
+BlockSec 解析核心已拆分到独立项目 `blocksec-parser`（Library + CLI + HTTP）。
+本仓库通过适配层保持 `calltrace.services.extractor.BlockSecExtractor` 兼容导入路径。
+当前迁移期优先从同级目录 `../blocksec-parser/src` 动态加载；发布后再切换为固定版本依赖（`>=0.1,<0.2`）。
 
 ## 📖 文档
 

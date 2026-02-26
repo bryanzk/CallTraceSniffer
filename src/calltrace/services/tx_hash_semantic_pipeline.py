@@ -18,6 +18,10 @@ from .openai_shell_semantic_mvp import (
     generate_semantic_tree_with_shell,
 )
 from .fourbyte_signatures import build_selector_signature_map
+from .blocksec_adapter import (
+    fetch_payload_via_api as adapter_fetch_payload_via_api,
+    sanitize_payload as adapter_sanitize_payload,
+)
 
 EIGENPHI_JSON_URL_TEMPLATE = (
     "https://eigenphi.io/api/v1/analyseTransaction"
@@ -112,20 +116,7 @@ def load_env_from_dotenv_if_missing(dotenv_path: Path | str) -> None:
 
 def sanitize_blocksec_payload(raw_payload: dict[str, Any]) -> dict[str, Any]:
     """清洗 BlockSec extractor 返回值，只保留业务载荷字段。"""
-    if not isinstance(raw_payload, dict):
-        raise ValueError("BlockSec extractor 返回格式非法")
-    if raw_payload.get("success") is False:
-        raise ValueError(raw_payload.get("error", "BlockSec extractor 执行失败"))
-
-    cleaned = {
-        key: value
-        for key, value in raw_payload.items()
-        if key not in {"success", "tx_hash", "error"}
-    }
-    trace_data = cleaned.get("trace_data")
-    if not trace_data:
-        raise ValueError("BlockSec 数据缺少 trace_data")
-    return cleaned
+    return adapter_sanitize_payload(raw_payload)
 
 
 def _find_trace_payload(payload: object) -> dict[str, Any] | None:
@@ -195,31 +186,7 @@ def _post_json(url: str, payload: dict[str, Any], headers: dict[str, str], timeo
 
 def fetch_blocksec_payload_via_api(tx_hash: str, timeout_sec: int = 45) -> dict[str, Any]:
     """回退方案：直接调用 BlockSec onchain/tx 接口。"""
-    normalized_hash = normalize_tx_hash(tx_hash)
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json;charset=utf-8",
-        "origin": "https://app.blocksec.com",
-        "referer": f"https://app.blocksec.com/explorer/tx/eth/{normalized_hash}",
-        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-    }
-    cookie = _build_blocksec_cookie_header()
-    if cookie:
-        headers["cookie"] = cookie
-
-    post_payload = {"chainID": 1, "txnHash": normalized_hash, "blocked": False}
-    collected: dict[str, Any] = {}
-    for payload_key, endpoint in BLOCKSEC_ONCHAIN_ENDPOINTS.items():
-        url = f"{BLOCKSEC_ONCHAIN_BASE_URL}/{endpoint}"
-        response = _post_json(url, post_payload, headers, timeout_sec=timeout_sec)
-        if payload_key == "trace_data":
-            trace_data = _find_trace_payload(response)
-            if trace_data is None:
-                raise RuntimeError("BlockSec API 响应缺少 trace_data")
-            collected[payload_key] = trace_data
-            continue
-        collected[payload_key] = _unwrap_payload(response)
-    return collected
+    return adapter_fetch_payload_via_api(tx_hash, timeout_sec=timeout_sec)
 
 
 def _http_get_bytes(url: str, timeout_sec: int) -> bytes:
