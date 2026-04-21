@@ -24,6 +24,14 @@ class _StubDuneClient:
         return []
 
 
+class _StubRpcClient:
+    def __init__(self, counts):
+        self._counts = counts
+
+    def get_block_tx_count(self, block_number: int):
+        return self._counts.get(block_number)
+
+
 @pytest.mark.smoke
 def test_smoke_tx_metrics_revenue_usd_all():
     rpc_url = os.getenv("ETH_RPC_URL")
@@ -127,10 +135,24 @@ def test_smoke_tx_metrics_revenue_usd_all():
         },
     }
 
+    expected_block_counts = {
+        24278160: 329,
+        24182471: 288,
+        24273364: 317,
+    }
+    live_rpc = RpcClient(rpc_url=rpc_url)
+    observed_counts = {}
+    for block_number, expected in expected_block_counts.items():
+        actual = live_rpc.get_block_tx_count(block_number)
+        if actual is None:
+            pytest.skip(f"RPC provider 当前无法稳定返回区块 {block_number} 的交易数")
+        assert actual == expected
+        observed_counts[block_number] = actual
+
     service = TxMetricsService(
         _StubEigenPhiClient(eigenphi_payloads),
         _StubDuneClient(),
-        RpcClient(rpc_url=rpc_url),
+        _StubRpcClient(observed_counts),
     )
 
     result = service.analyze_batch(tx_hashes)

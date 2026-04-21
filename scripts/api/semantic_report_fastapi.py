@@ -48,6 +48,11 @@ class SemanticReportResponse(BaseModel):
     report_markdown: str
 
 
+# 兼容 importlib 动态加载场景，提前完成 forward refs 解析。
+SemanticReportRequest.model_rebuild(_types_namespace=globals())
+SemanticReportResponse.model_rebuild(_types_namespace=globals())
+
+
 app = FastAPI(title="Semantic Report API", version="1.0.0")
 
 
